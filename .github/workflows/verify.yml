@@ -1,20 +1,21 @@
-name: Verify Java application
+name: Verify desktop editor
 on:
   push:
+    paths: ['desktop/**', '.github/workflows/verify.yml']
   pull_request:
+    paths: ['desktop/**', '.github/workflows/verify.yml']
 permissions:
   contents: read
 jobs:
   verify:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-15]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
         with:
           distribution: temurin
           java-version: '21'
-      - run: sh package.sh
-      - run: sh smoke-test.sh
+      - run: sh desktop/test.sh

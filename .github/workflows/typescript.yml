@@ -1,7 +1,9 @@
 name: Verify TypeScript workspace
 on:
   push:
+    paths: ["workspace/**", ".github/workflows/typescript.yml"]
   pull_request:
+    paths: ["workspace/**", ".github/workflows/typescript.yml"]
 permissions:
   contents: read
 jobs:
