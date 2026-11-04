@@ -1,0 +1,21 @@
+name: Report a problem
+description: Help us reproduce a problem in the writing app.
+body:
+  - type: input
+    id: version
+    attributes:
+      label: App and macOS version
+      placeholder: diyalamp version, macOS version, Apple silicon or Intel
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: What happened?
+      description: Include steps, expected behavior, and a minimal fictional note if useful. Do not share private writing.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or additional details

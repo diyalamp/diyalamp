@@ -1,0 +1,29 @@
+# Contributing to diyalamp
+
+Thank you for helping make a quieter place to write.
+
+## Start here
+
+The current product is a local macOS Markdown editor. See [product scope](docs/PRODUCT.md). The desktop application belongs in `desktop/`; the website has its own repository. Earlier agent orchestration, browser automation, database, and cloud prototypes are outside the current release.
+
+Before a large change, open an issue describing the writing problem and proposed behavior. Small documentation corrections and reproducible bug fixes can go straight to a pull request.
+
+## Development
+
+Use JDK 21 or newer. The desktop README will contain the supported build and test commands as the application lands. Keep sample notes fictional and never commit your personal writing or credentials.
+
+## Pull requests
+
+Describe the user-visible problem, the resulting behavior, and how you checked it. Add focused tests for file safety, Markdown round trips, and other behavior that could lose writing. UI changes should include a screenshot and keyboard-access check. Keep unrelated formatting changes out of the patch.
+
+## Design
+
+Use the fixed lamp asset and lowercase **diyalamp** name. Favor a warm paper writing surface, restrained slate navigation, readable text, consistent spacing, and native macOS interactions. The app should feel calm and direct. Avoid sign-in, telemetry, AI services, and paid dependencies in the local writing flow.
+
+## Reporting a problem
+
+Include your macOS version, Mac architecture (Apple silicon or Intel), application version, steps to reproduce, and what you expected. Attach a minimal fictional Markdown example when relevant. Do not include private notes, tokens, or personal file paths.
+
+For sensitive security reports, follow [SECURITY.md](SECURITY.md).
+
+Contributions are licensed under the repository's Apache 2.0 license.

@@ -1,0 +1,14 @@
+name: Suggest an improvement
+description: Tell us about a writing workflow we could improve.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What writing problem are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would a good experience look like?
+      description: Keep the local, focused Markdown scope in mind.
