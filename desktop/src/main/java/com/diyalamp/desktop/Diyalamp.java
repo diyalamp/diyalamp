@@ -14,7 +14,7 @@ import javax.swing.text.*;
 import javax.swing.undo.UndoManager;
 
 public final class Diyalamp {
-  public static final String VERSION = "1.0.1";
+  public static final String VERSION = "1.0.2";
   private final JFrame frame = new JFrame("diyalamp");
   private NoteStore store;
   private final boolean persistFolder;
@@ -75,7 +75,7 @@ public final class Diyalamp {
     frame.setMinimumSize(new Dimension(820, 560));
     frame.setSize(1180, 800);
     frame.setLocationRelativeTo(null);
-    ImageIcon lamp = Theme.lamp(128);
+    ImageIcon lamp = Theme.appIcon(128);
     if (lamp != null) frame.setIconImage(lamp.getImage());
     frame.getRootPane().putClientProperty("apple.awt.fullWindowContent", false);
     buildLibrary();

@@ -53,3 +53,7 @@ The interface is dark-only. JRXNA black, white, and #EE0000 red provide the iden
 - Deleted notes move to `.diyalamp-trash` inside the chosen folder. They can be restored from the app.
 
 Common Markdown is supported; this first release does not implement the full CommonMark specification, rich table layout, remote-image loading, plugins, sync, or team workspaces. HTML remains literal text. Unsupported text is retained rather than executed.
+
+## Icon assets
+
+`src/main/resources/app-icon.png` is the project’s existing profile-picture artwork, including its white background and padding. Both the packaged ICNS and application-window icon use it. `lamp.png` remains the separate, compact inline brand mark.

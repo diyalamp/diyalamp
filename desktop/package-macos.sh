@@ -9,9 +9,9 @@ mkdir -p build/input/deps build/release build/icon.iconset
 cp build/diyalamp.jar build/input/
 cp build/deps/flatlaf-3.7.2.jar build/deps/commonmark-0.32.0.jar build/deps/commonmark-ext-gfm-strikethrough-0.32.0.jar build/deps/flatlaf-extras-3.7.2.jar build/deps/jsvg-2.1.0.jar build/input/deps/
 for size in 16 32 128 256 512; do
-  sips -z "$size" "$size" src/main/resources/lamp.png --out "build/icon.iconset/icon_${size}x${size}.png" >/dev/null
+  sips -z "$size" "$size" src/main/resources/app-icon.png --out "build/icon.iconset/icon_${size}x${size}.png" >/dev/null
   double=$((size * 2))
-  sips -z "$double" "$double" src/main/resources/lamp.png --out "build/icon.iconset/icon_${size}x${size}@2x.png" >/dev/null
+  sips -z "$double" "$double" src/main/resources/app-icon.png --out "build/icon.iconset/icon_${size}x${size}@2x.png" >/dev/null
 done
 iconutil -c icns build/icon.iconset -o build/diyalamp.icns
 # Outputs live only under ignored build/. Existing release artifacts are not overwritten.

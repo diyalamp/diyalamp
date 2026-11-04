@@ -134,6 +134,15 @@ public final class Theme {
     return button;
   }
 
+  /** Profile-picture artwork includes its own white background and safe padding. */
+  public static ImageIcon appIcon(int size) {
+    java.net.URL url = Theme.class.getResource("/app-icon.png");
+    return url == null
+        ? null
+        : new ImageIcon(
+            new ImageIcon(url).getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH));
+  }
+
   public static ImageIcon lamp(int size) {
     java.net.URL u = Theme.class.getResource("/lamp.png");
     return u == null
