@@ -18,7 +18,16 @@ public final class WritingPane extends JTextPane {
     this.changed = changed;
     setEditorKit(new PageKit());
     setDocument(document);
-    setMargin(new Insets(34, 44, 60, 44));
+    setMargin(new Insets(44, 44, 72, 44));
+    addComponentListener(
+        new ComponentAdapter() {
+          @Override
+          public void componentResized(ComponentEvent event) {
+            int inset = Math.max(28, Math.min(140, (getWidth() - 680) / 2));
+            Insets next = new Insets(44, inset, 72, inset);
+            if (!next.equals(getMargin())) setMargin(next);
+          }
+        });
     setBackground(Theme.PAPER);
     setForeground(Theme.INK);
     setCaretColor(Theme.INK);

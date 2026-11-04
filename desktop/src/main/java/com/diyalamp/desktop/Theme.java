@@ -6,11 +6,11 @@ import java.io.*;
 import javax.swing.*;
 
 public final class Theme {
-  public static final Color PAPER = new Color(28, 28, 28),
-      SIDEBAR = new Color(19, 19, 19),
+  public static final Color PAPER = new Color(30, 30, 30),
+      SIDEBAR = new Color(23, 23, 23),
       INK = new Color(242, 242, 242),
       MUTED = new Color(178, 178, 178),
-      LINE = new Color(58, 58, 58),
+      LINE = new Color(43, 43, 43),
       RED = new Color(238, 0, 0);
   private static Font base = new Font("Helvetica Neue", Font.PLAIN, 15);
 
@@ -35,7 +35,13 @@ public final class Theme {
     UIManager.put("TextComponent.arc", 8);
     UIManager.put("Component.focusWidth", 1);
     UIManager.put("TabbedPane.showTabSeparators", false);
-    UIManager.put("TabbedPane.tabHeight", 36);
+    UIManager.put("TabbedPane.tabHeight", 38);
+    UIManager.put("TabbedPane.tabInsets", new Insets(6, 12, 6, 12));
+    UIManager.put("TabbedPane.tabType", "card");
+    UIManager.put("TabbedPane.cardTabArc", 8);
+    UIManager.put("TabbedPane.showContentSeparator", false);
+    UIManager.put("Button.toolbar.spacingInsets", new Insets(4, 4, 4, 4));
+    UIManager.put("ScrollBar.showButtons", false);
     UIManager.put("TabbedPane.contentBorderInsets", new Insets(0, 0, 0, 0));
     UIManager.put("ScrollBar.width", 9);
     UIManager.put("Panel.background", PAPER);
@@ -69,6 +75,19 @@ public final class Theme {
     b.setFocusable(false);
     b.setMargin(new Insets(8, 12, 8, 12));
     b.addActionListener(e -> action.run());
+    return b;
+  }
+
+  public static JButton tool(String text, String label, Runnable action) {
+    JButton b = button(text, action);
+    b.putClientProperty("JButton.buttonType", "toolBarButton");
+    b.setFont(
+        font(13)
+            .deriveFont(
+                text.equals("B") ? Font.BOLD : text.equals("I") ? Font.ITALIC : Font.PLAIN));
+    b.setMargin(new Insets(5, 9, 5, 9));
+    b.setToolTipText(label);
+    b.getAccessibleContext().setAccessibleName(label);
     return b;
   }
 

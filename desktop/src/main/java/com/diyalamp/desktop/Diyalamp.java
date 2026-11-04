@@ -117,29 +117,36 @@ public final class Diyalamp {
     refresh();
     if (!files.isEmpty()) open(files.firstElement(), false);
     frame.setVisible(true);
-    autosave.start();
+    if (active != null) SwingUtilities.invokeLater(() -> active.requestFocusInWindow());
+    autosave.setRepeats(false);
   }
 
   private void buildLibrary() {
     library.setBackground(Theme.SIDEBAR);
-    library.setBorder(BorderFactory.createEmptyBorder(16, 12, 12, 12));
+    library.setBorder(BorderFactory.createEmptyBorder(18, 12, 12, 12));
     JPanel top = new JPanel();
     top.setOpaque(false);
     top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
-    JLabel brand = new JLabel("diyalamp", Theme.lamp(24), JLabel.LEFT);
-    brand.setFont(Theme.font(18).deriveFont(Font.BOLD));
-    brand.setBorder(BorderFactory.createEmptyBorder(0, 4, 20, 0));
+    JLabel brand = new JLabel("diyalamp", Theme.lamp(20), JLabel.LEFT);
+    brand.setFont(Theme.font(15).deriveFont(Font.BOLD));
+    brand.setBorder(BorderFactory.createEmptyBorder(0, 6, 18, 0));
+    brand.setAlignmentX(Component.LEFT_ALIGNMENT);
     top.add(brand);
     folderName.setForeground(Theme.MUTED);
     folderName.setBorder(BorderFactory.createEmptyBorder(0, 4, 12, 0));
+    folderName.setAlignmentX(Component.LEFT_ALIGNMENT);
     top.add(folderName);
     search.putClientProperty("JTextField.placeholderText", "Find a note…");
     search.getAccessibleContext().setAccessibleName("Find a note by name");
+    search.putClientProperty(
+        "JTextField.leadingIcon", new com.formdev.flatlaf.icons.FlatSearchIcon());
+    search.setFont(Theme.font(13));
     search.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+    search.setAlignmentX(Component.LEFT_ALIGNMENT);
     top.add(search);
     top.add(Box.createVerticalStrut(12));
-    JButton create = Theme.button("New note  +", this::newNote);
-    create.setBackground(Theme.RED);
+    JButton create = Theme.tool("New note  +", "Create a note · ⌘N", this::newNote);
+    create.setBackground(new Color(38, 38, 38));
     create.setForeground(Color.WHITE);
     create.setAlignmentX(Component.LEFT_ALIGNMENT);
     create.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
@@ -155,14 +162,17 @@ public final class Diyalamp {
             Path p = (Path) value;
             l.setIcon(new com.formdev.flatlaf.icons.FlatFileViewFileIcon());
             l.setIconTextGap(8);
-            l.setText((store == null ? p.getFileName() : store.root().relativize(p)).toString());
+            l.setText(
+                (store == null ? p.getFileName() : store.root().relativize(p))
+                    .toString()
+                    .replaceFirst("(?i)\\.(md|markdown)$", ""));
             l.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
             l.setFont(Theme.font(13));
             if (!selected) l.setBackground(Theme.SIDEBAR);
             return l;
           }
         });
-    sidebar.setFixedCellHeight(36);
+    sidebar.setFixedCellHeight(32);
     sidebar.setBackground(Theme.SIDEBAR);
     sidebar.getAccessibleContext().setAccessibleName("Markdown notes");
     sidebar.addListSelectionListener(
@@ -208,8 +218,8 @@ public final class Diyalamp {
     library.add(scroll);
     JPanel bottom = new JPanel(new GridLayout(0, 1, 0, 6));
     bottom.setOpaque(false);
-    bottom.add(Theme.button("Open folder…", this::chooseFolder));
-    bottom.add(Theme.button("Deleted notes…", this::deletedNotes));
+    bottom.add(Theme.tool("Open folder…", "Choose your notes folder · ⌘O", this::chooseFolder));
+    bottom.add(Theme.tool("Deleted notes…", "Recover deleted notes", this::deletedNotes));
     library.add(bottom, BorderLayout.SOUTH);
     search
         .getDocument()
@@ -230,17 +240,24 @@ public final class Diyalamp {
   }
 
   private void buildPages() {
-    JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 8));
-    toolbar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Theme.LINE));
+    JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 6));
+    toolbar.setBackground(Theme.PAPER);
+    toolbar.setBorder(
+        BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, Theme.LINE),
+            BorderFactory.createEmptyBorder(0, 10, 0, 10)));
     toolbar.add(
-        Theme.button(
-            "Sidebar",
+        Theme.tool(
+            "Notes",
+            "Show or hide the notes sidebar",
             () -> {
               boolean visible = library.isVisible();
               library.setVisible(!visible);
               layout.setDividerLocation(visible ? 0 : 230);
             }));
-    JButton style = Theme.button("Style", () -> {});
+    JButton style = Theme.tool("Text", "Paragraph style", () -> {});
+    style.setIcon(UIManager.getIcon("Tree.expandedIcon"));
+    style.setHorizontalTextPosition(SwingConstants.LEFT);
     style.addActionListener(
         e -> {
           JPopupMenu m = new JPopupMenu();
@@ -269,25 +286,29 @@ public final class Diyalamp {
     toolbar.add(style);
     for (String kind : List.of("Bold", "Italic", "Code"))
       toolbar.add(
-          Theme.button(
-              kind,
+          Theme.tool(
+              kind.equals("Bold") ? "B" : kind.equals("Italic") ? "I" : "</>",
+              kind.equals("Bold")
+                  ? "Bold · ⌘B"
+                  : kind.equals("Italic") ? "Italic · ⌘I" : "Inline code",
               () -> {
                 if (active != null) active.toggle(kind.toLowerCase(Locale.ROOT));
               }));
     toolbar.add(
-        Theme.button(
+        Theme.tool(
             "Link",
+            "Insert a link",
             () -> {
               if (active != null) active.link();
             }));
-    toolbar.add(Theme.button("Side by side", this::openBeside));
+    toolbar.add(Theme.tool("Open beside", "Open a second writing pane · ⌘\\", this::openBeside));
     pages.add(toolbar, BorderLayout.NORTH);
     pages.add(left);
     JPanel footer = new JPanel(new BorderLayout());
     footer.setBorder(
         BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(1, 0, 0, 0, Theme.LINE),
-            BorderFactory.createEmptyBorder(10, 18, 10, 18)));
+            BorderFactory.createEmptyBorder(6, 18, 6, 18)));
     status.setFont(Theme.font(12));
     status.setForeground(Theme.MUTED);
     count.setFont(Theme.font(12));
@@ -564,10 +585,13 @@ public final class Diyalamp {
   private JPanel tabHeader(Session s, JTabbedPane target, Component page) {
     JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
     p.setOpaque(false);
-    JLabel title = new JLabel(s.path.getFileName().toString());
+    JLabel title =
+        new JLabel(s.path.getFileName().toString().replaceFirst("(?i)\\.(md|markdown)$", ""));
+    title.setIcon(new com.formdev.flatlaf.icons.FlatFileViewFileIcon());
+    title.setIconTextGap(8);
     title.setFont(Theme.font(13));
     p.add(title);
-    JButton close = new JButton("×");
+    JButton close = new JButton(new com.formdev.flatlaf.icons.FlatTabbedPaneCloseIcon());
     close.setBorder(BorderFactory.createEmptyBorder(2, 3, 2, 3));
     close.setContentAreaFilled(false);
     close.setFocusable(false);
@@ -842,18 +866,18 @@ public final class Diyalamp {
 
   private static String welcome() {
     return "# A little light for your thoughts\n\n"
-               + "Welcome to **diyalamp**. This is your quiet place to write, think, and keep what"
-               + " matters.\n\n"
-               + "## Make yourself at home\n\n"
-               + "- Create a note from the sidebar.\n"
-               + "- Type / on an empty line to choose a block.\n"
-               + "- Use **bold**, *italic*, and `inline code` as you write.\n"
-               + "- Open a second note with **Side by side**.\n\n"
-               + "> Your words stay in ordinary Markdown files, in a folder you control.\n\n"
-               + "## A small writing ritual\n\n"
-               + "- [ ] Capture one idea.\n"
-               + "- [ ] Give it room to grow.\n"
-               + "- [ ] Keep on keeping on.\n\n"
-               + "No account. No subscription. Just a little space to think.\n";
+        + "Welcome to **diyalamp**. This is your quiet place to write, think, and keep what"
+        + " matters.\n\n"
+        + "## Make yourself at home\n\n"
+        + "- Create a note from the sidebar.\n"
+        + "- Type / on an empty line to choose a block.\n"
+        + "- Use **bold**, *italic*, and `inline code` as you write.\n"
+        + "- Open a second note with **Side by side**.\n\n"
+        + "> Your words stay in ordinary Markdown files, in a folder you control.\n\n"
+        + "## A small writing ritual\n\n"
+        + "- [ ] Capture one idea.\n"
+        + "- [ ] Give it room to grow.\n"
+        + "- [ ] Keep on keeping on.\n\n"
+        + "No account. No subscription. Just a little space to think.\n";
   }
 }
