@@ -1,6 +1,6 @@
 # diyalamp desktop
 
-A focused, local Markdown writing app for macOS. Built with Java 21, Swing, FlatLaf, and Inter. No backend, model provider, database, or account is required.
+A focused, local Markdown writing app for macOS. Built with Java 21, Swing, the FlatLaf macOS dark component theme, and Inter. No backend, model provider, database, or account is required.
 
 ## Build and run
 
@@ -40,6 +40,8 @@ sh desktop/package-macos.sh
 This produces a self-contained `.app`, a compressed DMG for the current processor architecture, and a SHA-256 file. The runtime is included; users do not need to install Java. The manual GitHub packaging workflow builds separate Apple silicon and Intel artifacts.
 
 The first community release is unsigned and not Apple-notarized. Do not describe it as notarized or suppress macOS security checks. Signing requires the owner's Apple Developer identity and a separate notarization setup.
+
+The interface is dark-only. JRXNA black, white, and #EE0000 red provide the identity; darker gray writing surfaces reduce glare. There is no theme switch.
 
 ## Writing and storage
 

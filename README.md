@@ -16,6 +16,7 @@ The application opens a folder of `.md` or `.markdown` files. Editing does not r
 
 ## Features
 
+- Dark-only interface with black, white, red, and dark-gray writing surfaces.
 - Rendered headings, bold, italic, inline code, links, lists, checklists, quotes, and fenced code blocks.
 - Formatting controls, Markdown typing shortcuts, and slash commands.
 - Search by filename, multiple closable note tabs, and side-by-side editing.

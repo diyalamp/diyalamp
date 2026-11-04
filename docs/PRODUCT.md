@@ -21,7 +21,7 @@ Cloud storage, account backends, AI agents, embeddings, collaboration, databases
 
 ## Identity
 
-Lowercase **diyalamp**, the existing fixed lamp image, and “A tool for the mind.” Keep the website's approved identity; do not replace it with unrelated JRXNA merchandise styling. The app uses a light, Notion-inspired writing surface with restrained slate and gold accents.
+Lowercase **diyalamp**, the existing fixed lamp image, and “A tool for the mind.” Keep the website's approved identity; do not replace it with unrelated JRXNA merchandise styling. The app is dark-only, using JRXNA black, white, and #EE0000 red, with dark-gray writing surfaces. There is no light mode or appearance switch. The website and component-based browser prototype establish the visual direction.
 
 ## Release truth
 
