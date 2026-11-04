@@ -14,6 +14,8 @@ diyalamp is a desktop Markdown editor with rendered formatting and local file st
 
 The application opens a folder of `.md` or `.markdown` files. Editing does not require an account, subscription, server, database, or internet connection. Notes remain readable by other Markdown tools.
 
+![Dark desktop workspace with two Markdown notes open side by side](assets/desktop-workspace.png)
+
 ## Features
 
 - Dark-only interface with black, white, red, and dark-gray writing surfaces.
@@ -26,11 +28,16 @@ The application opens a folder of `.md` or `.markdown` files. Editing does not r
 
 ## macOS downloads
 
-Apple silicon and Intel installers are being verified for the first release. They will be available from [GitHub Releases](https://github.com/diyalamp/diyalamp/releases) and [diyalamp.com](https://diyalamp.com).
+Version **1.0.0** is available from [GitHub Releases](https://github.com/diyalamp/diyalamp/releases/tag/v1.0.0) and [diyalamp.com](https://diyalamp.com).
+
+- [Apple silicon DMG · 35.7 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.0.0/diyalamp-1.0.0-macos-arm64.dmg)
+- [Intel DMG · 37.3 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.0.0/diyalamp-1.0.0-macos-x86_64.dmg)
+
+Drag diyalamp to Applications. The release includes SHA-256 checksums.
 
 **Size target: under 5 MB installed. This target has not been achieved.** Footprint reduction is tracked as an engineering objective, not a current product claim.
 
-The package includes a runtime; users do not need to install Java separately. The current local Apple silicon build is approximately **32 MB downloaded and 46 MB installed**. These are measured package sizes, not a sub-10 MB installation claim. Architecture and runtime builds can differ; release assets provide exact download sizes and SHA-256 checksums.
+The package includes a runtime; users do not need to install Java separately. The local Apple silicon installation occupies approximately **46 MiB**. Release downloads are **35,661,621 bytes** (Apple silicon) and **37,309,904 bytes** (Intel). Architecture and runtime builds can differ; release assets provide SHA-256 checksums.
 
 The first community release is **unsigned and not Apple-notarized**. macOS may display a security warning. Signing and notarization are not configured yet.
 
