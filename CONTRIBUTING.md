@@ -18,7 +18,7 @@ Describe the user-visible problem, the resulting behavior, and how you checked i
 
 ## Design
 
-Use the fixed lamp asset and lowercase **diyalamp** name. Favor a warm paper writing surface, restrained slate navigation, readable text, consistent spacing, and native macOS interactions. The app should feel calm and direct. Avoid sign-in, telemetry, AI services, and paid dependencies in the local writing flow.
+Use the fixed lamp asset and lowercase **diyalamp** name. The interface is dark-only: black, white, #EE0000 red, and dark-gray writing surfaces. Use Inter for controls, notes, and code text. Maintain compact navigation, readable content, consistent spacing, and native macOS interactions. Avoid sign-in, telemetry, AI services, and paid dependencies in the local writing flow.
 
 ## Reporting a problem
 
