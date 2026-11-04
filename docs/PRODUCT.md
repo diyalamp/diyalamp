@@ -26,3 +26,7 @@ Lowercase **diyalamp**, the existing fixed lamp image, and “A tool for the min
 ## Release truth
 
 Do not advertise an installer before its artifact exists and opens. Label architecture support, signing, and notarization according to actual results. Never replace or migrate existing personal notes without an explicit user action. Save failures must leave the last good file intact.
+
+## Size budget
+
+Owner direction: minimize footprint and set an ambitious target of under 5 MB installed. This is a target, not an achieved claim or a promised release date. The current bundled Apple silicon build is approximately 32 MB downloaded and 46 MB installed; the runtime dominates that size. Record exact per-architecture release measurements. Evaluate runtime and packaging changes against launch reliability and the no-separate-runtime installation experience. Never market the target as a measured current size.

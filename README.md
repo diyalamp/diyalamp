@@ -28,6 +28,8 @@ The application opens a folder of `.md` or `.markdown` files. Editing does not r
 
 Apple silicon and Intel installers are being verified for the first release. They will be available from [GitHub Releases](https://github.com/diyalamp/diyalamp/releases) and [diyalamp.com](https://diyalamp.com).
 
+**Size target: under 5 MB installed. This target has not been achieved.** Footprint reduction is tracked as an engineering objective, not a current product claim.
+
 The package includes a runtime; users do not need to install Java separately. The current local Apple silicon build is approximately **32 MB downloaded and 46 MB installed**. These are measured package sizes, not a sub-10 MB installation claim. Architecture and runtime builds can differ; release assets provide exact download sizes and SHA-256 checksums.
 
 The first community release is **unsigned and not Apple-notarized**. macOS may display a security warning. Signing and notarization are not configured yet.
