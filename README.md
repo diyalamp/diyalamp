@@ -18,7 +18,7 @@ The application opens a folder of `.md` or `.markdown` files. Editing does not r
 
 ## Features
 
-- Dark-only interface with black, white, red, and dark-gray writing surfaces.
+- Dark-only workspace with Inter throughout, a compact action rail, file explorer, note tabs, and Lucide controls.
 - Rendered headings, bold, italic, inline code, links, lists, checklists, quotes, and fenced code blocks.
 - Formatting controls, Markdown typing shortcuts, and slash commands.
 - Search by filename, multiple closable note tabs, and side-by-side editing.
@@ -28,22 +28,22 @@ The application opens a folder of `.md` or `.markdown` files. Editing does not r
 
 ## macOS downloads
 
-Version **1.0.0** is available from [GitHub Releases](https://github.com/diyalamp/diyalamp/releases/tag/v1.0.0) and [diyalamp.com](https://diyalamp.com).
+Version **1.0.1** is available from [GitHub Releases](https://github.com/diyalamp/diyalamp/releases/tag/v1.0.1) and [diyalamp.com](https://diyalamp.com).
 
-- [Apple silicon DMG · 35.7 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.0.0/diyalamp-1.0.0-macos-arm64.dmg)
-- [Intel DMG · 37.3 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.0.0/diyalamp-1.0.0-macos-x86_64.dmg)
+- [Apple silicon DMG · 36.7 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.0.1/diyalamp-1.0.1-macos-arm64.dmg)
+- [Intel DMG · 38.3 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.0.1/diyalamp-1.0.1-macos-x86_64.dmg)
 
 Drag diyalamp to Applications. The release includes SHA-256 checksums.
 
 **Size target: under 5 MB installed. This target has not been achieved.** Footprint reduction is tracked as an engineering objective, not a current product claim.
 
-The package includes a runtime; users do not need to install Java separately. The local Apple silicon installation occupies approximately **46 MiB**. Release downloads are **35,661,621 bytes** (Apple silicon) and **37,309,904 bytes** (Intel). Architecture and runtime builds can differ; release assets provide SHA-256 checksums.
+The package includes a runtime; users do not need to install Java separately. The local Apple silicon installation occupies approximately **47 MiB**. Release downloads are **36,701,138 bytes** (Apple silicon) and **38,338,286 bytes** (Intel). Architecture and runtime builds can differ; release assets provide SHA-256 checksums.
 
 The first community release is **unsigned and not Apple-notarized**. macOS may display a security warning. Signing and notarization are not configured yet.
 
 ## Build and test
 
-Requires JDK 21 or newer. The desktop app uses Swing, FlatLaf, and Inter. There is no JavaScript runtime or web backend in the desktop application.
+Requires JDK 21 or newer. The desktop app uses Swing, FlatLaf, Lucide icons, CommonMark Java, and Inter. There is no JavaScript runtime or web backend in the desktop application.
 
 ```sh
 sh desktop/build.sh
