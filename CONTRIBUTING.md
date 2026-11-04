@@ -10,7 +10,7 @@ Before a large change, open an issue describing the writing problem and proposed
 
 ## Development
 
-Use JDK 21 or newer. The desktop README will contain the supported build and test commands as the application lands. Keep sample notes fictional and never commit your personal writing or credentials.
+Use JDK 21 or newer. Build with `sh desktop/build.sh`, run with `java -jar desktop/build/diyalamp.jar`, and test with `sh desktop/test.sh`. See [desktop development](desktop/README.md) for packaging details. Keep sample notes fictional and never commit your personal writing or credentials.
 
 ## Pull requests
 
