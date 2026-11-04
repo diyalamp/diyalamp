@@ -87,8 +87,8 @@ public final class NoteStore {
           "This note is larger than the 5 MB editing limit. Export a copy before continuing.");
     if (!Files.exists(p) || !hash(Files.readAllBytes(p)).equals(expected))
       throw new ConflictException(
-          "This file changed outside diyalamp. Your edits are still open. Export a copy or reopen"
-              + " the disk version.");
+          "This file changed outside diyalamp. Your edits are still open. Export a copy to keep"
+              + " them, then use File → Reload note from disk.");
     Path temp = Files.createTempFile(p.getParent(), ".diyalamp-save-", ".tmp");
     try {
       Files.write(temp, bytes);

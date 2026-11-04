@@ -14,7 +14,7 @@ import javax.swing.text.*;
 import javax.swing.undo.UndoManager;
 
 public final class Diyalamp {
-  public static final String VERSION = "1.0.0";
+  public static final String VERSION = "1.0.1";
   private final JFrame frame = new JFrame("diyalamp");
   private NoteStore store;
   private final boolean persistFolder;
@@ -32,11 +32,12 @@ public final class Diyalamp {
   private final JSplitPane layout = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
   private JSplitPane split;
   private WritingPane active;
+  private JButton libraryToggle;
   private NoteStore.Deleted lastDeleted;
   private boolean refreshing;
   private final javax.swing.Timer autosave = new javax.swing.Timer(650, e -> saveAll(false));
 
-  private static final class Session {
+  static final class Session {
     Path path;
     String fingerprint;
     final DefaultStyledDocument document;
@@ -84,7 +85,10 @@ public final class Diyalamp {
     layout.setDividerLocation(230);
     layout.setDividerSize(1);
     layout.setBorder(null);
-    frame.add(layout);
+    JPanel shell = new JPanel(new BorderLayout());
+    shell.add(buildActivityRail(), BorderLayout.WEST);
+    shell.add(layout);
+    frame.add(shell);
     frame.setJMenuBar(menu());
     frame.addWindowListener(
         new WindowAdapter() {
@@ -117,62 +121,132 @@ public final class Diyalamp {
     refresh();
     if (!files.isEmpty()) open(files.firstElement(), false);
     frame.setVisible(true);
+    if (Desktop.isDesktopSupported()) {
+      Desktop desktop = Desktop.getDesktop();
+      if (desktop.isSupported(Desktop.Action.APP_REQUEST_FOREGROUND))
+        desktop.requestForeground(true);
+    }
     if (active != null) SwingUtilities.invokeLater(() -> active.requestFocusInWindow());
     autosave.setRepeats(false);
   }
 
+  private JPanel buildActivityRail() {
+    JPanel rail = new JPanel();
+    rail.setLayout(new BoxLayout(rail, BoxLayout.Y_AXIS));
+    rail.setBackground(new Color(18, 18, 18));
+    rail.setPreferredSize(new Dimension(44, 0));
+    rail.setBorder(
+        BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 0, 1, Theme.LINE),
+            BorderFactory.createEmptyBorder(8, 6, 8, 6)));
+    libraryToggle = railButton("files", "Files · show or hide sidebar", this::toggleLibrary);
+    libraryToggle.setSelected(true);
+    rail.add(libraryToggle);
+    rail.add(Box.createVerticalStrut(6));
+    rail.add(
+        railButton(
+            "search",
+            "Find a note by name",
+            () -> {
+              showLibrary();
+              search.requestFocusInWindow();
+              search.selectAll();
+            }));
+    rail.add(Box.createVerticalStrut(6));
+    rail.add(railButton("square-pen", "New note · ⌘N", this::newNote));
+    rail.add(Box.createVerticalGlue());
+    rail.add(railButton("trash-2", "Deleted notes · restore a note", this::deletedNotes));
+    rail.add(Box.createVerticalStrut(6));
+    rail.add(railButton("folder-open", "Open notes folder · ⌘O", this::chooseFolder));
+    return rail;
+  }
+
+  private JButton railButton(String icon, String label, Runnable action) {
+    JButton button = Theme.iconButton(icon, label, action);
+    button.setPreferredSize(new Dimension(32, 32));
+    button.setMaximumSize(new Dimension(32, 32));
+    button.setAlignmentX(Component.CENTER_ALIGNMENT);
+    return button;
+  }
+
+  private void showLibrary() {
+    library.setVisible(true);
+    layout.setDividerLocation(230);
+    if (libraryToggle != null) libraryToggle.setSelected(true);
+  }
+
+  private void toggleLibrary() {
+    boolean visible = !library.isVisible();
+    library.setVisible(visible);
+    layout.setDividerLocation(visible ? 230 : 0);
+    if (libraryToggle != null) libraryToggle.setSelected(visible);
+  }
+
   private void buildLibrary() {
     library.setBackground(Theme.SIDEBAR);
-    library.setBorder(BorderFactory.createEmptyBorder(18, 12, 12, 12));
+    library.setBorder(BorderFactory.createEmptyBorder(12, 10, 10, 10));
     JPanel top = new JPanel();
     top.setOpaque(false);
     top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
-    JLabel brand = new JLabel("diyalamp", Theme.lamp(20), JLabel.LEFT);
-    brand.setFont(Theme.font(15).deriveFont(Font.BOLD));
-    brand.setBorder(BorderFactory.createEmptyBorder(0, 6, 18, 0));
-    brand.setAlignmentX(Component.LEFT_ALIGNMENT);
-    top.add(brand);
-    folderName.setForeground(Theme.MUTED);
-    folderName.setBorder(BorderFactory.createEmptyBorder(0, 4, 12, 0));
-    folderName.setAlignmentX(Component.LEFT_ALIGNMENT);
-    top.add(folderName);
+    JPanel identity = new JPanel(new BorderLayout(6, 0));
+    identity.setOpaque(false);
+    identity.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+    identity.setAlignmentX(Component.LEFT_ALIGNMENT);
+    JLabel brand = new JLabel("diyalamp", Theme.lamp(18), JLabel.LEFT);
+    brand.setFont(Theme.font(14).deriveFont(Font.BOLD));
+    brand.setIconTextGap(8);
+    identity.add(brand);
+    identity.add(
+        Theme.iconButton("panel-left", "Hide notes sidebar", this::toggleLibrary),
+        BorderLayout.EAST);
+    top.add(identity);
+    top.add(Box.createVerticalStrut(14));
     search.putClientProperty("JTextField.placeholderText", "Find a note…");
     search.getAccessibleContext().setAccessibleName("Find a note by name");
-    search.putClientProperty(
-        "JTextField.leadingIcon", new com.formdev.flatlaf.icons.FlatSearchIcon());
-    search.setFont(Theme.font(13));
-    search.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+    search.putClientProperty("JTextField.leadingIcon", Theme.icon("search", 14));
+    search.putClientProperty("JTextField.showClearButton", true);
+    search.setFont(Theme.font(14));
+    search.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
     search.setAlignmentX(Component.LEFT_ALIGNMENT);
     top.add(search);
     top.add(Box.createVerticalStrut(12));
-    JButton create = Theme.tool("New note  +", "Create a note · ⌘N", this::newNote);
-    create.setBackground(new Color(38, 38, 38));
-    create.setForeground(Color.WHITE);
-    create.setAlignmentX(Component.LEFT_ALIGNMENT);
-    create.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-    top.add(create);
-    top.add(Box.createVerticalStrut(16));
+    JPanel heading = new JPanel(new BorderLayout());
+    heading.setOpaque(false);
+    heading.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+    heading.setAlignmentX(Component.LEFT_ALIGNMENT);
+    JLabel filesTitle = new JLabel("Files");
+    filesTitle.setFont(Theme.font(14));
+    filesTitle.setForeground(Theme.MUTED);
+    filesTitle.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 0));
+    heading.add(filesTitle);
+    heading.add(Theme.iconButton("plus", "New note · ⌘N", this::newNote), BorderLayout.EAST);
+    top.add(heading);
+    top.add(Box.createVerticalStrut(4));
     library.add(top, BorderLayout.NORTH);
     sidebar.setCellRenderer(
         new DefaultListCellRenderer() {
           public Component getListCellRendererComponent(
               JList<?> list, Object value, int index, boolean selected, boolean focus) {
-            JLabel l =
+            JLabel label =
                 (JLabel) super.getListCellRendererComponent(list, value, index, selected, focus);
-            Path p = (Path) value;
-            l.setIcon(new com.formdev.flatlaf.icons.FlatFileViewFileIcon());
-            l.setIconTextGap(8);
-            l.setText(
-                (store == null ? p.getFileName() : store.root().relativize(p))
+            Path path = (Path) value;
+            label.setIcon(Theme.icon("file-text", 15));
+            label.setIconTextGap(8);
+            label.setText(
+                (store == null ? path.getFileName() : store.root().relativize(path))
                     .toString()
                     .replaceFirst("(?i)\\.(md|markdown)$", ""));
-            l.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
-            l.setFont(Theme.font(13));
-            if (!selected) l.setBackground(Theme.SIDEBAR);
-            return l;
+            label.setToolTipText(path.getFileName().toString());
+            label.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
+            label.setFont(Theme.font(14));
+            if (!selected) {
+              label.setBackground(Theme.SIDEBAR);
+              label.setForeground(new Color(194, 194, 194));
+            }
+            return label;
           }
         });
-    sidebar.setFixedCellHeight(32);
+    sidebar.setFixedCellHeight(30);
     sidebar.setBackground(Theme.SIDEBAR);
     sidebar.getAccessibleContext().setAccessibleName("Markdown notes");
     sidebar.addListSelectionListener(
@@ -216,10 +290,14 @@ public final class Diyalamp {
     JScrollPane scroll = new JScrollPane(sidebar);
     scroll.setBorder(null);
     library.add(scroll);
-    JPanel bottom = new JPanel(new GridLayout(0, 1, 0, 6));
+    JPanel bottom = new JPanel(new BorderLayout());
     bottom.setOpaque(false);
-    bottom.add(Theme.tool("Open folder…", "Choose your notes folder · ⌘O", this::chooseFolder));
-    bottom.add(Theme.tool("Deleted notes…", "Recover deleted notes", this::deletedNotes));
+    bottom.setBorder(BorderFactory.createEmptyBorder(10, 6, 2, 4));
+    folderName.setFont(Theme.font(14));
+    folderName.setIcon(Theme.icon("folder-open", 14));
+    folderName.setIconTextGap(8);
+    folderName.setForeground(Theme.MUTED);
+    bottom.add(folderName);
     library.add(bottom, BorderLayout.SOUTH);
     search
         .getDocument()
@@ -240,83 +318,23 @@ public final class Diyalamp {
   }
 
   private void buildPages() {
-    JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 6));
-    toolbar.setBackground(Theme.PAPER);
-    toolbar.setBorder(
-        BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(0, 0, 1, 0, Theme.LINE),
-            BorderFactory.createEmptyBorder(0, 10, 0, 10)));
-    toolbar.add(
-        Theme.tool(
-            "Notes",
-            "Show or hide the notes sidebar",
-            () -> {
-              boolean visible = library.isVisible();
-              library.setVisible(!visible);
-              layout.setDividerLocation(visible ? 0 : 230);
-            }));
-    JButton style = Theme.tool("Text", "Paragraph style", () -> {});
-    style.setIcon(UIManager.getIcon("Tree.expandedIcon"));
-    style.setHorizontalTextPosition(SwingConstants.LEFT);
-    style.addActionListener(
-        e -> {
-          JPopupMenu m = new JPopupMenu();
-          String[][] kinds = {
-            {"Text", "paragraph"},
-            {"Heading 1", "heading"},
-            {"Heading 2", "heading"},
-            {"Heading 3", "heading"},
-            {"Bullet list", "bullet"},
-            {"Numbered list", "ordered"},
-            {"Checklist", "task"},
-            {"Quote", "quote"},
-            {"Code block", "code"}
-          };
-          for (String[] k : kinds)
-            item(
-                m,
-                k[0],
-                () -> {
-                  if (active != null)
-                    active.block(
-                        k[1], k[0].startsWith("Heading") ? Integer.parseInt(k[0].substring(8)) : 1);
-                });
-          m.show(style, 0, style.getHeight());
-        });
-    toolbar.add(style);
-    for (String kind : List.of("Bold", "Italic", "Code"))
-      toolbar.add(
-          Theme.tool(
-              kind.equals("Bold") ? "B" : kind.equals("Italic") ? "I" : "</>",
-              kind.equals("Bold")
-                  ? "Bold · ⌘B"
-                  : kind.equals("Italic") ? "Italic · ⌘I" : "Inline code",
-              () -> {
-                if (active != null) active.toggle(kind.toLowerCase(Locale.ROOT));
-              }));
-    toolbar.add(
-        Theme.tool(
-            "Link",
-            "Insert a link",
-            () -> {
-              if (active != null) active.link();
-            }));
-    toolbar.add(Theme.tool("Open beside", "Open a second writing pane · ⌘\\", this::openBeside));
-    pages.add(toolbar, BorderLayout.NORTH);
     pages.add(left);
     JPanel footer = new JPanel(new BorderLayout());
     footer.setBorder(
         BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(1, 0, 0, 0, Theme.LINE),
             BorderFactory.createEmptyBorder(6, 18, 6, 18)));
-    status.setFont(Theme.font(12));
+    status.setFont(Theme.font(14));
     status.setForeground(Theme.MUTED);
-    count.setFont(Theme.font(12));
+    count.setFont(Theme.font(14));
     count.setForeground(Theme.MUTED);
     footer.add(status);
     footer.add(count, BorderLayout.EAST);
     pages.add(footer, BorderLayout.SOUTH);
     for (JTabbedPane tabs : List.of(left, right)) {
+      tabs.setFont(Theme.font(14));
+      tabs.setBackground(Theme.SIDEBAR);
+      tabs.putClientProperty("JTabbedPane.tabAreaAlignment", "leading");
       tabs.addChangeListener(
           e ->
               SwingUtilities.invokeLater(
@@ -324,6 +342,8 @@ public final class Diyalamp {
                     WritingPane p = pane(tabs.getSelectedComponent());
                     if (p != null) {
                       active = p;
+                      Session selected = current();
+                      if (selected != null) selectInLibrary(selected.path);
                       updateCount();
                     }
                   }));
@@ -390,6 +410,7 @@ public final class Diyalamp {
         });
     menuItem(file, "Save all", KeyEvent.VK_S, 0, () -> saveAll(false));
     item(file, "Export active note…", this::export);
+    item(file, "Reload note from disk…", this::reloadFromDisk);
     menuItem(
         file,
         "Rename note…",
@@ -436,6 +457,12 @@ public final class Diyalamp {
           if (s != null && s.undo.canRedo()) s.undo.redo();
         });
     menuItem(edit, "Find in note…", KeyEvent.VK_F, 0, this::find);
+    menuItem(
+        view,
+        "Toggle notes sidebar",
+        KeyEvent.VK_B,
+        InputEvent.SHIFT_DOWN_MASK,
+        this::toggleLibrary);
     menuItem(view, "Side by side", KeyEvent.VK_BACK_SLASH, 0, this::openBeside);
     item(view, "Single pane", this::singlePane);
     item(
@@ -477,8 +504,9 @@ public final class Diyalamp {
     try {
       setFolder(c.getSelectedFile().toPath());
       sessions.clear();
-      left.removeAll();
-      right.removeAll();
+      lastDeleted = null;
+      removeViews(left);
+      removeViews(right);
       active = null;
       singlePane();
       refresh();
@@ -505,6 +533,13 @@ public final class Diyalamp {
     }
   }
 
+  private void selectInLibrary(Path path) {
+    boolean wasRefreshing = refreshing;
+    refreshing = true;
+    sidebar.setSelectedValue(path, true);
+    refreshing = wasRefreshing;
+  }
+
   private void newNote() {
     try {
       Path p = store.create("Untitled", "# Untitled\n\n");
@@ -523,11 +558,8 @@ public final class Diyalamp {
   private void open(Path path, boolean beside) {
     if (path == null) return;
     try {
-      Session s = sessions.get(path);
-      if (s == null) {
-        s = new Session(path, store.load(path));
-        sessions.put(path, s);
-      }
+      Session s = sessionFor(sessions, store, path);
+      selectInLibrary(path);
       JTabbedPane target = beside ? right : left;
       if (beside) ensureSplit();
       for (int i = 0; i < target.getTabCount(); i++)
@@ -546,24 +578,47 @@ public final class Diyalamp {
               note.document,
               () -> {
                 if (note.loadingViews > 0) return;
-                String next = Markdown.write(note.document);
-                if (next.equals(note.serialized)) return;
-                note.dirty = true;
-                note.error = false;
-                status.setText("Saving…");
-                autosave.restart();
+                try {
+                  String next = Markdown.write(note.document);
+                  if (next.equals(note.serialized)) {
+                    boolean recovered = note.error;
+                    note.dirty = false;
+                    note.error = false;
+                    if (recovered) {
+                      status.setForeground(Theme.MUTED);
+                      status.setText("Changes reverted · local file unchanged");
+                      status.setToolTipText(null);
+                    }
+                    return;
+                  }
+                  note.dirty = true;
+                  note.error = false;
+                  status.setForeground(Theme.MUTED);
+                  status.setToolTipText(null);
+                  status.setText("Saving…");
+                  autosave.restart();
+                } catch (IllegalStateException error) {
+                  note.dirty = true;
+                  note.error = true;
+                  status.setForeground(Theme.RED);
+                  status.setText("Not saved · undo or simplify the recent formatting");
+                  status.setToolTipText(error.getMessage());
+                }
                 updateCount();
               });
       editor.addFocusListener(
           new FocusAdapter() {
             public void focusGained(FocusEvent e) {
               active = editor;
+              selectInLibrary(note.path);
               updateCount();
             }
           });
       JScrollPane scroll = new JScrollPane(editor);
       scroll.putClientProperty("session", note);
       scroll.setBorder(null);
+      scroll.setColumnHeaderView(documentBar(note, editor));
+      scroll.getColumnHeader().setBackground(Theme.PAPER);
       scroll.getVerticalScrollBar().setUnitIncrement(18);
       target.addTab(note.path.getFileName().toString(), scroll);
       target.setTabComponentAt(target.indexOfComponent(scroll), tabHeader(note, target, scroll));
@@ -582,21 +637,123 @@ public final class Diyalamp {
     }
   }
 
+  private JPanel documentBar(Session note, WritingPane editor) {
+    JPanel bar = new JPanel(new BorderLayout(8, 0));
+    bar.setBackground(Theme.PAPER);
+    bar.setBorder(
+        BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, Theme.LINE),
+            BorderFactory.createEmptyBorder(5, 16, 5, 10)));
+    JLabel breadcrumb =
+        new JLabel(note.path.getFileName().toString(), Theme.icon("file-text", 14), JLabel.LEFT);
+    breadcrumb.setFont(Theme.font(14));
+    breadcrumb.setForeground(Theme.MUTED);
+    breadcrumb.setIconTextGap(8);
+    breadcrumb.setToolTipText(store.root().relativize(note.path).toString());
+    bar.add(breadcrumb);
+    JPanel tools = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
+    tools.setOpaque(false);
+    JButton style = Theme.tool("Text", "Paragraph style", () -> {});
+    style.setIcon(Theme.icon("chevron-down", 13));
+    style.setHorizontalTextPosition(SwingConstants.LEFT);
+    style.setMargin(new Insets(5, 7, 5, 7));
+    style.addActionListener(
+        event -> {
+          active = editor;
+          JPopupMenu menu = new JPopupMenu();
+          String[][] blocks = {
+            {"Text", "paragraph"},
+            {"Heading 1", "heading"},
+            {"Heading 2", "heading"},
+            {"Heading 3", "heading"},
+            {"Bullet list", "bullet"},
+            {"Numbered list", "ordered"},
+            {"Checklist", "task"},
+            {"Quote", "quote"},
+            {"Code block", "code"}
+          };
+          for (String[] block : blocks)
+            item(
+                menu,
+                block[0],
+                () ->
+                    editor.block(
+                        block[1],
+                        block[0].startsWith("Heading")
+                            ? Integer.parseInt(block[0].substring(8))
+                            : 1));
+          menu.show(style, 0, style.getHeight());
+        });
+    tools.add(style);
+    java.util.List<JButton> formatButtons = new ArrayList<>();
+    String[][] formats = {
+      {"bold", "Bold · ⌘B"}, {"italic", "Italic · ⌘I"}, {"code", "Inline code"}
+    };
+    for (String[] format : formats) {
+      JButton button =
+          Theme.iconButton(
+              format[0],
+              format[1],
+              () -> {
+                active = editor;
+                editor.toggle(format[0]);
+              });
+      formatButtons.add(button);
+      tools.add(button);
+    }
+    tools.add(
+        Theme.iconButton(
+            "link",
+            "Insert a link",
+            () -> {
+              active = editor;
+              editor.link();
+            }));
+    JSeparator separator = new JSeparator(SwingConstants.VERTICAL);
+    separator.setPreferredSize(new Dimension(1, 18));
+    tools.add(separator);
+    tools.add(
+        Theme.iconButton(
+            "columns-2",
+            "Open note beside writing · ⌘\\",
+            () -> {
+              active = editor;
+              openBeside();
+            }));
+    Object previousListener = editor.getClientProperty("diyalamp.formatCaretListener");
+    if (previousListener instanceof CaretListener listener) editor.removeCaretListener(listener);
+    CaretListener formattingListener =
+        event -> {
+          AttributeSet attributes = editor.getCharacterAttributes();
+          formatButtons.get(0).setSelected(StyleConstants.isBold(attributes));
+          formatButtons.get(1).setSelected(StyleConstants.isItalic(attributes));
+          formatButtons
+              .get(2)
+              .setSelected(Boolean.TRUE.equals(attributes.getAttribute(Markdown.INLINE_CODE)));
+        };
+    editor.addCaretListener(formattingListener);
+    editor.putClientProperty("diyalamp.formatCaretListener", formattingListener);
+    bar.add(tools, BorderLayout.EAST);
+    return bar;
+  }
+
   private JPanel tabHeader(Session s, JTabbedPane target, Component page) {
     JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
     p.setOpaque(false);
     JLabel title =
         new JLabel(s.path.getFileName().toString().replaceFirst("(?i)\\.(md|markdown)$", ""));
-    title.setIcon(new com.formdev.flatlaf.icons.FlatFileViewFileIcon());
+    title.setIcon(Theme.icon("file-text", 14));
     title.setIconTextGap(8);
-    title.setFont(Theme.font(13));
+    title.setFont(Theme.font(14));
     p.add(title);
-    JButton close = new JButton(new com.formdev.flatlaf.icons.FlatTabbedPaneCloseIcon());
-    close.setBorder(BorderFactory.createEmptyBorder(2, 3, 2, 3));
-    close.setContentAreaFilled(false);
-    close.setFocusable(false);
-    close.getAccessibleContext().setAccessibleName("Close " + s.path.getFileName());
-    close.addActionListener(e -> closeTab(target, target.indexOfComponent(page)));
+    JButton close =
+        Theme.iconButton(
+            "x",
+            "Close " + s.path.getFileName(),
+            () -> closeTab(target, target.indexOfComponent(page)));
+    close.setIcon(Theme.icon("x", 12));
+    close.setPreferredSize(new Dimension(20, 20));
+    close.setMargin(new Insets(2, 2, 2, 2));
     p.add(close);
     return p;
   }
@@ -604,10 +761,101 @@ public final class Diyalamp {
   private void closeTab(JTabbedPane t, int index) {
     if (index < 0) return;
     if (!saveAll(true)) return;
-    t.remove(index);
+    removeView(t, index);
     if (right.getTabCount() == 0) singlePane();
+    retireUnusedSessions(sessions, left, right);
     active = pane(activeTabs().getSelectedComponent());
+    if (active == null) active = pane(right.getSelectedComponent());
     updateCount();
+  }
+
+  static Session sessionFor(Map<Path, Session> sessions, NoteStore store, Path path)
+      throws IOException {
+    Session session = sessions.get(path);
+    if (session == null) {
+      session = new Session(path, store.load(path));
+      sessions.put(path, session);
+    }
+    return session;
+  }
+
+  static Session reloadSession(Map<Path, Session> sessions, NoteStore store, Session previous)
+      throws IOException {
+    // Read successfully before replacing any in-memory edits or their recovery information.
+    Session replacement = new Session(previous.path, store.load(previous.path));
+    sessions.put(previous.path, replacement);
+    return replacement;
+  }
+
+  static void retireUnusedSessions(Map<Path, Session> sessions, JTabbedPane... panes) {
+    for (Session session : sessions.values()) session.viewCount = 0;
+    for (JTabbedPane tabs : panes)
+      for (int i = 0; i < tabs.getTabCount(); i++)
+        if (tabs.getComponentAt(i) instanceof JScrollPane scroll
+            && scroll.getClientProperty("session") instanceof Session session) session.viewCount++;
+    // Unsaved sessions remain recoverable even if a view is removed unexpectedly.
+    sessions.values().removeIf(session -> session.viewCount == 0 && !session.dirty);
+  }
+
+  private void reloadFromDisk() {
+    Session previous = current();
+    if (previous == null) return;
+    if (previous.dirty
+        && JOptionPane.showOptionDialog(
+                frame,
+                "Reloading replaces your unsaved edits with the file on disk. "
+                    + "Export a copy first if you want to keep those edits.",
+                "Reload " + previous.path.getFileName() + "?",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.WARNING_MESSAGE,
+                null,
+                new String[] {"Reload from disk", "Cancel"},
+                "Cancel")
+            != JOptionPane.OK_OPTION) return;
+    try {
+      boolean selectedRight = activeTabs() == right;
+      reloadSession(sessions, store, previous);
+      boolean openedLeft = removeSessionTabs(previous, left);
+      boolean openedRight = removeSessionTabs(previous, right);
+      if (selectedRight) {
+        if (openedLeft) open(previous.path, false);
+        if (openedRight) open(previous.path, true);
+      } else {
+        if (openedRight) open(previous.path, true);
+        if (openedLeft) open(previous.path, false);
+      }
+      JTabbedPane selected = selectedRight ? right : left;
+      active = pane(selected.getSelectedComponent());
+      if (active != null) active.requestFocusInWindow();
+      status.setForeground(Theme.MUTED);
+      status.setText("Reloaded from disk · " + previous.path.getFileName());
+      status.setToolTipText(null);
+      updateCount();
+    } catch (Exception e) {
+      error(e);
+    }
+  }
+
+  private boolean removeSessionTabs(Session session, JTabbedPane tabs) {
+    boolean removed = false;
+    for (int i = tabs.getTabCount() - 1; i >= 0; i--)
+      if (tabs.getComponentAt(i) instanceof JScrollPane scroll
+          && scroll.getClientProperty("session") == session) {
+        removeView(tabs, i);
+        removed = true;
+      }
+    return removed;
+  }
+
+  static void removeView(JTabbedPane tabs, int index) {
+    Component page = tabs.getComponentAt(index);
+    if (page instanceof JScrollPane scroll
+        && scroll.getViewport().getView() instanceof WritingPane editor) editor.disposeView();
+    tabs.remove(index);
+  }
+
+  private static void removeViews(JTabbedPane tabs) {
+    for (int i = tabs.getTabCount() - 1; i >= 0; i--) removeView(tabs, i);
   }
 
   private WritingPane pane(Component c) {
@@ -641,10 +889,11 @@ public final class Diyalamp {
   }
 
   private void singlePane() {
-    if (split == null) return;
+    if (split == null || !saveAll(true)) return;
     pages.remove(split);
     split = null;
-    right.removeAll();
+    removeViews(right);
+    retireUnusedSessions(sessions, left, right);
     pages.add(left);
     pages.revalidate();
     pages.repaint();
@@ -677,7 +926,12 @@ public final class Diyalamp {
           ok = false;
           status.setForeground(Theme.RED);
           status.setText(
-              "Not saved · " + s.path.getFileName() + " · export a copy to keep your edits");
+              "Not saved · "
+                  + s.path.getFileName()
+                  + (e instanceof IllegalStateException
+                      ? " · undo or simplify the recent formatting"
+                      : " · export a copy to keep your edits"));
+          status.setToolTipText(e.getMessage());
           if (show) error(e);
           s.error = true;
         }
@@ -709,6 +963,8 @@ public final class Diyalamp {
                 && scroll.getClientProperty("session") == s) {
               t.setTitleAt(i, renamed.getFileName().toString());
               t.setTabComponentAt(i, tabHeader(s, t, scroll));
+              scroll.setColumnHeaderView(
+                  documentBar(s, (WritingPane) scroll.getViewport().getView()));
             }
       }
       refresh();
@@ -726,7 +982,7 @@ public final class Diyalamp {
       for (JTabbedPane t : List.of(left, right))
         for (int i = t.getTabCount() - 1; i >= 0; i--)
           if (t.getComponentAt(i) instanceof JScrollPane scroll
-              && scroll.getClientProperty("session") == deleted) t.remove(i);
+              && scroll.getClientProperty("session") == deleted) removeView(t, i);
       if (right.getTabCount() == 0) singlePane();
       refresh();
       active = pane(left.getSelectedComponent());

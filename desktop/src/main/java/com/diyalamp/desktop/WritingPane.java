@@ -10,12 +10,15 @@ import javax.swing.text.*;
 
 /** A native rich-text surface. Markdown shortcuts become formatting as you type. */
 public final class WritingPane extends JTextPane {
-  private boolean converting;
+  private boolean converting, disposed;
+  private final StyledDocument observedDocument;
+  private final DocumentListener documentListener;
   private final Runnable changed;
   private final JPopupMenu commands = new JPopupMenu();
 
   public WritingPane(StyledDocument document, Runnable changed) {
     this.changed = changed;
+    observedDocument = document;
     setEditorKit(new PageKit());
     setDocument(document);
     setMargin(new Insets(44, 44, 72, 44));
@@ -23,7 +26,7 @@ public final class WritingPane extends JTextPane {
         new ComponentAdapter() {
           @Override
           public void componentResized(ComponentEvent event) {
-            int inset = Math.max(28, Math.min(140, (getWidth() - 680) / 2));
+            int inset = Math.max(28, (getWidth() - 680) / 2);
             Insets next = new Insets(44, inset, 72, inset);
             if (!next.equals(getMargin())) setMargin(next);
           }
@@ -34,7 +37,7 @@ public final class WritingPane extends JTextPane {
     setFont(Theme.font(16));
     putClientProperty("JTextPane.honorDisplayProperties", true);
     getAccessibleContext().setAccessibleName("Markdown writing page");
-    document.addDocumentListener(
+    documentListener =
         new DocumentListener() {
           public void insertUpdate(DocumentEvent e) {
             queue();
@@ -50,9 +53,14 @@ public final class WritingPane extends JTextPane {
 
           private void queue() {
             changed.run();
-            if (!converting && hasFocus()) SwingUtilities.invokeLater(() -> shortcuts());
+            if (!converting && hasFocus())
+              SwingUtilities.invokeLater(
+                  () -> {
+                    if (!disposed) shortcuts();
+                  });
           }
-        });
+        };
+    document.addDocumentListener(documentListener);
     getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "page-enter");
     getActionMap()
         .put(
@@ -62,7 +70,10 @@ public final class WritingPane extends JTextPane {
                 enter();
               }
             });
-    int menu = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+    int menu =
+        GraphicsEnvironment.isHeadless()
+            ? InputEvent.CTRL_DOWN_MASK
+            : Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
     bind(KeyEvent.VK_B, menu, () -> toggle("bold"));
     bind(KeyEvent.VK_I, menu, () -> toggle("italic"));
     bind(KeyEvent.VK_BACK_QUOTE, menu, () -> toggle("code"));
@@ -84,6 +95,15 @@ public final class WritingPane extends JTextPane {
             }
           }
         });
+  }
+
+  /** Release both our observer and Swing's document listeners when the view is closed. */
+  void disposeView() {
+    if (disposed) return;
+    disposed = true;
+    commands.setVisible(false);
+    observedDocument.removeDocumentListener(documentListener);
+    setDocument(new DefaultStyledDocument());
   }
 
   private void bind(int key, int mods, Runnable task) {
@@ -119,7 +139,7 @@ public final class WritingPane extends JTextPane {
       case "code" -> {
         boolean next = !Boolean.TRUE.equals(at.getAttribute(Markdown.INLINE_CODE));
         a.addAttribute(Markdown.INLINE_CODE, next);
-        StyleConstants.setFontFamily(a, next ? "Menlo" : "Inter");
+        StyleConstants.setFontFamily(a, "Inter");
         StyleConstants.setBackground(a, next ? new Color(48, 48, 48) : Theme.PAPER);
       }
     }
@@ -142,7 +162,7 @@ public final class WritingPane extends JTextPane {
   private void enter() {
     StyledDocument d = getStyledDocument();
     Element p = d.getParagraphElement(getCaretPosition());
-    AttributeSet old = p.getAttributes();
+    AttributeSet old = new SimpleAttributeSet(p.getAttributes());
     String kind = Objects.toString(old.getAttribute(Markdown.KIND), "paragraph");
     try {
       String text =
@@ -163,6 +183,14 @@ public final class WritingPane extends JTextPane {
           old.getAttribute(Markdown.NUMBER) instanceof Number n ? n.intValue() + 1 : 1);
       a.addAttribute(Markdown.CHECKED, false);
       a.addAttribute(Markdown.LANG, Objects.toString(old.getAttribute(Markdown.LANG), ""));
+      if (kind.equals("code")) {
+        for (String key :
+            java.util.List.of(Markdown.FENCE_ID, Markdown.FENCE_OPEN, Markdown.FENCE_CLOSE)) {
+          Object value = old.getAttribute(key);
+          if (value != null) a.addAttribute(key, value);
+        }
+        a.addAttribute(Markdown.FENCE_EMPTY, false);
+      }
       d.setParagraphAttributes(getCaretPosition(), 1, a, true);
       setCharacterAttributes(SimpleAttributeSet.EMPTY, true);
     } catch (BadLocationException e) {

@@ -21,8 +21,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - id: version
+        run: echo "version=$(sh desktop/version.sh)" >> "$GITHUB_OUTPUT"
       - run: sh desktop/package-macos.sh
-      - run: hdiutil verify desktop/build/release/diyalamp-1.0.0-macos-${{ matrix.arch }}.dmg
+      - run: hdiutil verify desktop/build/release/diyalamp-${{ steps.version.outputs.version }}-macos-${{ matrix.arch }}.dmg
       - uses: actions/upload-artifact@v4
         with:
           name: diyalamp-macos-${{ matrix.arch }}
@@ -47,10 +49,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view v1.0.0 --json isDraft --jq .isDraft > /tmp/diyalamp-release-draft.txt 2>/dev/null; then
+          version=$(sh desktop/version.sh)
+          tag="v$version"
+          if gh release view "$tag" --json isDraft --jq .isDraft > /tmp/diyalamp-release-draft.txt 2>/dev/null; then
             test "$(cat /tmp/diyalamp-release-draft.txt)" = true
-            gh release upload v1.0.0 release-artifacts/*.dmg release-artifacts/*.sha256 --clobber
-            gh release edit v1.0.0 --notes-file desktop/RELEASE_NOTES.md --target "$GITHUB_SHA"
+            gh release upload "$tag" release-artifacts/*.dmg release-artifacts/*.sha256 --clobber
+            gh release edit "$tag" --notes-file desktop/RELEASE_NOTES.md --target "$GITHUB_SHA"
           else
-            gh release create v1.0.0 release-artifacts/*.dmg release-artifacts/*.sha256 --draft --target "$GITHUB_SHA" --title 'diyalamp 1.0.0' --notes-file desktop/RELEASE_NOTES.md
+            gh release create "$tag" release-artifacts/*.dmg release-artifacts/*.sha256 --draft --target "$GITHUB_SHA" --title "diyalamp $version" --notes-file desktop/RELEASE_NOTES.md
           fi

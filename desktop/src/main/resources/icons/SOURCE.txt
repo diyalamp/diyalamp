@@ -1,0 +1,5 @@
+Lucide SVG assets: https://github.com/lucide-icons/lucide
+Revision:1980e3d59b0fa1a2aeb566d5902b25ee98204001
+Bold icon: official tag0.468.0
+trash-2.svg uses current official trash.svg.
+License:../Lucide-LICENSE.txt

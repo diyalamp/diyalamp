@@ -1,33 +1,42 @@
-## diyalamp 1.0.0
+## diyalamp 1.0.1
 
-Open-source Markdown editor for macOS. Live formatting, local `.md` files, multiple tabs, and split view. No sign-up or backend.
+A redesigned dark workspace and note-integrity update for the local macOS Markdown editor.
+
+### Interface
+
+- Inter throughout menus, controls, documents, and code text.
+- A compact action rail, file explorer, topmost note tabs, and sticky document controls.
+- FlatLaf components and official Lucide vector icons replace the old text toolbar.
+- The website notebook uses adapted shadcn/ui sidebar-07 components with the matching workspace composition.
+
+### Fixed
+
+- Closing the final saved tab now releases its session; reopening reads the current file on disk.
+- **File → Reload note from disk…** provides an explicit path out of save conflicts. Unsaved edits require confirmation before replacement. A failed read leaves the recovery copy open.
+- Nested emphasis, escaped Markdown punctuation, link destinations and titles, and fenced code examples survive save/reopen.
+- Empty and adjacent fenced code blocks keep their boundaries and languages. Longer fences can safely contain shorter fence examples.
+- Closing a shared split view detaches its document observers without disconnecting the remaining view.
+- Folder changes clear the previous folder's undo-delete target.
 
 ### Downloads
 
-- **arm64**: Apple silicon Macs. Download: 35,661,621 bytes (35.7 MB).
-- **x86_64**: Intel Macs. Download: 37,309,904 bytes (37.3 MB).
+- **arm64**: Apple silicon Macs.
+- **x86_64**: Intel Macs.
 
-Each DMG contains a self-contained application and runtime. No separate Java installation is required. Drag diyalamp to Applications to install. SHA-256 files accompany both installers.
+Both DMGs include an application and runtime; no separate Java installation is required. Drag diyalamp to Applications. Exact download sizes and SHA-256 files are listed with the release assets.
 
-**This first community release is unsigned and not Apple-notarized. macOS may show a Gatekeeper warning or block launch.** Apple signing and notarization are not configured for this release.
+**This community release is unsigned and not Apple-notarized. macOS may show a Gatekeeper warning or block launch.** Signing and notarization are not configured.
 
-### Included
+### Scope and footprint
 
-- Dark-only interface with JRXNA black, white, red, and dark-gray writing surfaces.
-- Compact file navigation, card-style tabs, quiet formatting controls, and an adaptive writing column.
-- Rendered headings, emphasis, links, lists, checklists, quotes, and code blocks.
-- Formatting controls, typing shortcuts, slash commands, and undo/redo.
-- Local folders, note creation/import/rename/export, filename search, tabs, and split editing.
-- Autosave with external-edit conflict detection; recoverable deletion inside the notes folder.
+The app supports common Markdown editing, not the full CommonMark block specification. Rich tables, remote-image loading, plugins, sync, team databases, and publication services remain outside this release. The browser notebook stores its own separate notes.
 
-### Scope and size
-
-This release supports common Markdown, not the entire CommonMark specification. Rich tables, remote-image previews, plugins, sync, team databases, and publication services are outside this release. The browser notebook is separate and does not automatically sync with desktop files.
-
-**Under 5 MB installed is an aspirational size target, not an achieved result.** The local Apple silicon app occupies approximately 46 MiB installed; release download sizes are listed above. The bundled runtime accounts for most of the footprint. Exact download sizes are shown beside the release assets.
+Under 5 MB installed remains an engineering target, not an achieved result. The bundled runtime accounts for most of the app's footprint; download sizes are measured per architecture. The previous local Apple silicon installation occupied about 46 MiB.
 
 ### Validation
 
-The build runs Markdown and local-file safety checks on macOS. Both architecture jobs verify their DMG images. Apple silicon was also opened locally to check rendered notes, direct typing, undo, saving, slash commands, tabs, and split view. Intel UI behavior has not been manually tested on a physical Intel Mac.
+Regression checks exercise formatting round trips, real writing actions, save conflicts, reopen/reload behavior, and disposal of shared editing views. Both architecture jobs verify their disk images and checksums. The local Apple silicon installation occupies about 47 MiB. Native interaction checks use fictional notes. Intel UI behavior has not been manually tested on a physical Intel Mac.
 
-Source: [desktop/](https://github.com/diyalamp/diyalamp/tree/main/desktop). License: Apache 2.0, with third-party runtime, UI, font, and artwork notices retained.
+Tracked issue: https://github.com/diyalamp/diyalamp/issues/3
+
+Source: https://github.com/diyalamp/diyalamp/tree/main/desktop. License: Apache 2.0, with runtime, component, parser, font, and artwork notices retained.

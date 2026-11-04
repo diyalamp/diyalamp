@@ -27,3 +27,7 @@ Project and upstream license: https://github.com/pgjdbc/pgjdbc
 ## TypeScript workspace
 
 The new workspace uses Playwright (Apache-2.0), TypeScript (Apache-2.0), tsx (MIT), esbuild (MIT), and Node.js types (MIT). Exact dependency versions and integrity hashes are recorded in workspace/pnpm-lock.yaml. The Node.js runtime retains its upstream license. Inter is provided under the SIL Open Font License in workspace/public/fonts/Inter-LICENSE.txt. Dependencies retain their own upstream notices; they are not relicensed by this project.
+
+CommonMark Java 0.32.0 (core and GFM strikethrough), Atlassian Pty Ltd and contributors. BSD 2-Clause license: CommonMark-LICENSE.txt. https://github.com/commonmark/commonmark-java
+
+FlatLaf Extras 3.7.2 (Apache2.0), JSVG2.1.0 (MIT; notices retained in dependency JAR), and Lucide SVG icons (ISC/FeatherMIT; Lucide-LICENSE.txt). Native icon source revision1980e3d59b0fa1a2aeb566d5902b25ee98204001, Bold from Lucide0.468.0.
