@@ -1,42 +1,20 @@
-## diyalamp 1.0.1
+## diyalamp 1.0.2
 
-A redesigned dark workspace and note-integrity update for the local macOS Markdown editor.
-
-### Interface
-
-- Inter throughout menus, controls, documents, and code text.
-- A compact action rail, file explorer, topmost note tabs, and sticky document controls.
-- FlatLaf components and official Lucide vector icons replace the old text toolbar.
-- The website notebook uses adapted shadcn/ui sidebar-07 components with the matching workspace composition.
-
-### Fixed
-
-- Closing the final saved tab now releases its session; reopening reads the current file on disk.
-- **File → Reload note from disk…** provides an explicit path out of save conflicts. Unsaved edits require confirmation before replacement. A failed read leaves the recovery copy open.
-- Nested emphasis, escaped Markdown punctuation, link destinations and titles, and fenced code examples survive save/reopen.
-- Empty and adjacent fenced code blocks keep their boundaries and languages. Longer fences can safely contain shorter fence examples.
-- Closing a shared split view detaches its document observers without disconnecting the remaining view.
-- Folder changes clear the previous folder's undo-delete target.
+The macOS application icon now uses the existing diyalamp profile-picture artwork: the lamp centered on a white background with padding. Both the packaged icon and application-window icon use this asset. The smaller inline lamp mark is unchanged.
 
 ### Downloads
 
 - **arm64**: Apple silicon Macs.
 - **x86_64**: Intel Macs.
 
-Both DMGs include an application and runtime; no separate Java installation is required. Drag diyalamp to Applications. Exact download sizes and SHA-256 files are listed with the release assets.
+Both DMGs include the application and runtime. No separate Java installation is required. Exact asset sizes and SHA-256 files accompany the installers.
 
-**This community release is unsigned and not Apple-notarized. macOS may show a Gatekeeper warning or block launch.** Signing and notarization are not configured.
-
-### Scope and footprint
-
-The app supports common Markdown editing, not the full CommonMark block specification. Rich tables, remote-image loading, plugins, sync, team databases, and publication services remain outside this release. The browser notebook stores its own separate notes.
-
-Under 5 MB installed remains an engineering target, not an achieved result. The bundled runtime accounts for most of the app's footprint; download sizes are measured per architecture. The previous local Apple silicon installation occupied about 46 MiB.
+This community release remains **unsigned and not Apple-notarized**. macOS may block launch. No security protections are disabled by the installer.
 
 ### Validation
 
-Regression checks exercise formatting round trips, real writing actions, save conflicts, reopen/reload behavior, and disposal of shared editing views. Both architecture jobs verify their disk images and checksums. The local Apple silicon installation occupies about 47 MiB. Native interaction checks use fictional notes. Intel UI behavior has not been manually tested on a physical Intel Mac.
+The artwork was visually checked against the existing profile picture, and its square dimensions and packaging references were inspected. Both architecture jobs run the existing desktop regression suite, verify their DMGs, and validate checksums. The native app keeps its dark Inter workspace and local Markdown storage from 1.0.1.
 
-Tracked issue: https://github.com/diyalamp/diyalamp/issues/3
+The under-5-MB installed footprint remains an unachieved engineering target. Release 1.0.1 occupied about 47 MiB locally on Apple silicon; exact download sizes for this release appear with the assets.
 
-Source: https://github.com/diyalamp/diyalamp/tree/main/desktop. License: Apache 2.0, with runtime, component, parser, font, and artwork notices retained.
+License: Apache 2.0, with third-party and brand-asset notices retained.
