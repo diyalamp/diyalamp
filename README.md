@@ -14,7 +14,7 @@ diyalamp is a desktop Markdown editor with rendered formatting and local file st
 
 The application opens a folder of `.md` or `.markdown` files. Editing does not require an account, subscription, server, database, or internet connection. Notes remain readable by other Markdown tools.
 
-![Dark desktop workspace with two Markdown notes open side by side](assets/desktop-workspace.png)
+![Dark desktop workspace with a Markdown note open](assets/desktop-workspace.png)
 
 ## Features
 

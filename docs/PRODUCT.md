@@ -29,4 +29,4 @@ Do not advertise an installer before its artifact exists and opens. Label archit
 
 ## Size budget
 
-Owner direction: minimize footprint and set an ambitious target of under 5 MB installed. This is a target, not an achieved claim or a promised release date. The current bundled Apple silicon build is approximately 35.7 MB downloaded and 46 MiB installed in release 1.0.0; the runtime dominates that size. Record exact per-architecture release measurements. Evaluate runtime and packaging changes against launch reliability and the no-separate-runtime installation experience. Never market the target as a measured current size.
+Owner direction: minimize footprint and set an ambitious target of under 5 MB installed. This is a target, not an achieved claim or a promised release date. The bundled Apple silicon build in release 1.0.1 is approximately 36.7 MB downloaded and 47 MiB installed; the runtime dominates that size. Record exact per-architecture release measurements. Evaluate runtime and packaging changes against launch reliability and the no-separate-runtime installation experience. Never market the target as a measured current size.
