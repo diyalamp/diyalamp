@@ -13,7 +13,7 @@ This community release remains **unsigned and not Apple-notarized**. macOS may b
 
 ### Validation
 
-The automated checks verify that the application artwork remains square and padded and that the display icon uses it. Both architecture jobs run the desktop regression suite, verify their DMGs, and validate checksums. The native app keeps its dark Inter workspace and local Markdown storage from 1.0.1.
+The artwork was visually checked against the existing profile picture, and its square dimensions and packaging references were inspected. Both architecture jobs run the existing desktop regression suite, verify their DMGs, and validate checksums. The native app keeps its dark Inter workspace and local Markdown storage from 1.0.1.
 
 The under-5-MB installed footprint remains an unachieved engineering target. Release 1.0.1 occupied about 47 MiB locally on Apple silicon; exact download sizes for this release appear with the assets.
 
