@@ -21,7 +21,7 @@ Cloud storage, account backends, AI agents, embeddings, collaboration, databases
 
 ## Identity
 
-Lowercase **diyalamp**, the existing fixed lamp image, and “A tool for the mind.” The desktop app is light-only: white writing pages, soft-gray panels, dark text, and #EE0000 red accents. Use the installed macOS system font for prose and interface text, and installed Menlo for inline code and fenced code blocks. Do not bundle a replacement font or add an appearance switch. The app icon retains the approved lamp's size and position on a subtly shaded white backplate. The website and browser prototype retain their separately approved dark presentation.
+Lowercase **diyalamp**, the existing fixed lamp image, and “A tool for the mind.” The desktop app is light-only: quiet writing pages, soft-gray panels, readable text, and a user-selected accent color. Use the installed macOS system font for prose and interface text, and installed Menlo for inline code and fenced code blocks. Do not bundle a replacement font or add a dark-mode switch. Use maintained JavaFX/AtlantaFX controls and RichTextFX text layout instead of custom text painting. Keep Open Folder, file actions, and the accent picker discoverable. The app icon retains the approved lamp's size and position on a subtly shaded white backplate. The website and browser prototype retain their separately approved dark presentation.
 
 ## Release truth
 

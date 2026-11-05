@@ -1,6 +1,6 @@
 # Contributing to diyalamp
 
-Thank you for helping make a quieter place to write.
+Contributions improve the local Markdown editor, file safety, and macOS integration.
 
 ## Start here
 
@@ -10,7 +10,7 @@ Before a large change, open an issue describing the writing problem and proposed
 
 ## Development
 
-Use JDK 21 or newer. Build with `sh desktop/build.sh`, run with `java -jar desktop/build/diyalamp.jar`, and test with `sh desktop/test.sh`. See [desktop development](desktop/README.md) for packaging details. Keep sample notes fictional and never commit your personal writing or credentials.
+Use JDK 25 or newer. Build with `sh desktop/build.sh`, run with `sh desktop/run.sh`, and test with `sh desktop/test.sh`. See [desktop development](desktop/README.md) for packaging details. Keep sample notes fictional and never commit your personal writing or credentials.
 
 ## Pull requests
 
@@ -18,7 +18,7 @@ Describe the user-visible problem, the resulting behavior, and how you checked i
 
 ## Design
 
-Use the fixed lamp asset and lowercase **diyalamp** name. The interface is dark-only: black, white, #EE0000 red, and dark-gray writing surfaces. Use Inter for controls, notes, and code text. Maintain compact navigation, readable content, consistent spacing, and native macOS interactions. Avoid sign-in, telemetry, AI services, and paid dependencies in the local writing flow.
+Use the fixed lamp asset and lowercase **diyalamp** name. The desktop interface is light-only: soft-gray panels, quiet writing surfaces, and a selectable muted accent. Use the installed macOS System font for interface and prose, with Menlo only for code; do not bundle fonts. Reuse JavaFX/AtlantaFX controls and RichTextFX editing behavior. Maintain compact navigation, readable content, consistent spacing, and native macOS interactions. Avoid sign-in, telemetry, AI services, and paid dependencies in the local writing flow.
 
 ## Reporting a problem
 

@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 cd "$(dirname "$0")"
-JDK="${DIYALAMP_JAVA_HOME:-$(/usr/libexec/java_home -v 21 2>/dev/null || dirname "$(dirname "$(command -v javac)")")}"
+. ./java-home.sh
+sh fetch-fx-deps.sh
 mkdir -p build/deps
 DEP=build/deps/flatlaf-3.7.2.jar
 if [ ! -f "$DEP" ]; then
@@ -29,8 +30,12 @@ printf '%s  %s\n' 7d03612d5c11d27a4ac714e79b11c73405d07f84a3214fe4ae091daadc8b51
 rm -rf build/classes
 mkdir -p build/classes
 find src/main/java -name '*.java' | sort > build/sources.txt
-"$JDK/bin/javac" --release 21 -cp "build/deps/*" -d build/classes @build/sources.txt
+"$JDK/bin/javac" --release 25 --module-path "build/fx-deps/$FX_PLATFORM" --add-modules javafx.controls -cp "build/deps/*:build/fx-deps/common/*" -d build/classes @build/sources.txt
 cp -R src/main/resources/. build/classes/
-printf 'Class-Path: deps/flatlaf-3.7.2.jar deps/commonmark-0.32.0.jar deps/commonmark-ext-gfm-strikethrough-0.32.0.jar deps/flatlaf-extras-3.7.2.jar deps/jsvg-2.1.0.jar\n' > build/manifest.mf
-"$JDK/bin/jar" --create --file build/diyalamp.jar --main-class com.diyalamp.desktop.Diyalamp --manifest build/manifest.mf -C build/classes .
+manifest_paths=''
+for dependency in build/deps/*.jar build/fx-deps/common/*.jar; do
+  manifest_paths="$manifest_paths ${dependency#build/}"
+done
+printf 'Class-Path:%s\n' "$manifest_paths" > build/manifest.mf
+"$JDK/bin/jar" --create --file build/diyalamp.jar --main-class com.diyalamp.desktop.DesktopLauncher --manifest build/manifest.mf -C build/classes .
 printf 'Built desktop/build/diyalamp.jar\n'

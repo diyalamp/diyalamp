@@ -1,0 +1,83 @@
+/* AtlantaFX Primer Light supplies controls, focus behavior, dialogs, and menus.
+   These rules compose a compact writing workbench around those components. */
+.workspace-root {
+  -fx-font-family: "System";
+  -fx-font-size: 14px;
+  -fx-background-color: #fcfcfd;
+  -color-bg-default: #fcfcfd;
+  -color-bg-subtle: #f5f5f7;
+  -color-bg-inset: #f1f1f4;
+  -color-fg-default: #363840;
+  -color-fg-muted: #6d707a;
+  -color-border-default: #e1e2e7;
+}
+.workspace-navigation {
+  -fx-background-color: #f0f0f3;
+  -fx-border-color: transparent #e4e4e9 transparent transparent;
+  -fx-border-width: 0 1 0 0;
+  -fx-padding: 8 4;
+  -fx-cell-height: 24;
+  -fx-collapsed-content-width: 32;
+  -fx-cell-padding: 12 8;
+}
+.workspace-navigation .sidebar-cell { -fx-background-radius: 6; -fx-background-insets: 4 0; -fx-border-insets: 4 0; }
+.workspace-navigation .sidebar-cell:selected { -fx-background-color: -diyalamp-accent-subtle; }
+.workspace-navigation .sidebar-cell:selected .icon-stroke { -fx-stroke: -diyalamp-accent; }
+.file-explorer { -fx-background-color: #f7f7f9; -fx-border-color: transparent #e4e4e9 transparent transparent; -fx-border-width: 0 1 0 0; }
+.explorer-heading { -fx-padding: 12 10 8 14; -fx-min-height: 52; }
+.folder-name { -fx-font-weight: bold; -fx-text-fill: #484b55; }
+.explorer-search-box { -fx-padding: 0 12 12 12; }
+.explorer-search { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #555862; -fx-background-color: #ffffff; -fx-border-color: #e3e3e9; -fx-background-radius: 7; -fx-border-radius: 7; -fx-padding: 6 9; }
+.workspace-tool { -fx-min-width: 32; -fx-pref-width: 32; -fx-min-height: 32; -fx-pref-height: 32; -fx-padding: 8; -fx-background-radius: 6; }
+.workspace-tool:hover { -fx-background-color: #e9e9ee; }
+.icon-stroke { -fx-stroke: #777984; }
+.file-tree { -fx-background-color: transparent; -fx-background-insets: 0; -fx-padding: 0 7 12 7; -fx-border-width: 0; }
+.file-tree .virtual-flow { -fx-background-color: transparent; }
+.file-tree .tree-cell { -fx-background-color: transparent; -fx-background-radius: 6; -fx-padding: 2 5; -fx-cell-size: 32; -fx-font-size: 14px; -fx-font-weight: bold; }
+.file-tree .tree-cell .label { -fx-text-fill: #555760; -fx-font-weight: bold; }
+.file-tree .tree-cell:filled:hover { -fx-background-color: #ededf1; }
+.file-tree .tree-cell:filled:selected { -fx-background-color: -diyalamp-accent-subtle; }
+.file-tree .tree-cell:filled:selected .label { -fx-text-fill: #30313a; }
+.file-tree .tree-cell:filled:selected .icon-stroke { -fx-stroke: -diyalamp-accent; }
+.file-row-action { -fx-min-width: 23; -fx-pref-width: 23; -fx-min-height: 23; -fx-pref-height: 23; -fx-padding: 4; }
+.writing-split { -fx-padding: 0; -fx-border-width: 0; -fx-background-color: #fcfcfd; }
+.writing-split > .split-pane-divider { -fx-padding: 0 .5 0 .5; -fx-background-color: #e4e4e9; }
+.document-pane { -fx-background-color: #fcfcfd; -fx-min-width: 200; }
+.document-pane:drop-target { -fx-border-color: -diyalamp-accent; -fx-border-width: 2; -fx-background-color: -diyalamp-accent-subtle; }
+.document-tabs { -color-tab-bg-selected: #fcfcfd; -color-tab-fg-selected: #363840; -color-tab-border-selected: #dedee6; -fx-background-color: #f4f4f7; -fx-border-color: transparent transparent #e7e7eb transparent; -fx-border-width: 0 0 1 0; -fx-padding: 3 8; -fx-min-height: 46; }
+.document-tabs.floating.dense > .root-container > .tabs > .tab { -fx-font-size: 14px; -fx-padding: 7 10; -fx-background-radius: 6; }
+.document-tabs .tab > .tab-box { -fx-spacing: 9; }
+.document-tabs .tab > .tab-box > .label { -fx-font-weight: bold; }
+.document-tabs .tab > .tab-box > .close-button { -fx-padding: 7; -fx-background-radius: 5; }
+.document-tabs .tab > .tab-box > .close-button > .graphic { -fx-background-color: #777984; }
+.tab-tools { -fx-padding: 0 2 0 8; }
+.workspace-accent-button { -fx-min-height: 32; -fx-pref-height: 32; -fx-max-height: 32; -fx-background-radius: 6; -fx-padding: 5 9; -fx-graphic-text-gap: 7; -fx-font-weight: bold; -fx-background-color: transparent; }
+.workspace-accent-button:hover { -fx-background-color: #e7e7ee; }
+.accent-swatch { -fx-min-width: 12; -fx-pref-width: 12; -fx-max-width: 12; -fx-min-height: 12; -fx-pref-height: 12; -fx-max-height: 12; -fx-background-radius: 99; }
+.accent-dialog { -fx-font-family: "System"; -fx-font-size: 14px; }
+.accent-choice { -fx-alignment: center-left; -fx-min-height: 36; -fx-padding: 8 12; -fx-graphic-text-gap: 9; -fx-border-color: #dedee6; -fx-border-radius: 6; -fx-background-radius: 6; -fx-background-color: #f7f7f9; -fx-text-fill: #363840; }
+.accent-choice:selected { -fx-border-color: #777b8b; -fx-background-color: #ececf2; }
+.accent-choice:hover { -fx-background-color: #eaeaf0; }
+.accent-value { -fx-text-fill: #6d707a; }
+.document-location { -fx-min-height: 34; -fx-padding: 4 18; -fx-spacing: 10; }
+.document-breadcrumb { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #666975; }
+.note-page { -fx-background-color: #fcfcfd; -fx-padding: 0; }
+.diyalamp-editor, .diyalamp-editor > .viewport, .writing-area { -fx-background-color: #fcfcfd; }
+.writing-area { -fx-background-insets: 0; }
+.writing-area .paragraph-box { -fx-padding: 0; }
+.writing-area .caret { -fx-stroke: #43464f; }
+.writing-area .selection { -fx-fill: -diyalamp-accent-subtle; }
+.writing-area .md-link { -fx-fill: -diyalamp-accent; }
+.writing-area .md-task { -fx-padding: 1 7 0 0; }
+.writing-area .md-marker { -fx-text-fill: #8b8c97; }
+.workspace-status { -fx-background-color: #fcfcfd; -fx-border-color: #ededf0 transparent transparent transparent; -fx-border-width: 1 0 0 0; -fx-padding: 6 14; -fx-min-height: 28; }
+.workspace-status .label { -fx-text-fill: #666975; -fx-font-size: 13px; -fx-font-weight: bold; }
+.workspace-empty { -fx-padding: 40; -fx-background-color: #fcfcfd; }
+.workspace-empty-title { -fx-font-size: 24px; -fx-font-weight: 600; -fx-text-fill: #43454d; }
+.empty-detail { -fx-text-fill: #90929b; -fx-font-size: 14px; }
+.empty-heading { -fx-font-weight: 600; -fx-text-fill: #5d5f68; }
+.explorer-empty { -fx-padding: 20 16; -fx-alignment: top-left; }
+.explorer-empty .button { -fx-font-size: 13px; }
+.save-warning { -fx-background-color: #fff5df; -fx-padding: 8 10; -fx-background-radius: 6; -fx-border-color: #eed9a9; -fx-border-radius: 6; -fx-border-width: 1; }
+.save-warning .label { -fx-text-fill: #725222; -fx-font-size: 13px; }
+.save-warning .button { -fx-font-size: 13px; }

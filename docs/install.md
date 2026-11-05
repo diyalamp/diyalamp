@@ -21,23 +21,23 @@ If installation fails, [report an issue](https://github.com/diyalamp/diyalamp/is
 
 ## Verify a download (optional)
 
-Keep the DMG and its checksum file in the same folder without renaming either file. For example, for release **1.0.2** downloaded into Downloads, open Terminal and run the command for your architecture:
+Keep the DMG and its checksum file in the same folder without renaming either file. For example, for release **1.1.1** downloaded into Downloads, open Terminal and run the command for your architecture:
 
 Apple silicon:
 
 ```sh
 cd ~/Downloads
-shasum -a 256 -c diyalamp-1.0.2-macos-arm64.dmg.sha256
+shasum -a 256 -c diyalamp-1.1.1-macos-arm64.dmg.sha256
 ```
 
 Intel:
 
 ```sh
 cd ~/Downloads
-shasum -a 256 -c diyalamp-1.0.2-macos-x86_64.dmg.sha256
+shasum -a 256 -c diyalamp-1.1.1-macos-x86_64.dmg.sha256
 ```
 
-For another release, replace `1.0.2` with that release's version in the command. The result should end with **`OK`**. A missing-file error means the files are not together or their names differ. A checksum mismatch means the download does not match the published checksum; discard it and download the matching pair again. This check detects download changes; it does not replace code signing, notarization, or a security review.
+For another release, replace `1.1.1` with that release's version in the command. The result should end with **`OK`**. A missing-file error means the files are not together or their names differ. A checksum mismatch means the download does not match the published checksum; discard it and download the matching pair again. This check detects download changes; it does not replace code signing, notarization, or a security review.
 
 ## Install and open
 
@@ -48,12 +48,20 @@ For another release, replace `1.0.2` with that release's version in the command.
 
 This community release is **unsigned and not Apple-notarized**, so macOS may block the first launch. If you trust the release source and choose to approve this app, try opening it once, then use System Settings → Privacy & Security → **Open Anyway** and review the confirmation. This is Apple's per-app approval flow; see [Apple's current instructions](https://support.apple.com/en-us/102445). If macOS reports malware or a damaged app, stop and report the message instead of trying to bypass it. Organization-managed Macs may require an administrator's approval.
 
+## Updating from the app
+
+From version 1.1.1 onward, choose Help → **Check for updates**. Checking is explicit and does not download or install anything. If a newer stable release exists, choose **Download update**, then **Install and Restart** after verification completes. The app saves pending edits before quitting; a save conflict cancels installation so you can resolve it first.
+
+The updater uses only this project's GitHub release channel and the installer for your Mac architecture. It verifies the SHA-256 checksum, disk image, bundle identity/version, architecture, and staged app. It keeps the previous app as a hidden `.diyalamp-backup-….bundle` beside the installation, and attempts rollback if replacement or launch fails. It does not request administrator rights or change macOS security settings. If your Applications folder is not writable by your account, use the DMG method below.
+
+Earlier versions without the updater need one manual replacement. These releases are unsigned; checksum verification is not publisher signature verification.
+
 ## Start writing or update the app
 
-The default notes folder is `~/Documents/diyalamp`. Choose File → **Open folder…** (`⌘O`) to use a different folder. The editor reads `.md` and `.markdown` files and saves changes locally. Start with a new or backed-up folder when trying the app for the first time.
+Choose **Open folder…** in the sidebar or File menu (`⌘O`) to select your notes folder. Existing notes remain in their original folder; select that same folder to reopen them. The editor reads `.md` and `.markdown` files and saves changes locally. Start with a new or backed-up folder when trying the app for the first time.
 
 To update, quit diyalamp, install the newer DMG, and replace the app in Applications. Notes live separately from the application bundle. Keep a backup of your notes before an update; reinstalling the app does not restore files you deleted from the notes folder.
 
 ## Building from source
 
-Only contributors need **JDK 21 or newer**. Official packages use Temurin 21; the build targets Java 21 bytecode. macOS packaging also needs Apple's command-line tools. See [the desktop build guide](../desktop/README.md) for build, test, and packaging commands.
+Only contributors need **JDK 25 or newer**. The refreshed desktop build uses Temurin 25 in CI and targets Java 25 bytecode. Earlier 1.0.x packages used Java 21. macOS packaging also needs Apple's command-line tools. See [the desktop build guide](../desktop/README.md) for build, test, and packaging commands.

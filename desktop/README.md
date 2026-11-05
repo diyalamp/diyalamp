@@ -1,25 +1,25 @@
 # diyalamp desktop
 
-A focused, local Markdown writing app for macOS. Built with Java 21, Swing, the FlatLaf macOS light component theme, and installed macOS system fonts. No backend, model provider, database, or account is required.
+A focused, local Markdown writing app for macOS. The desktop interface uses JavaFX 27, AtlantaFX controls, RichTextFX rendered editing, and installed macOS fonts. No backend, model provider, database, or account is required.
 
 ## Build and run
 
-Install a JDK 21 or newer, then run from the repository root:
+Install a JDK 25 or newer, then run from the repository root:
 
 ```sh
 sh desktop/build.sh
-java -jar desktop/build/diyalamp.jar
+sh desktop/run.sh
 ```
 
-On macOS the script selects JDK 21 when available. To choose another installation, set `DIYALAMP_JAVA_HOME` to the JDK home.
+On macOS the script selects an installed JDK 25 or newer. To choose another installation, set `DIYALAMP_JAVA_HOME` to the JDK home.
 
 A separate folder of fictional notes is useful while developing:
 
 ```sh
-java -jar desktop/build/diyalamp.jar --workspace /tmp/diyalamp-notes
+sh desktop/run.sh --workspace /tmp/diyalamp-notes
 ```
 
-Build outputs and downloaded dependencies stay in ignored `desktop/build/`. The build pins and verifies SHA-256 checksums for FlatLaf and CommonMark Java (core and GFM strikethrough). No font files are bundled: interface text uses the installed macOS system font, and code uses Menlo.
+Build outputs and downloaded dependencies stay in ignored `desktop/build/`. The build pins and verifies dependency SHA-256 checksums, including the platform-specific JavaFX artifacts in `fx-dependencies.sha256`. No font files are bundled: interface text uses the installed macOS system font, and code uses Menlo.
 
 ## Tests
 
@@ -31,17 +31,17 @@ The tests cover nested formatting, literal punctuation, fenced-code round trips,
 
 ## macOS package
 
-On a Mac with JDK 21 and Apple's command-line tools:
+On a Mac with JDK 25 or newer and Apple's command-line tools:
 
 ```sh
 sh desktop/package-macos.sh
 ```
 
-This produces a self-contained `.app`, a compressed DMG for the current processor architecture, and a SHA-256 file. The runtime is included; users do not need to install Java. The manual GitHub packaging workflow builds separate Apple silicon and Intel artifacts. Both the artifact names and draft release tag use the application version declared in `Diyalamp.VERSION`; published assets are never overwritten.
+This produces a self-contained `.app`, a compressed DMG for the current processor architecture, and a SHA-256 file. The runtime is included; users do not need to install Java. The manual GitHub packaging workflow builds separate Apple silicon and Intel artifacts. Both the artifact names and draft release tag use the application version declared in `DesktopLauncher.VERSION`; published assets are never overwritten.
 
 The first community release is unsigned and not Apple-notarized. Do not describe it as notarized or suppress macOS security checks. Signing requires the owner's Apple Developer identity and a separate notarization setup.
 
-The interface is light-only: white writing pages, soft gray panels, dark text, and #EE0000 red accents. There is no theme switch. Typography uses the installed macOS system font, with Menlo for inline code and code blocks.
+The interface is light-only: quiet writing pages, soft gray panels, and a user-selected accent color. There is no theme switch. Typography uses the installed macOS system font, with Menlo for inline code and code blocks.
 
 ## Writing and storage
 
