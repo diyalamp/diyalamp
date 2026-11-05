@@ -6,11 +6,21 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyDoubleProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.*;
+import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.paint.LinearGradient;
+import javafx.scene.paint.Stop;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
@@ -30,6 +40,15 @@ import org.reactfx.Subscription;
 public final class FxWritingPane {
   private final StyledTextArea<FxMarkdown.Block, FxMarkdown.Span> area;
   private final VirtualizedScrollPane<?> viewport;
+  private final StackPane editorRoot;
+  private final Rectangle focusLineMask = new Rectangle();
+  private ReadOnlyDoubleProperty focusLineProgress;
+  private Scene focusScene;
+  private final Runnable focusLayoutListener = this::updateFocusLine;
+  private final ChangeListener<Number> focusProgressListener = (observable, previous, value) -> updateFocusProgress(value.doubleValue());
+  private double focusProgress;
+  private double lastFocusTop = Double.NaN, lastFocusBottom, lastFocusLine, lastFocusHeight;
+  private boolean lineHighlighterInstalled;
   private final ContextMenu slash = new ContextMenu();
   private final Subscription richSubscription, plainSubscription;
   private final FxMarkdown.Writer writer = new FxMarkdown.Writer();
@@ -75,9 +94,27 @@ public final class FxWritingPane {
     viewport.setMinWidth(0);
     viewport.setMinHeight(0);
     viewport.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+    focusLineMask.getStyleClass().add("zen-focus-mask");
+    focusLineMask.setManaged(false);
+    focusLineMask.setMouseTransparent(true);
+    focusLineMask.setVisible(false);
+    editorRoot = new StackPane(viewport, focusLineMask) {
+      @Override protected void layoutChildren() {
+        super.layoutChildren();
+        updateFocusLine();
+      }
+    };
+    editorRoot.setMinSize(0, 0);
+    editorRoot.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+    editorRoot.sceneProperty().addListener((observable, previous, current) -> syncFocusLayoutListener());
+    area.caretBoundsProperty().addListener((observable, previous, current) -> updateFocusLine());
+    area.estimatedScrollYProperty().addListener((observable, previous, current) -> updateFocusLine());
     area.addEventFilter(KeyEvent.KEY_PRESSED, this::key);
     area.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> area.setTextInsertionStyle(null));
-    area.caretPositionProperty().addListener((observable, previous, current) -> leaveNoteLinkAtBoundary());
+    area.caretPositionProperty().addListener((observable, previous, current) -> {
+      leaveNoteLinkAtBoundary();
+      updateFocusLine();
+    });
     area.addEventHandler(MouseEvent.MOUSE_RELEASED, event -> leaveNoteLinkAtBoundary());
     area.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
       if (event.getButton() != MouseButton.PRIMARY || !event.isStillSincePress() || event.isShiftDown()
@@ -111,7 +148,90 @@ public final class FxWritingPane {
     });
   }
 
-  public Node node() { return viewport; }
+  public Node node() { return editorRoot; }
+  /** Fades around the actual visual caret line without changing the editor, its layout, or document. */
+  public void setFocusLineProgress(ReadOnlyDoubleProperty progress) {
+    if (focusLineProgress != null) focusLineProgress.removeListener(focusProgressListener);
+    focusLineProgress = progress;
+    if (progress != null) progress.addListener(focusProgressListener);
+    updateFocusProgress(progress == null ? 0 : progress.get());
+  }
+
+  private void updateFocusProgress(double progress) {
+    focusProgress = Double.isFinite(progress) ? Math.max(0, Math.min(1, progress)) : 0;
+    focusLineMask.setVisible(focusProgress > 0);
+    focusLineMask.setOpacity(focusProgress);
+    syncFocusLayoutListener();
+    if (focusProgress > 0 && !lineHighlighterInstalled) {
+      area.setLineHighlighterFill(Color.TRANSPARENT);
+      area.setLineHighlighterOn(true);
+      lineHighlighterInstalled = true;
+    }
+    if (lineHighlighterInstalled) area.setLineHighlighterFill(Color.color(1, 1, 1, .035 * focusProgress));
+    updateFocusLine();
+  }
+
+  private void syncFocusLayoutListener() {
+    Scene next = focusProgress > 0 && !disposed ? editorRoot.getScene() : null;
+    if (next == focusScene) return;
+    if (focusScene != null) focusScene.removePostLayoutPulseListener(focusLayoutListener);
+    focusScene = next;
+    // Only this unmanaged overlay's paint/geometry changes here; no control or
+    // text layout is invalidated after JavaFX has finished its layout pass.
+    if (focusScene != null) focusScene.addPostLayoutPulseListener(focusLayoutListener);
+  }
+
+  private void updateFocusLine() {
+    if (editorRoot == null || focusProgress <= 0 || editorRoot.getScene() == null) return;
+    Bounds frame = editorRoot.sceneToLocal(area.localToScene(area.getLayoutBounds()));
+    if (frame.getWidth() <= 0 || frame.getHeight() <= 0) return;
+    focusLineMask.setX(frame.getMinX());
+    focusLineMask.setY(frame.getMinY());
+    focusLineMask.setWidth(frame.getWidth());
+    focusLineMask.setHeight(frame.getHeight());
+    // Query fresh control geometry: caretBoundsProperty caches screen coordinates
+    // and can remain unchanged when scrolling within the same wrapped paragraph.
+    Optional<Bounds> caret = area.getCaretBoundsOnScreen(area.getCaretSelectionBind().getUnderlyingCaret());
+    // A newly laid-out, unfocused note can have no visible CaretNode yet. Ask the
+    // maintained control for that insertion point's geometry, without moving it.
+    if (caret.isEmpty() && area.getParagraphBoundsOnScreen(area.getCurrentParagraph()).isPresent())
+      caret = area.getCharacterBoundsOnScreen(area.getCaretPosition(), area.getCaretPosition());
+    caret = caret.map(editorRoot::screenToLocal);
+    if (caret.isEmpty()) {
+      if (!FxTheme.EDITOR_BACKGROUND.equals(focusLineMask.getFill())) focusLineMask.setFill(FxTheme.EDITOR_BACKGROUND);
+      return;
+    }
+    double top = caret.get().getMinY() - frame.getMinY() - 2;
+    double bottom = caret.get().getMaxY() - frame.getMinY() + 2;
+    double line = Math.max(FxTheme.TEXT_SIZE, caret.get().getHeight());
+    double height = frame.getHeight();
+    if (focusLineMask.getFill() instanceof LinearGradient && top == lastFocusTop && bottom == lastFocusBottom
+        && line == lastFocusLine && height == lastFocusHeight) return;
+    lastFocusTop = top; lastFocusBottom = bottom; lastFocusLine = line; lastFocusHeight = height;
+    double[] positions = {top - 4 * line, top - 3 * line, top - 2 * line, top - line,
+        top, bottom, bottom + line, bottom + 2 * line, bottom + 3 * line, bottom + 4 * line};
+    double[] opacity = {1, .9, .66, .34, 0, 0, .34, .66, .9, 1};
+    List<Stop> stops = new ArrayList<>();
+    stops.add(new Stop(0, focusShade(shadeAt(0, positions, opacity))));
+    for (int i = 0; i < positions.length; i++) if (positions[i] > 0 && positions[i] < height)
+      stops.add(new Stop(positions[i] / height, focusShade(opacity[i])));
+    stops.add(new Stop(1, focusShade(shadeAt(height, positions, opacity))));
+    focusLineMask.setFill(new LinearGradient(0, 0, 0, 1, true, CycleMethod.NO_CYCLE, stops));
+  }
+
+  private static Color focusShade(double opacity) {
+    Color background = FxTheme.EDITOR_BACKGROUND;
+    return new Color(background.getRed(), background.getGreen(), background.getBlue(), opacity);
+  }
+
+  private static double shadeAt(double y, double[] positions, double[] opacity) {
+    if (y <= positions[0]) return opacity[0];
+    for (int i = 1; i < positions.length; i++) if (y < positions[i]) {
+      double fraction = (y - positions[i - 1]) / (positions[i] - positions[i - 1]);
+      return opacity[i - 1] + fraction * (opacity[i] - opacity[i - 1]);
+    }
+    return opacity[opacity.length - 1];
+  }
   public void focus() { area.requestFocus(); }
   public void setOnChange(Runnable handler) { onChange = handler == null ? () -> {} : handler; }
   public void setOnNoteLink(Consumer<String> handler) { onNoteLink = handler == null ? target -> {} : handler; }
@@ -148,6 +268,7 @@ public final class FxWritingPane {
   public void dispose() {
     if (disposed) return;
     disposed = true;
+    setFocusLineProgress(null);
     slash.hide();
     richSubscription.unsubscribe();
     plainSubscription.unsubscribe();
@@ -513,6 +634,7 @@ public final class FxWritingPane {
     FxMarkdown.Block block = area.getParagraph(index).getParagraphStyle();
     if (block.kind().equals("task")) {
       CheckBox check = new CheckBox();
+      check.setFont(FxTheme.textFont(FxTheme.TEXT_SIZE, false, false));
       check.setSelected(block.checked());
       check.setAccessibleText("Checklist item " + (block.checked() ? "checked" : "unchecked"));
       check.getStyleClass().add("md-task");
@@ -522,6 +644,7 @@ public final class FxWritingPane {
     String marker = switch (block.kind()) { case "bullet" -> "•"; case "ordered" -> block.number() + "."; case "quote" -> "│"; default -> ""; };
     if (marker.isEmpty()) return null;
     Label label = new Label(marker);
+    label.setFont(FxTheme.textFont(FxTheme.TEXT_SIZE, false, false));
     label.getStyleClass().add("md-marker");
     label.setMinWidth(24);
     label.setPadding(new Insets(0, 8, 0, 0));
@@ -545,7 +668,7 @@ public final class FxWritingPane {
   private static void applySpan(TextExt text, FxMarkdown.Span span) {
     boolean code = span.flag(Markdown.INLINE_CODE) || span.blockKind().equals("code");
     boolean heading = span.blockKind().equals("heading");
-    double size = code ? 16 : heading ? (span.level() == 1 ? 22 : 20) : 16;
+    double size = FxTheme.TEXT_SIZE;
     boolean bold = heading || span.flag(StyleConstants.Bold), italic = span.flag(StyleConstants.Italic);
     String face = code ? "Menlo " + (bold ? "Bold" : "Regular") : "System " + (bold ? "Bold" : "Regular");
     if (italic) face = code ? (bold ? "Menlo Bold Italic" : "Menlo Italic")
@@ -567,7 +690,7 @@ public final class FxWritingPane {
       text.setAccessibleText("Note link: " + span.noteLink());
       text.setCursor(javafx.scene.Cursor.HAND);
     }
-    text.setStyle("-fx-fill: " + (link ? "-color-accent-emphasis" : "-color-fg-default") + ";"
+    text.setStyle("-fx-fill: " + (link ? "-color-accent-fg" : code ? "-color-code-fg" : "-color-editor-fg") + ";"
         + (code ? "-rtfx-background-color: -color-bg-subtle;" : ""));
   }
 

@@ -1,20 +1,45 @@
 macOS application icon
 
 profile-icon.png is the existing approved diyalamp profile artwork previously
-used directly as app-icon.png. It is retained here as the unchanged composition
-source, outside application resources so it is not bundled twice.
+used directly as app-icon.png. It remains unchanged as the composition source,
+outside application resources so it is not bundled twice.
 
-render.swift draws a restrained macOS backplate in the empty margins: rounded
-white surface, off-white lower edge, thin highlight, and a soft outer shadow.
-The lamp's source position, scale, and every pixel in its colored bounds remain
-unchanged. The inline lamp.png asset is separate and is not modified.
+render.swift draws a restrained VS Code Dark Modern backplate, using exact RGB
+#181818 and #1F1F1F, a thin edge highlight, and the existing soft outer shadow.
+The rounded backplate bounds (24, 28, 412, 412) and its shadow footprint remain
+unchanged. The lamp keeps its exact approved pixel bounds:
+x=99...360, y=129...344, within a 460 x 460 canvas.
+
+The approved source has an opaque white matte. The renderer removes only white
+connected to the canvas boundary and recomposites its outer four-pixel
+antialiasing fringe onto the dark surface. It does not resize, move, redraw, or
+replace the lamp. All 27,054 interior artwork pixels are verified identical to
+the source before and after PNG encoding; 2,982 outer fringe pixels are
+recomposited to avoid a white halo. The separate inline lamp.png is unchanged.
 
 To rebuild on macOS using the installed Swift toolchain:
 
-    swift desktop/icon-source/render.swift
+    swift desktop/icon-source/render.swift --preview
 
 Output: desktop/src/main/resources/app-icon.png (460 x 460, RGBA).
-The renderer verifies pixel equality against the approved source both before
-and after PNG encoding. Packaging derives ICNS sizes from this PNG as before.
+Optional preview: desktop/build/icon-preview-dark.png, at 32/64/128/240 pixels.
+The renderer checks unchanged lamp bounds, exact interior pixels, transparent
+corners, and the encoded neutral RGB range. Packaging derives the normal ICNS
+representations from the same PNG, preserving their scale and composition.
 
-No generated replacement artwork, new typography, or third-party icon is used.
+Launch-icon audit
+
+The packaged macOS app uses CFBundleIconFile=diyalamp.icns. Its JavaFX entry
+point intentionally does not add a PNG to Stage.getIcons() when the jpackage
+app-path property identifies a packaged Mac app. Preserve that guard: JavaFX's
+Mac WindowStage otherwise scales a supplied window icon to 128 x 128 and sends
+it to the native icon setter, which can replace the Dock image.
+
+There is no application code requesting Dock attention, bouncing, magnification,
+or a launch zoom. No global Dock preference has been changed. An operating-
+system launch animation cannot be attributed to the icon source alone; this
+asset change does not claim to disable a macOS-controlled animation. The app
+keeps its visible Dock icon and its packaged multi-resolution ICNS.
+
+No new third-party artwork, generated replacement logo, or typography is used.
+The approved lamp remains a project brand asset under its existing provenance.

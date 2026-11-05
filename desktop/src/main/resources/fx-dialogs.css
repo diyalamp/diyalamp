@@ -1,10 +1,10 @@
-/* Standard JavaFX DialogPane and controls, styled by AtlantaFX Cupertino Light. */
+/* Standard JavaFX DialogPane and controls, styled by AtlantaFX Cupertino Dark. */
 .diyalamp-dialog {
   -fx-font-family: "Inter";
   -fx-font-size: 16px;
-  -fx-background-color: #fcfcfd;
+  -fx-background-color: #202122;
   -fx-background-radius: 12;
-  -fx-border-color: #e1e2e7;
+  -fx-border-color: #2A2B2C;
   -fx-border-radius: 12;
   -fx-padding: 0;
   -fx-min-width: 420;
@@ -12,16 +12,19 @@
   -fx-graphic: null;
 }
 .diyalamp-dialog > .content { -fx-padding: 16 24 0 24; }
-.diyalamp-dialog > .content.label { -fx-wrap-text: true; -fx-text-fill: #484b55; }
+.diyalamp-dialog > .content.label { -fx-wrap-text: true; -fx-text-fill: #BFBFBF; }
 .diyalamp-dialog > .button-bar > .container { -fx-padding: 16 24 16 24; -fx-spacing: 8; }
 .diyalamp-dialog > .header-panel { -fx-background-color: transparent; -fx-padding: 16 24 0 24; }
-.diyalamp-dialog > .header-panel > .label { -fx-font-family: "Inter SemiBold"; -fx-font-size: 20px; -fx-font-weight: normal; -fx-text-fill: #363840; }
-.diyalamp-dialog .label { -fx-text-fill: #484b55; }
+.diyalamp-dialog > .header-panel > .label { -fx-font-family: "Inter SemiBold"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #BFBFBF; }
+.diyalamp-dialog .label { -fx-text-fill: #BFBFBF; }
 .diyalamp-dialog .button { -fx-min-height: 40; -fx-padding: 8 16; -fx-background-radius: 8; -fx-border-radius: 8; -fx-font-size: 16px; -fx-font-weight: normal; }
 .diyalamp-dialog .text-field, .diyalamp-dialog .combo-box-base {
   -fx-min-height: 40;
   -fx-background-radius: 8;
   -fx-border-radius: 8;
   -fx-font-size: 16px;
-  -fx-background-color: #ffffff;
+  -fx-background-color: #191A1B;
+  -fx-text-fill: #BFBFBF;
+  -fx-border-color: #333536;
+  -fx-prompt-text-fill: #555555;
 }

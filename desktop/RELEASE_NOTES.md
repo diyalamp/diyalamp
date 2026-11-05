@@ -1,22 +1,26 @@
-## diyalamp 1.1.3
+## diyalamp 1.2.0 · development
 
-The light macOS workspace combines AtlantaFX Cupertino controls and animated popovers with RichTextFX editing and SmartGraph note navigation.
+The dark-only macOS workspace combines maintained AtlantaFX CupertinoDark controls with the official VS Code 2026 Dark palette, RichTextFX editing, and SmartGraph note navigation. These notes describe the 1.2.0 development version; the README keeps verified 1.1.3 download links and measurements until new public assets are confirmed.
 
 ### Connected notes
 
 - Type `[[Note name]]` to link one note to another. Wiki markup remains in the saved Markdown; the editor shows a local-note link.
 - The right panel shows a directed graph above incoming and outgoing note lists. Incoming notes point into the current note; outgoing notes are linked from it.
-- The graph uses SmartGraph's force layout and zoom/pan controls. Connections are indexed from local notes in the background, with visible limits for partial scans. Web links, hidden files, and paths outside the selected workspace are excluded.
+- The graph keeps the same SmartGraph instance and zoom/pan container through note selection and safe saves. Shared node coordinates and zoom remain stable; returning local nodes restore cached positions. Interaction reheats the library layout, which settles after five idle seconds and stops immediately when hidden or closed. Hover highlights related notes and links; switching folders stops the old workspace simulation.
+- Connections are indexed from local notes in the background, with visible limits for partial scans. Web links, hidden files, and paths outside the selected workspace are excluded.
 
 ### Focus and interface
 
-- Zen mode smoothly hides workspace controls and restores the previous sidebar and split arrangement. Use the toolbar, View menu, or Shift-Command-F; an exit control remains available.
-- Six muted accents transition smoothly, including when a new choice interrupts a transition. Accessibility attachment no longer disables animations; the explicit reduced-motion option remains.
-- Static Inter Regular 16 is used for ordinary text; exact Inter Semibold faces are used for headings, and Menlo 16 for code. Static italic faces preserve emphasis. Font files add about 1.6 MiB, measured separately from the runtime.
-- The global toolbar, sidebar, tabs, graph, dialogs, and popovers use a shared 8/16/24 spacing scale and Cupertino controls.
+- Zen now visually fades text away from the current caret line. All chrome remains visible; the same toolbar toggle stays in place. The visual overlay does not intercept input. Use the toolbar, View menu, or Shift-Command-F.
+- Six accent choices with a blue default transition smoothly, including when a new choice interrupts a transition. Accessibility attachment no longer disables animations; the explicit reduced-motion option remains.
+- All text is 16 px, including headings, graph labels, dialog headers, tooltips, menus, popovers, and timer digits. Static Inter Regular is used for ordinary text; exact Inter SemiBold changes heading weight without enlarging it, and Menlo 16 is used for code. Static italic faces preserve emphasis. Font files add about 1.6 MiB, measured separately from the runtime.
+- The global toolbar, sidebar, tabs, graph, dialogs, and popovers use a shared 8/16/24 spacing scale and CupertinoDark controls. Editor `#121314`/`#BBBEBF`, chrome `#191A1B`, border `#2A2B2C`, text `#BFBFBF`, and muted text `#8C8C8C` follow 2026 Dark. Inputs use `#191A1B` with `#333536` borders and `#555555` placeholders; default action/link blues are `#297AA0` and `#48A0C7`.
+- Top-toolbar Pomodoro and accent controls are icon-only/color-circle controls. New-note and split controls stay in the toolbar/sidebar rather than inside the writing surface.
+- The bottom status bar shows rendered character/word/logical-line counts and the current Markdown's UTF-8 byte size. Both sidebars have native draggable dividers and remember their pixel widths and visibility independently. The reset icon restores 272/304 px widths within window bounds without changing open notes, selection, visibility, or Zen.
+- Hover paint transitions do not lift, scale, or move controls. The explicit reduced-motion option removes those transitions.
 - A compact toolbar Pomodoro opens an animated bubble for 25-minute focus and 5-minute breaks with Start, Stop, and Reset. Each next session starts explicitly; completion uses an in-app notice. The timer stops when the app quits.
 - Move tabs between split panes and move notes into workspace folders by dragging. Folder moves preserve note bytes and reject overwrites or destinations outside the workspace.
-- The lamp and product name appear together on one line. Packaged macOS launches retain the bundled ICNS rather than replacing it with a separate runtime image. Global Dock settings are unchanged.
+- The lamp and product name appear together on one line. The dark icon keeps the approved lamp geometry. Packaged macOS launches retain the bundled ICNS rather than replacing it with a separate runtime image; this is not a guarantee about operating-system Dock zoom. Global Dock settings are unchanged.
 
 ### Files and updates
 

@@ -13,30 +13,27 @@ diyalamp is a desktop Markdown editor with rendered formatting and local file st
 
 The application opens a folder of `.md` or `.markdown` files. Editing does not require an account, subscription, server, database, or internet connection. Notes remain readable by other Markdown tools.
 
-## Features
+## Development features · 1.2.0
 
-- Light-only macOS workspace using Cupertino controls, Inter text, Menlo code, a file explorer, note tabs, and flat Lucide icons.
+This describes the 1.2.0 development workspace. The verified downloads below remain at 1.1.3 until new installers are published.
+
+- Dark-only macOS workspace using maintained AtlantaFX CupertinoDark controls and the official VS Code 2026 Dark palette, with a file explorer, note tabs, and flat Lucide icons.
+- One 16 px text size throughout: static Inter for interface/prose and headings, with weight indicating headings or emphasis; installed Menlo for code.
 - Rendered headings, bold, italic, inline code, links, lists, checklists, quotes, and fenced code blocks.
 - Formatting controls, Markdown typing shortcuts, and slash commands.
 - Folder explorer with nested Markdown files, filename search, closable note tabs, and side-by-side editing.
 - Local autosave with external-file conflict detection.
 - Note creation, import, rename, export, recoverable deletion, and restore.
 - Undo/redo and macOS keyboard shortcuts.
-- `[[Note name]]` links with directed incoming/outgoing navigation and a SmartGraph panel.
-- Smooth Zen mode, interrupted accent transitions, and consistently styled dialogs.
-- A toolbar Pomodoro with a compact animated popover for Start, Stop, and Reset.
+- `[[Note name]]` links with directed incoming/outgoing navigation and a SmartGraph panel that retains layout and zoom during note selection and safe saves.
+- Zen visually fades text away from the current caret line while keeping the toolbar, sidebars, tabs, and status visible. Its control stays in the same place.
+- Smooth accent transitions, matching dark dialogs, and restrained hover paint transitions without moving controls.
+- Icon-only top-toolbar Pomodoro and a color-circle accent control. Pomodoro opens an animated popover for Start, Stop, and Reset; its tooltip and accessibility help show the phase and remaining time.
 - Drag tabs between panes or move notes into workspace folders without overwrites.
-- Six muted accent choices in an animated toolbar popover, plus explicit in-app update checks.
-
-![Light diyalamp workspace with a folder explorer, note tabs, and rendered Markdown](assets/desktop-workspace-preview.png)
-
-_Workspace preview using fictional notes._
-
-| Quick focus timer | Workspace accent |
-| --- | --- |
-| ![Pomodoro bubble with Start, Reset, and focus or break choices](assets/pomodoro-popover-preview.png) | ![Accent bubble with six muted color choices](assets/accent-popover-preview.png) |
-
-_Previews exported from the app's actual popover components._
+- New-note and split actions in the top toolbar and file controls in the sidebar, leaving the writing surface clear.
+- Character, word, and logical-line counts for rendered text, plus the current Markdown's UTF-8 byte size in the status bar.
+- Native draggable dividers for both sidebars, with saved pixel widths and independent open/closed states. An icon-only reset restores the default widths without closing notes or changing Zen.
+- Six accent choices with a blue default and explicit in-app update checks.
 
 ## macOS downloads
 
@@ -84,7 +81,7 @@ See [`desktop/README.md`](desktop/README.md) for dependency checksums, architect
 
 This release supports common Markdown editing. It does not implement the complete CommonMark specification, rich table rendering, remote-image previews, plugins, sync, team databases, or publication integrations. Unsupported text is retained rather than executed.
 
-The [browser notebook](https://diyalamp.com/#workspace) is a separate demonstration; its browser storage is not automatically synced with desktop files. Website source is in [diyalamp.github.io](https://github.com/diyalamp/diyalamp.github.io).
+The dark [website and browser notebook](https://diyalamp.com/#workspace) retain their separately approved presentation. The notebook is a separate demonstration, not a screenshot of the desktop app; its browser storage is not automatically synced with desktop files. Website source is in [diyalamp.github.io](https://github.com/diyalamp/diyalamp.github.io).
 
 Previous AI-agent, browser-automation, and writing-review experiments remain in the repository history and existing folders. They are not dependencies of the desktop editor. Current application development belongs in `desktop/`.
 

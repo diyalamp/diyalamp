@@ -12,215 +12,157 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.prefs.Preferences;
 import javafx.animation.Animation;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
-import javafx.scene.control.Button;
+import javafx.geometry.Bounds;
+import javafx.scene.Node;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToolBar;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Region;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
-/** Exercises real window-layout transitions, interruption, selection, and file safety. */
+/** Line focus changes reading contrast without moving controls or replacing the writer. */
 public final class FxZenTests {
   private static int checks;
   private static void check(boolean condition, String message) {
     checks++; if (!condition) throw new AssertionError(message);
   }
 
-  public static void main(String[] arguments) throws Exception {
-    CountDownLatch ready = new CountDownLatch(1);
-    Platform.startup(ready::countDown);
+  public static void main(String[] args) throws Exception {
+    CountDownLatch ready = new CountDownLatch(1); Platform.startup(ready::countDown);
     if (!ready.await(10, TimeUnit.SECONDS)) throw new AssertionError("FX startup timed out");
     Fixture fixture = null;
     try {
       fixture = fx(Fixture::new);
-      Thread.sleep(400);
-      sidebarReversesWithoutJump(fixture); reversesWithoutJump(fixture); hidesAndRestores(fixture);
-      preservesCollapsedSidebar(fixture); reducedMotion(fixture); pendingInputSurvives(fixture);
+      reversible(fixture); preservesWorkspace(fixture); sidebarIsIndependent(fixture); pendingSave(fixture);
     } finally {
-      if (fixture != null) {
-        Fixture current = fixture; fx(() -> { current.close(); return null; });
-      }
+      if (fixture != null) { Fixture current = fixture; fx(() -> { current.close(); return null; }); }
       Platform.exit();
     }
     System.out.println("Passed " + checks + " JavaFX Zen checks.");
   }
 
-  private static void sidebarReversesWithoutJump(Fixture fixture) throws Exception {
-    double initial = fx(() -> fixture.explorer.getWidth());
-    fx(() -> { call(fixture.app, "toggleSidebar", new Class<?>[0]); return null; });
-    Thread.sleep(100);
-    double middle = fx(() -> fixture.explorer.getWidth());
-    check(middle > 0 && middle < initial, "The files sidebar must visibly animate rather than snapping closed");
-    double[] beforeAfter = fx(() -> {
-      double before = fixture.explorer.getPrefWidth();
-      call(fixture.app, "toggleSidebar", new Class<?>[0]);
-      return new double[] {before, fixture.explorer.getPrefWidth()};
-    });
-    check(Math.abs(beforeAfter[0] - beforeAfter[1]) < .01,
-        "Reversing the files sidebar must continue from its current width");
-    awaitFx(() -> {
-      fixture.layout();
-      return stopped(fixture.app, "sidebarAnimation") && fixture.explorer.isManaged()
-          && fixture.explorer.isVisible() && Math.abs(fixture.explorer.getWidth() - initial) < 1;
-    }, "the interrupted sidebar to reopen");
+  private static void reversible(Fixture f) throws Exception {
     fx(() -> {
-      fixture.layout(); check(fixture.explorer.isManaged() && Math.abs(fixture.explorer.getWidth() - initial) < 1,
-          "The interrupted files sidebar must return to its original width"); return null;
+      f.zenButton().fire();
+      Timeline entering = (Timeline) field(f.app, "zenAnimation");
+      check(entering != null && entering.getStatus() == Animation.Status.RUNNING,
+          "Line focus must enter through a real animation");
+      entering.jumpTo(Duration.millis(120));
+      double middle = f.app.zenProgressProperty().get();
+      check(middle > 0 && middle < 1, "The focus fade must expose intermediate contrast");
+      f.zenButton().fire();
+      check(Math.abs(f.app.zenProgressProperty().get() - middle) < .0001,
+          "An interrupted transition must reverse from its current contrast without a jump");
+      return null;
+    });
+    awaitZen(f, false);
+  }
+
+  private static void preservesWorkspace(Fixture f) throws Exception {
+    Object[] original = fx(() -> {
+      f.layout();
+      return new Object[] {f.zenButton().localToScene(f.zenButton().getBoundsInLocal()),
+          f.editor.area().getAnchor(), f.editor.area().getCaretPosition(),
+          f.editor.markdown(), f.splitItems().getFirst(),
+          f.toolbar.getHeight(), f.footer.getHeight(), f.explorer.getWidth()};
+    });
+    fx(() -> { f.zenButton().fire(); return null; }); awaitZen(f, true);
+    fx(() -> {
+      f.layout();
+      check(f.zenButton().isSelected() && f.zenButton().isVisible(), "The same top-bar button must enter and exit line focus");
+      check(f.zenButton().localToScene(f.zenButton().getBoundsInLocal()).equals(original[0]),
+          "The Zen button must remain at exactly the same position and size");
+      for (Region region : List.of(f.toolbar, f.footer, f.explorer, f.primaryChrome, f.secondaryChrome))
+        check(region.isManaged() && region.isVisible() && !region.isMouseTransparent(),
+            "Zen must keep the bars, sidebar, and note tabs visible and usable");
+      check(f.toolbar.getHeight() == (double) original[5] && f.footer.getHeight() == (double) original[6]
+          && f.explorer.getWidth() == (double) original[7], "Line focus cannot resize workspace chrome");
+      check(f.splitItems().size() == 2 && f.splitItems().getFirst() == original[4],
+          "Line focus must retain both existing split panes");
+      check(f.editor.area().getAnchor() == (int) original[1] && f.editor.area().getCaretPosition() == (int) original[2],
+          "Line focus cannot move the caret or change the selection");
+      check(f.editor.markdown().equals(original[3]) && !f.editor.canUndo(),
+          "Changing reading contrast must not edit the note or create Undo entries");
+      check(f.stage.getScene().getRoot().lookupAll(".zen-exit").isEmpty(),
+          "There must be no second exit control in a different position");
+      check(f.zenMenu().getAccelerator().equals(new KeyCodeCombination(KeyCode.F,
+          KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN)), "Shift-Command-F remains available");
+      f.zenButton().fire(); return null;
+    });
+    awaitZen(f, false);
+    fx(() -> {
+      check(f.zenButton().localToScene(f.zenButton().getBoundsInLocal()).equals(original[0]),
+          "Exiting line focus must leave the button in its original position");
+      return null;
     });
   }
 
-  private static void reducedMotion(Fixture fixture) throws Exception {
+  private static void sidebarIsIndependent(Fixture f) throws Exception {
     fx(() -> {
       System.setProperty("diyalamp.reduceMotion", "true");
       try {
-        fixture.zenButton().fire();
-        check(fixture.app.zenProgressProperty().get() == 1 && !fixture.toolbar.isManaged(),
-            "The explicit reduced-motion preference must settle Zen immediately");
-        fixture.exit.fire();
-        check(fixture.app.zenProgressProperty().get() == 0 && fixture.toolbar.isManaged(),
-            "Reduced motion must also restore normal workspace controls immediately");
+        f.zenButton().fire();
+        check(f.app.zenProgressProperty().get() == 1, "Reduced motion must settle the focus fade immediately");
+        call(f.app, "toggleSidebar", new Class<?>[0]);
+        check(!f.explorer.isManaged() && f.app.zenModeProperty().get(),
+            "The sidebar toggle must work independently while line focus remains enabled");
+        f.zenButton().fire();
+        check(!f.explorer.isManaged() && f.app.zenProgressProperty().get() == 0,
+            "Exiting line focus must not reopen a sidebar the user closed");
+        call(f.app, "toggleSidebar", new Class<?>[0]);
+        check(f.explorer.isManaged(), "The sidebar remains directly controllable");
       } finally { System.clearProperty("diyalamp.reduceMotion"); }
       return null;
     });
   }
 
-  private static void reversesWithoutJump(Fixture fixture) throws Exception {
-    double initial = fx(() -> fixture.explorer.getWidth());
-    fx(() -> { fixture.zenButton().fire(); return null; });
-    Thread.sleep(150);
-    double middle = fx(() -> fixture.explorer.getWidth());
-    check(middle > 0 && middle < initial, "Entering Zen must reveal intermediate sidebar geometry: initial="
-        + initial + ", middle=" + middle + ", progress=" + fx(() -> fixture.app.zenProgressProperty().get()));
-    double[] beforeAfter = fx(() -> {
-      double before = fixture.explorer.getPrefWidth();
-      fixture.zenMenu().fire();
-      return new double[] {before, fixture.explorer.getPrefWidth()};
-    });
-    check(Math.abs(beforeAfter[0] - beforeAfter[1]) < .01,
-        "Reversing an in-flight transition must begin at the current position, without a jump");
-    awaitZen(fixture, false);
+  private static void pendingSave(Fixture f) throws Exception {
     fx(() -> {
-      fixture.layout();
-      check(!fixture.app.zenModeProperty().get() && fixture.explorer.isManaged(), "Reversal must restore normal layout");
-      check(Math.abs(fixture.explorer.getWidth() - initial) < 1, "Sidebar width must return to its original value");
+      f.editor.area().appendText(" Pending text before line focus.");
+      f.zenButton().fire();
+      check((boolean) call(f.app, "saveAll", new Class<?>[] {boolean.class}, false),
+          "Save must flush pending typing during the contrast animation");
+      check(Files.readString(f.activePath).contains("Pending text before line focus."),
+          "Entering line focus cannot lose unsaved input");
       return null;
     });
+    awaitZen(f, true);
   }
 
-  private static void hidesAndRestores(Fixture fixture) throws Exception {
-    int anchor = fx(() -> fixture.editor.area().getAnchor());
-    int caret = fx(() -> fixture.editor.area().getCaretPosition());
-    double[] window = fx(() -> new double[] {fixture.stage.getX(), fixture.stage.getY(),
-        fixture.stage.getWidth(), fixture.stage.getHeight()});
-    fx(() -> { fixture.zenMenu().fire(); return null; });
-    awaitZen(fixture, true);
-    fx(() -> {
-      fixture.layout();
-      check(fixture.app.zenModeProperty().get() && fixture.app.zenProgressProperty().get() == 1,
-          "Zen must settle completely");
-      check(!fixture.toolbar.isVisible() && !fixture.explorer.isManaged(), "Global toolbar and explorer must leave layout and focus traversal");
-      check(!fixture.primaryChrome.isManaged() && !fixture.secondaryChrome.isManaged(), "Both pane headers must hide");
-      check(!fixture.footer.isManaged(), "The status bar must hide in Zen");
-      check(fixture.exit.isVisible() && !fixture.exit.isDisabled(), "A visible Exit Zen button must remain available");
-      check(fixture.splitItems().size() == 2 && fixture.splitItems().get(0) == fixture.firstPane,
-          "Zen must retain the same split-pane nodes");
-      check(fixture.editor.area().getAnchor() == anchor && fixture.editor.area().getCaretPosition() == caret,
-          "Zen must leave the current text selection unchanged");
-      check(!fixture.stage.isFullScreen() && fixture.stage.getX() == window[0] && fixture.stage.getY() == window[1]
-          && fixture.stage.getWidth() == window[2] && fixture.stage.getHeight() == window[3],
-          "Zen is a workspace mode and cannot alter native window size or full-screen state");
-      check(fixture.zenMenu().getAccelerator().equals(new KeyCodeCombination(KeyCode.F,
-          KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN)), "The View command must expose Shift-Command-F on macOS");
-      fixture.exit.fire(); return null;
-    });
-    awaitZen(fixture, false);
-    fx(() -> {
-      fixture.layout();
-      check(fixture.primaryChrome.isManaged() && fixture.secondaryChrome.isManaged() && fixture.footer.isManaged(),
-          "Exiting must restore the same headers and status bar");
-      check(!fixture.exit.isVisible() && !fixture.zenButton().isSelected(), "The Exit overlay and toolbar state must reset");
-      return null;
-    });
-  }
-
-  private static void preservesCollapsedSidebar(Fixture fixture) throws Exception {
-    fx(() -> { call(fixture.app, "toggleSidebar", new Class<?>[0]); return null; });
-    awaitFx(() -> stopped(fixture.app, "sidebarAnimation")
-        && !fixture.explorer.isManaged() && !fixture.explorer.isVisible()
-        && fixture.explorer.getPrefWidth() == 0, "the files sidebar to close");
-    fx(() -> { fixture.zenButton().fire(); return null; });
-    awaitZen(fixture, true);
-    fx(() -> { fixture.exit.fire(); return null; });
-    awaitZen(fixture, false);
-    fx(() -> {
-      fixture.layout();
-      check(!fixture.explorer.isManaged() && !fixture.explorer.isVisible(),
-          "A sidebar closed before Zen must remain closed afterward");
-      check(fixture.toolbar.isVisible(), "The global toolbar must return when the explorer stays closed");
-      check(fixture.splitItems().size() == 2, "The split layout must survive repeated Zen entry and exit");
-      return null;
-    });
-  }
-
-  private static void awaitZen(Fixture fixture, boolean enabled) throws Exception {
-    awaitFx(() -> {
-      fixture.layout();
-      return fixture.app.zenModeProperty().get() == enabled
-          && fixture.app.zenProgressProperty().get() == (enabled ? 1 : 0)
-          && stopped(fixture.app, "zenAnimation")
-          && fixture.exit.isVisible() == enabled && fixture.exit.isManaged() == enabled
-          && fixture.toolbar.isManaged() != enabled;
-    }, enabled ? "Zen to finish entering" : "Zen to finish exiting");
-  }
-
-  private static boolean stopped(Object owner, String name) throws Exception {
-    Animation animation = (Animation) field(owner, name);
-    return animation == null || animation.getStatus() == Animation.Status.STOPPED;
-  }
-
-  private static void awaitFx(Callable<Boolean> condition, String description) throws Exception {
+  private static void awaitZen(Fixture f, boolean enabled) throws Exception {
     long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
     do {
-      if (fx(condition)) return;
+      if (fx(() -> {
+        Animation animation = (Animation) field(f.app, "zenAnimation");
+        return f.app.zenModeProperty().get() == enabled && f.app.zenProgressProperty().get() == (enabled ? 1 : 0)
+            && (animation == null || animation.getStatus() == Animation.Status.STOPPED);
+      })) return;
       Thread.sleep(20);
     } while (System.nanoTime() < deadline);
-    throw new AssertionError("Timed out waiting for " + description);
-  }
-
-  private static void pendingInputSurvives(Fixture fixture) throws Exception {
-    fx(() -> {
-      fixture.editor.area().appendText(" Pending text before Zen.");
-      fixture.zenButton().fire();
-      check((boolean) call(fixture.app, "saveAll", new Class<?>[] {boolean.class}, false),
-          "Save must flush pending text during a Zen transition");
-      check(Files.readString(fixture.activePath).contains("Pending text before Zen."),
-          "Entering Zen must not discard keystrokes waiting for autosave");
-      return null;
-    });
-    awaitZen(fixture, true);
+    throw new AssertionError("Line focus transition did not finish");
   }
 
   private static final class Fixture implements AutoCloseable {
-    final Path directory = Files.createTempDirectory("diyalamp-zen-test-").toRealPath();
+    final Path directory = Files.createTempDirectory("diyalamp-line-focus-").toRealPath();
     final Path activePath = directory.resolve("Reference.md");
     final Preferences preferences = Preferences.userRoot().node("com/diyalamp/tests/" + UUID.randomUUID());
     final FxDiyalamp app = new FxDiyalamp(preferences);
     final Stage stage = new Stage();
     final Region explorer, toolbar, primaryChrome, secondaryChrome, footer;
-    final Button exit;
     final Object primary, secondary;
-    final javafx.scene.Node firstPane;
     final FxWritingPane editor;
-
     Fixture() throws Exception {
       Files.writeString(directory.resolve("Draft.md"), "# Draft\n\nFictional writing.\n");
-      Files.writeString(activePath, "# Reference\n\n" + "A fictional paragraph for scrolling.\n\n".repeat(90));
+      Files.writeString(activePath, "# Reference\n\n" + "A fictional paragraph for scrolling.\n\n".repeat(30));
       app.start(stage);
       call(app, "setFolder", new Class<?>[] {Path.class}, directory);
       call(app, "open", new Class<?>[] {Path.class, boolean.class}, directory.resolve("Draft.md"), false);
@@ -228,14 +170,12 @@ public final class FxZenTests {
       primary = field(app, "primary"); secondary = field(app, "secondary");
       explorer = (Region) field(app, "explorerClip"); toolbar = (Region) field(app, "toolbarClip");
       primaryChrome = (Region) field(primary, "chromeClip"); secondaryChrome = (Region) field(secondary, "chromeClip");
-      footer = (Region) field(app, "footerClip"); exit = (Button) field(app, "exitZen");
-      firstPane = (javafx.scene.Node) field(primary, "container");
+      footer = (Region) field(app, "footerClip");
       editor = (FxWritingPane) field(field(app, "active"), "editor");
       layout(); editor.area().selectRange(4, 8);
     }
-
     ToggleButton zenButton() throws Exception {
-      return (ToggleButton) ((javafx.scene.control.ToolBar) field(app, "toolbar")).getItems().stream()
+      return (ToggleButton) ((ToolBar) field(app, "toolbar")).getItems().stream()
           .filter(node -> "Zen mode".equals(node.getAccessibleText())).findFirst().orElseThrow();
     }
     MenuItem zenMenu() throws Exception {
@@ -244,9 +184,7 @@ public final class FxZenTests {
       Menu menu = bar.getMenus().stream().filter(item -> item.getText().equals("View")).findFirst().orElseThrow();
       return menu.getItems().stream().filter(item -> item.getText() != null && item.getText().contains("Zen mode")).findFirst().orElseThrow();
     }
-    List<javafx.scene.Node> splitItems() throws Exception {
-      return ((javafx.scene.control.SplitPane) field(app, "split")).getItems();
-    }
+    List<Node> splitItems() throws Exception { return ((javafx.scene.control.SplitPane) field(app, "split")).getItems(); }
     void layout() { stage.getScene().getRoot().applyCss(); stage.getScene().getRoot().layout(); }
     @Override public void close() throws Exception {
       app.stop(); stage.hide(); preferences.removeNode();
@@ -255,20 +193,17 @@ public final class FxZenTests {
       }
     }
   }
-
   private static Object field(Object object, String name) throws Exception {
     Field field = object.getClass().getDeclaredField(name); field.setAccessible(true); return field.get(object);
   }
-  private static Object call(Object object, String name, Class<?>[] parameters, Object... arguments) throws Exception {
-    Method method = object.getClass().getDeclaredMethod(name, parameters); method.setAccessible(true);
-    return method.invoke(object, arguments);
+  private static Object call(Object object, String name, Class<?>[] parameters, Object... args) throws Exception {
+    Method method = object.getClass().getDeclaredMethod(name, parameters); method.setAccessible(true); return method.invoke(object, args);
   }
   private static <T> T fx(Callable<T> action) throws Exception {
     CountDownLatch finished = new CountDownLatch(1); AtomicReference<T> value = new AtomicReference<>();
     AtomicReference<Throwable> failure = new AtomicReference<>();
     Platform.runLater(() -> { try { value.set(action.call()); } catch (Throwable error) { failure.set(error); } finally { finished.countDown(); } });
     if (!finished.await(10, TimeUnit.SECONDS)) throw new AssertionError("FX task timed out");
-    if (failure.get() != null) throw new AssertionError("Zen regression", failure.get());
-    return value.get();
+    if (failure.get() != null) throw new AssertionError("Zen regression", failure.get()); return value.get();
   }
 }

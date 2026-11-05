@@ -7,13 +7,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import javafx.application.Platform;
 import javafx.application.Application;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.stage.Stage;
 import atlantafx.base.theme.PrimerLight;
 import javafx.scene.Scene;
+import javafx.scene.Node;
 import javafx.scene.layout.StackPane;
 import javafx.scene.control.ScrollBar;
 import javafx.geometry.Orientation;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.LinearGradient;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -34,9 +38,10 @@ public final class FxWritingPaneTests {
     Platform.startup(() -> {
       try {
         FxTheme.setup();
-        roundTrips(); editingAndUndo(); blocksAndTasks(); shortcuts(); keyboardModifiers(); linksAndLifecycle(); pasteAndDivider(); incrementalSaving(); actualComponent();
+        roundTrips(); editingAndUndo(); blocksAndTasks(); shortcuts(); keyboardModifiers(); linksAndLifecycle(); pasteAndDivider(); incrementalSaving(); actualComponent(); focusLine();
+        focusScrolling(finished, failure);
       } catch (Throwable error) { failure.set(error); }
-      finally { finished.countDown(); }
+      if (failure.get() != null) finished.countDown();
     });
     if (!finished.await(45, TimeUnit.SECONDS)) throw new AssertionError("FX editor tests timed out");
     Platform.exit();
@@ -236,10 +241,12 @@ public final class FxWritingPaneTests {
   }
 
   private static void actualComponent() {
-    FxWritingPane editor = new FxWritingPane("# Title\nBody\n- [ ] Task\n`value`\n**strong** *slant* ***both***\n");
+    FxWritingPane editor = new FxWritingPane("# Title\n## Subheading\n### Detail\n###### Sixth\nBody\n"
+        + "- [ ] Task\n- Bullet\n7. Numbered\n> Quote\n`value`\n```java\nfenced()\n```\n"
+        + "**strong** *slant* ***both*** [link](https://example.com)\n");
     StackPane root = new StackPane(editor.node());
     root.getStyleClass().add("workspace-root");
-    root.setStyle("-diyalamp-accent-subtle: #e8eaff; -color-accent-emphasis: #5868cf;");
+    FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
     root.getStylesheets().add(FxWritingPane.class.getResource("/fx-workspace.css").toExternalForm());
     Scene scene = new Scene(root, 900, 600);
     Stage stage = new Stage();
@@ -247,42 +254,70 @@ public final class FxWritingPaneTests {
     root.applyCss(); root.layout();
     check(editor.area().getClass().getName().startsWith("org.fxmisc.richtext."),
         "Maintained RichTextFX must own the editing surface");
-    check(editor.area().getText().equals("Title\nBody\nTask\nvalue\nstrong slant both"), "The editing surface must render Markdown without markers");
-    check(editor.area().getParagraphGraphic(2) instanceof javafx.scene.control.CheckBox,
+    check(editor.area().getText().equals("Title\nSubheading\nDetail\nSixth\nBody\nTask\nBullet\nNumbered\nQuote\nvalue\nfenced()\nstrong slant both link"),
+        "The editing surface must render Markdown without markers");
+    check(editor.area().getParagraphGraphic(5) instanceof javafx.scene.control.CheckBox,
         "Checklist graphics must be standard JavaFX controls, not custom painting");
-    editor.area().selectRange(editor.area().getAbsolutePosition(1, 0), editor.area().getAbsolutePosition(1, 0));
+    var checklist = (javafx.scene.control.CheckBox) editor.area().getParagraphGraphic(5);
+    check(checklist.getFont().getName().equals("Inter Regular") && checklist.getFont().getSize() == 16,
+        "Checklist controls must retain the same 16-point text font");
+    for (int row : List.of(6, 7, 8)) {
+      var marker = (javafx.scene.control.Label) editor.area().getParagraphGraphic(row);
+      check(marker.getFont().getName().equals("Inter Regular") && marker.getFont().getSize() == 16
+          && marker.getTextFill().equals(Color.web("#8C8C8C")),
+          "Bullet, ordered-list and quote markers must use the same size and readable dark-theme muted ink");
+    }
+    editor.area().selectRange(editor.area().getAbsolutePosition(4, 0), editor.area().getAbsolutePosition(4, 0));
     root.layout();
     var caret = editor.area().getCaretBounds();
     check(caret.isPresent(), "The maintained editor must expose an actual laid-out caret");
     check(caret.get().getHeight() >= 16 && caret.get().getHeight() <= 27,
         "Body caret geometry must match the 16-point text, rather than inflated paragraph spacing");
+    java.util.Set<String> headings = new java.util.HashSet<>();
+    java.util.Set<String> codeRuns = new java.util.HashSet<>();
     for (var node : editor.area().lookupAll(".md-text")) if (node instanceof TextExt text) {
+      check(text.getFont().getSize() == 16, "Every rendered body, heading, emphasis, link and code run must have exactly one font size");
       if (text.getText().equals("Body")) {
         check(text.getFont().getName().equals("Inter Regular") && text.getFont().getSize() == 16,
             "Full application CSS must preserve static Inter Regular at the intended body size");
         check(!text.getFont().getStyle().contains("Bold") && !text.getFont().getStyle().contains("Thin"),
             "Body copy must resolve a true regular face rather than a heavy or thin substitution");
-        check(text.getFill() instanceof Color ink && !ink.equals(Color.BLACK) && ink.getBrightness() < .45,
-            "Reading ink should be softened while remaining dark enough for the paper");
-      } else if (text.getText().equals("Title")) {
-        check(text.getFont().getName().equals("Inter SemiBold") && text.getFont().getSize() == 22,
-            "Headings must use the exact static Inter SemiBold face with a clear size hierarchy");
-      } else if (text.getText().equals("value") && System.getProperty("os.name").startsWith("Mac"))
-        check(text.getFont().getFamily().equals("Menlo") && text.getFont().getSize() == 16, "Only code should switch to installed Menlo16");
+        check(text.getFill().equals(Color.web("#BBBEBF")), "Prose must use the VS Code dark foreground");
+      } else if (List.of("Title", "Subheading", "Detail", "Sixth").contains(text.getText())) {
+        headings.add(text.getText());
+        check(text.getFont().getName().equals("Inter SemiBold") && text.getFont().getSize() == 16
+            && text.getFill().equals(Color.web("#BBBEBF")),
+            "All heading levels must preserve semantic emphasis through weight while sharing the body size and dark ink");
+      } else if (List.of("value", "fenced()").contains(text.getText())) {
+        codeRuns.add(text.getText());
+        if (System.getProperty("os.name").startsWith("Mac"))
+          check(text.getFont().getFamily().equals("Menlo"), "Only code should switch to installed Menlo");
+        check(text.getFill().equals(Color.web("#8C8C8C")) && text.getBackgroundColor().equals(Color.web("#242526")),
+            "Inline and fenced code must use readable dark-theme foreground and background colors");
+      }
       else if (text.getText().equals("strong"))
         check(text.getFont().getName().equals("Inter SemiBold"), "Markdown emphasis must use the real static semibold face");
       else if (text.getText().equals("slant"))
         check(text.getFont().getName().equals("Inter Italic"), "Italic text must retain a real slanted face");
       else if (text.getText().equals("both"))
         check(text.getFont().getName().equals("Inter SemiBold Italic"), "Bold italic text must retain its own real static face");
+      else if (text.getText().equals("link"))
+        check(text.getFill().equals(Color.web("#48A0C7")), "Links must use the readable VS Code foreground accent");
     }
+    check(headings.size() == 4 && codeRuns.size() == 2, "The actual typography check must include all representative heading levels and both code widgets");
+    int bodyStart = editor.area().getAbsolutePosition(4, 0);
+    editor.area().selectRange(bodyStart, bodyStart + 4); root.applyCss(); root.layout();
+    check(editor.area().lookupAll(".selection").stream().anyMatch(node -> node instanceof javafx.scene.shape.Shape shape
+        && Color.web("#276782DD").equals(shape.getFill())),
+        "The native text selection must use Dark 2026's exact translucent selection color: "
+            + editor.area().lookupAll(".selection").stream().map(node -> ((javafx.scene.shape.Shape) node).getFill()).toList());
     System.out.println("RichTextFX body caret height: " + caret.get().getHeight());
     editor.dispose(); stage.close();
     String longNote = "Line of text\n".repeat(200);
     editor = new FxWritingPane(longNote);
     root = new StackPane(editor.node());
     root.getStyleClass().add("workspace-root");
-    root.setStyle("-diyalamp-accent-subtle: #e8eaff; -color-accent-emphasis: #5868cf;");
+    FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
     root.getStylesheets().add(FxWritingPane.class.getResource("/fx-workspace.css").toExternalForm());
     stage = new Stage(); stage.setScene(new Scene(root, 900, 600)); stage.show();
     root.applyCss(); root.layout();
@@ -297,5 +332,133 @@ public final class FxWritingPaneTests {
     check(editor.area().getPadding().getLeft() >= 24 && editor.area().getPadding().getRight() >= 24,
         "Readable text gutters belong inside the editing surface");
     editor.dispose(); stage.close();
+  }
+
+  private static void focusLine() {
+    String source = "word alpha beta gamma delta epsilon zeta eta theta ".repeat(30) + "\n";
+    FxWritingPane editor = new FxWritingPane(source);
+    StackPane root = new StackPane(editor.node());
+    root.getStyleClass().add("workspace-root");
+    FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
+    root.getStylesheets().add(FxWritingPane.class.getResource("/fx-workspace.css").toExternalForm());
+    Stage stage = new Stage(); stage.setScene(new Scene(root, 500, 500)); stage.show();
+    root.applyCss(); root.layout();
+    SimpleDoubleProperty progress = new SimpleDoubleProperty();
+    editor.setFocusLineProgress(progress);
+    Rectangle mask = (Rectangle) editor.node().lookup(".zen-focus-mask");
+    check(mask != null && mask.isMouseTransparent() && !mask.isFocusTraversable() && !mask.isVisible(),
+        "The focus mask must be decorative, ignore input and start hidden");
+    editor.area().selectRange(0, 0);
+    editor.area().requestFollowCaret(); root.layout();
+    var first = root.screenToLocal(editor.area().getCaretBoundsOnScreen(editor.area().getCaretSelectionBind().getUnderlyingCaret()).orElseThrow());
+    editor.area().selectRange(300, 300); root.layout();
+    var current = root.screenToLocal(editor.area().getCaretBoundsOnScreen(editor.area().getCaretSelectionBind().getUnderlyingCaret()).orElseThrow());
+    check(editor.area().getCurrentParagraph() == 0 && current.getMinY() > first.getMaxY() + 3 * first.getHeight(),
+        "The focus position must distinguish wrapped visual lines inside one Markdown paragraph");
+    var normal = root.snapshot(null, null);
+    var frame = editor.node().getBoundsInParent();
+    int[] changes = {0}; editor.setOnChange(() -> changes[0]++);
+    progress.set(1); root.applyCss(); root.layout();
+    var focused = root.snapshot(null, null);
+    check(mask.isVisible() && mask.getOpacity() == 1 && editor.area().isLineHighlighterOn(),
+        "Full focus must reveal the fade and the maintained editor's current-line highlight");
+    var gradient = (LinearGradient) mask.getFill();
+    var maskBounds = mask.localToScene(mask.getBoundsInLocal());
+    double caretCenter = editor.node().screenToLocal(editor.area().getCaretBoundsOnScreen(editor.area().getCaretSelectionBind().getUnderlyingCaret()).orElseThrow()).getCenterY();
+    check(gradientOpacity(gradient, (caretCenter - mask.getY()) / mask.getHeight()) < .01,
+        "The actual wrapped caret line must remain fully readable through the gradient");
+    check(gradientOpacity(gradient, (first.getCenterY() - mask.getY()) / mask.getHeight()) > .99,
+        "Lines far from the visual caret line must fade completely into the editor background");
+    int normalFar = brightPixels(normal, first.getMinY(), first.getMaxY());
+    int focusedFar = brightPixels(focused, first.getMinY(), first.getMaxY());
+    int focusedCurrent = brightPixels(focused, current.getMinY(), current.getMaxY());
+    check(normalFar > 30 && focusedFar == 0 && focusedCurrent > 30,
+        "Actual rendered pixels must hide distant text while retaining the current visual line");
+    for (Node node : editor.node().lookupAll(".scroll-bar")) if (node instanceof ScrollBar bar && bar.isVisible()
+        && bar.getOrientation() == Orientation.VERTICAL)
+      check(maskBounds.getMaxX() <= bar.localToScene(bar.getBoundsInLocal()).getMinX() + 1,
+          "Focus fading must leave the native scrollbar visible and available");
+    progress.set(.4); check(Math.abs(mask.getOpacity() - .4) < .001, "An interrupted transition must render its current progress");
+    progress.set(.8); check(Math.abs(mask.getOpacity() - .8) < .001, "A reversed transition must follow the same property without restarting");
+    editor.area().selectRange(150, 150); root.layout();
+    caretCenter = editor.node().screenToLocal(editor.area().getCaretBoundsOnScreen(editor.area().getCaretSelectionBind().getUnderlyingCaret()).orElseThrow()).getCenterY();
+    check(gradientOpacity((LinearGradient) mask.getFill(), (caretCenter - mask.getY()) / mask.getHeight()) < .01,
+        "The fade must follow caret movement without moving or selecting text");
+    check(editor.node().getBoundsInParent().equals(frame) && editor.markdown().equals(source)
+        && !editor.canUndo() && changes[0] == 0,
+        "Focus mode must preserve layout, source, selection history and save notifications");
+    progress.set(0);
+    check(!mask.isVisible() && mask.getOpacity() == 0, "Leaving focus mode must restore all text immediately at zero progress");
+    editor.area().replaceText(0, 0, "New "); editor.undo();
+    check(editor.markdown().equals(source), "Native edit and Undo must retain their behavior after focus-mode transitions");
+    editor.dispose(); progress.set(1);
+    check(mask.getOpacity() == 0, "Disposing an editor must detach its shared animation property");
+    stage.close();
+  }
+
+  private static double gradientOpacity(LinearGradient gradient, double fraction) {
+    var stops = gradient.getStops();
+    if (fraction <= stops.getFirst().getOffset()) return stops.getFirst().getColor().getOpacity();
+    for (int i = 1; i < stops.size(); i++) if (fraction <= stops.get(i).getOffset()) {
+      var before = stops.get(i - 1); var after = stops.get(i);
+      double position = (fraction - before.getOffset()) / (after.getOffset() - before.getOffset());
+      return before.getColor().getOpacity() + position * (after.getColor().getOpacity() - before.getColor().getOpacity());
+    }
+    return stops.getLast().getColor().getOpacity();
+  }
+
+  private static void focusScrolling(CountDownLatch finished, AtomicReference<Throwable> failure) {
+    String source = "word alpha beta gamma delta epsilon zeta eta theta ".repeat(100) + "\n";
+    FxWritingPane editor = new FxWritingPane(source);
+    StackPane root = new StackPane(editor.node()); root.getStyleClass().add("workspace-root");
+    FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
+    root.getStylesheets().add(FxWritingPane.class.getResource("/fx-workspace.css").toExternalForm());
+    Scene scene = new Scene(root, 500, 400); Stage stage = new Stage(); stage.setScene(scene); stage.show();
+    SimpleDoubleProperty progress = new SimpleDoubleProperty(1); editor.setFocusLineProgress(progress);
+    int[] phase = {0}; double[] initialY = {0}; long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+    Runnable[] pulse = {null};
+    pulse[0] = () -> {
+      boolean complete = false;
+      try {
+        if (System.nanoTime() > deadline) throw new AssertionError("Focus scrolling did not reach fresh post-layout geometry");
+        Rectangle mask = (Rectangle) editor.node().lookup(".zen-focus-mask");
+        if (phase[0] == 0) {
+          editor.area().selectRange(600, 600); editor.area().requestFollowCaret(); phase[0]++;
+        } else {
+          var fresh = editor.area().getCaretBoundsOnScreen(editor.area().getCaretSelectionBind().getUnderlyingCaret());
+          var caret = fresh.map(editor.node()::screenToLocal);
+          if (phase[0] == 1 && caret.isPresent()) {
+            initialY[0] = caret.get().getCenterY(); editor.area().scrollYToPixel(150); phase[0]++;
+          } else if (phase[0] == 2 && caret.isPresent() && initialY[0] - caret.get().getCenterY() > 50) {
+            check(mask.getFill() instanceof LinearGradient && gradientOpacity((LinearGradient) mask.getFill(),
+                (caret.get().getCenterY() - mask.getY()) / mask.getHeight()) < .01,
+                "A scroll within the same wrapped paragraph must move the transparent band to fresh caret geometry");
+            editor.area().scrollYToPixel(700); phase[0]++;
+          } else if (phase[0] == 3 && (caret.isEmpty() || caret.get().getMaxY() < -100)) {
+            boolean opaque = mask.getFill().equals(FxTheme.EDITOR_BACKGROUND);
+            if (mask.getFill() instanceof LinearGradient gradient)
+              opaque = gradientOpacity(gradient, 0) > .99 && gradientOpacity(gradient, .5) > .99 && gradientOpacity(gradient, 1) > .99;
+            check(opaque, "An offscreen focus line must not leave a stale bright band over unrelated text");
+            check(editor.area().getCaretPosition() == 600 && editor.markdown().equals(source) && !editor.canUndo(),
+                "Scrolling in focus mode must not force the caret, change content, or enter Undo history");
+            complete = true;
+          }
+        }
+      } catch (Throwable error) { failure.set(error); complete = true; }
+      if (complete) {
+        scene.removePostLayoutPulseListener(pulse[0]); editor.dispose(); stage.close(); finished.countDown();
+      } else Platform.requestNextPulse();
+    };
+    scene.addPostLayoutPulseListener(pulse[0]); Platform.requestNextPulse();
+  }
+
+  private static int brightPixels(javafx.scene.image.WritableImage image, double top, double bottom) {
+    int count = 0;
+    for (int y = Math.max(0, (int) Math.floor(top)); y < Math.min(image.getHeight(), Math.ceil(bottom)); y++)
+      for (int x = 24; x < image.getWidth() - 24; x++) {
+        Color color = image.getPixelReader().getColor(x, y);
+        if (color.getRed() > .4 && color.getGreen() > .4 && color.getBlue() > .4) count++;
+      }
+    return count;
   }
 }

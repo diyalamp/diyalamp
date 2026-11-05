@@ -1,113 +1,177 @@
-/* AtlantaFX Cupertino Light provides the controls. This sheet defines one workspace,
-   using an 8/16/24 spacing scale and shared paper, sidebar, and chrome surfaces. */
+/* AtlantaFX Cupertino Dark provides the controls. This sheet defines one workspace,
+   using an 8/16/24 spacing scale and shared editor, sidebar, and chrome surfaces. */
 .workspace-root {
   -fx-font-family: "Inter";
   -fx-font-size: 16px;
   -fx-font-weight: normal;
-  -fx-background-color: #fcfcfd;
-  -color-bg-default: #fcfcfd;
-  -color-bg-subtle: #f4f4f6;
-  -color-bg-inset: #efeff2;
-  -color-fg-default: #383940;
-  -color-fg-muted: #686a72;
-  -color-border-default: #e4e5ea;
+  -fx-background-color: #121314;
+  -color-bg-default: #121314;
+  -color-bg-subtle: #242526;
+  -color-bg-inset: #191A1B;
+  -color-bg-overlay: #202122;
+  -color-fg-default: #BFBFBF;
+  -color-editor-fg: #BBBEBF;
+  -color-fg-muted: #8C8C8C;
+  -color-border-default: #2A2B2C;
+  -color-border-muted: #2A2B2C;
+  -color-border-subtle: #2A2B2C;
+  -color-code-fg: #8C8C8C;
+  -color-fg-emphasis: #FFFFFF;
+  -color-accent-emphasis: #297AA0;
+  -color-accent-fg: #48A0C7;
+  -diyalamp-accent: #297AA0;
+  -diyalamp-link: #48A0C7;
+  -diyalamp-accent-contrast: #FFFFFF;
+  -diyalamp-accent-subtle: #3994BC26;
+  -diyalamp-focus: #3994BCB3;
+  -diyalamp-selection: #276782DD;
+  -diyalamp-drop: #3994BC1A;
 }
+.workspace-root .label, .workspace-root .button, .workspace-root .toggle-button,
+.workspace-root .check-box, .workspace-root .text-input, .workspace-root .combo-box-base,
+.workspace-root .list-cell, .workspace-root .tree-cell, .workspace-root .menu-item,
+.workspace-root .menu-button, .workspace-root .hyperlink { -fx-font-size: 16px; }
+.workspace-root .button, .workspace-root .toggle-button {
+  -color-button-bg: #313131;
+  -color-button-bg-hover: #FFFFFF10;
+  -color-button-border: #333536;
+  -color-button-border-focused: -diyalamp-focus;
+}
+.workspace-root .toggle-button:selected { -color-button-bg: #313233; }
+.workspace-root .button:default, .workspace-root .button.accent {
+  -color-button-bg: -color-accent-emphasis;
+  -color-button-bg-hover: -color-accent-emphasis;
+  -color-button-border: -color-accent-emphasis;
+  -color-button-fg: -diyalamp-accent-contrast;
+  -color-button-fg-hover: -diyalamp-accent-contrast;
+  -color-button-fg-focused: -diyalamp-accent-contrast;
+  -color-button-fg-pressed: -diyalamp-accent-contrast;
+  -color-button-bg-focused: -color-accent-emphasis;
+}
+.workspace-root .text-input, .workspace-root .combo-box-base {
+  -fx-background-color: #191A1B; -fx-text-fill: #BFBFBF;
+  -fx-border-color: #333536; -fx-prompt-text-fill: #555555;
+}
+.workspace-root .text-input:focused, .workspace-root .combo-box-base:focused { -fx-border-color: -diyalamp-focus; }
+.workspace-root .check-box > .box { -fx-background-color: #242526; -fx-border-color: #707070; }
+.workspace-root .check-box:selected > .box > .mark { -fx-background-color: #8C8C8C; }
+.tooltip, .context-menu, .context-menu .label, .context-menu .menu-item {
+  -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal;
+}
+.tooltip, .context-menu { -fx-background-color: #202122; -fx-text-fill: #BFBFBF; -fx-border-color: #2A2B2C; }
+.context-menu .label { -fx-text-fill: #BFBFBF; }
+.context-menu .menu-item:focused { -fx-background-color: -diyalamp-accent-subtle; }
+.context-menu .menu-item:focused .label { -fx-text-fill: #BFBFBF; }
 .workspace-toolbar {
-  -fx-background-color: #f4f4f6;
+  -fx-background-color: #191A1B;
   -fx-border-width: 0 0 1 0;
-  -fx-border-color: transparent transparent #e5e5ea transparent;
+  -fx-border-color: transparent transparent #2A2B2C transparent;
   -fx-padding: 8 16;
   -fx-spacing: 8;
   -fx-min-height: 56;
 }
 .workspace-brand { -fx-padding: 0 16 0 8; }
-.workspace-brand-name { -fx-font-family: "Inter SemiBold"; -fx-font-weight: normal; -fx-text-fill: #35363d; }
-.workspace-folder { -fx-text-fill: #686a72; }
+.workspace-brand-name { -fx-font-family: "Inter SemiBold"; -fx-font-weight: normal; -fx-text-fill: #BFBFBF; }
+.workspace-folder { -fx-text-fill: #8C8C8C; }
 .workspace-tool {
   -fx-min-width: 36; -fx-pref-width: 36; -fx-min-height: 36; -fx-pref-height: 36;
   -fx-padding: 8; -fx-background-radius: 8; -fx-border-width: 0; -fx-background-color: transparent;
 }
-.workspace-tool:hover, .workspace-accent-button:hover { -fx-background-color: #e7e7ec; }
-.workspace-tool:selected, .zen-toggle:selected { -fx-background-color: -diyalamp-accent-subtle; }
-.workspace-tool:selected .icon-stroke, .zen-toggle:selected .icon-stroke { -fx-stroke: -diyalamp-accent; }
-.icon-stroke { -fx-stroke: #777982; }
+.workspace-tool:hover, .workspace-accent-button:hover { -fx-background-color: #242526; }
+.workspace-tool, .workspace-accent-button, .file-row-action, .note-metric {
+  transition-property: -fx-background-color, -fx-border-color, -fx-text-fill, -fx-opacity;
+  transition-duration: 140ms;
+  transition-timing-function: ease-out;
+}
+.workspace-tool .icon-stroke, .file-row-action .icon-stroke {
+  transition-property: -fx-stroke;
+  transition-duration: 140ms;
+  transition-timing-function: ease-out;
+}
+.note-metric { -fx-padding: 4; -fx-background-color: transparent; -fx-background-radius: 8; -fx-text-fill: #8C8C8C; }
+.note-metric:hover { -fx-background-color: #242526; -fx-text-fill: #BFBFBF; }
+.workspace-root:reduced-motion .workspace-tool, .workspace-root:reduced-motion .workspace-accent-button,
+.workspace-root:reduced-motion .file-row-action, .workspace-root:reduced-motion .note-metric,
+.workspace-root:reduced-motion .workspace-tool .icon-stroke, .workspace-root:reduced-motion .file-row-action .icon-stroke {
+  transition-duration: 0s;
+}
+.workspace-tool:selected, .zen-toggle:selected { -fx-background-color: #313233; }
+.workspace-tool:selected .icon-stroke, .zen-toggle:selected .icon-stroke { -fx-stroke: -color-accent-fg; }
+.icon-stroke { -fx-stroke: #8C8C8C; }
 .file-explorer {
-  -fx-background-color: #f4f4f6;
-  -fx-border-color: transparent #e5e5ea transparent transparent;
+  -fx-background-color: #191A1B;
+  -fx-border-color: transparent #2A2B2C transparent transparent;
   -fx-border-width: 0 1 0 0;
 }
 .explorer-heading { -fx-padding: 16 16 8 16; -fx-min-height: 60; }
-.explorer-title { -fx-text-fill: #686a72; }
+.explorer-title { -fx-text-fill: #8C8C8C; }
 .explorer-search-box { -fx-padding: 0 16 16 16; }
 .explorer-search {
-  -fx-background-color: #e9e9ee;
+  -fx-background-color: #191A1B;
   -fx-background-insets: 0;
-  -fx-border-width: 0;
+  -fx-border-width: 1;
+  -fx-border-color: #333536;
   -fx-background-radius: 8;
   -fx-padding: 8 12;
-  -fx-prompt-text-fill: #686a72;
-  -fx-text-fill: #494b53;
+  -fx-prompt-text-fill: #555555;
+  -fx-text-fill: #BFBFBF;
 }
-.explorer-search:focused { -fx-background-color: #ffffff; -fx-effect: dropshadow(gaussian, #0000000c, 8, 0, 0, 2); }
+.explorer-search:focused { -fx-background-color: #191A1B; -fx-border-color: -diyalamp-focus; -fx-effect: null; }
 .file-tree { -fx-background-color: transparent; -fx-background-insets: 0; -fx-padding: 0 8 16 8; -fx-border-width: 0; }
 .file-tree .virtual-flow { -fx-background-color: transparent; }
 .file-tree .tree-cell {
   -fx-background-color: transparent; -fx-background-radius: 8;
   -fx-padding: 4 8; -fx-cell-size: 40;
 }
-.file-tree .tree-cell .label { -fx-text-fill: #575962; }
-.file-tree .tree-cell:filled:hover { -fx-background-color: #eaeaef; }
-.file-tree .tree-cell:filled:selected { -fx-background-color: -diyalamp-accent-subtle; }
-.file-tree .tree-cell:filled:selected .label { -fx-text-fill: #393b42; }
+.file-tree .tree-cell .label { -fx-text-fill: #BFBFBF; }
+.file-tree .tree-cell:filled:hover { -fx-background-color: #FFFFFF14; }
+.file-tree .tree-cell:filled:selected { -fx-background-color: #FFFFFF22; }
+.file-tree .tree-cell:filled:selected .label { -fx-text-fill: #EDEDED; }
 .file-tree .tree-cell:filled:selected .icon-stroke { -fx-stroke: -diyalamp-accent; }
-.file-tree .tree-cell:drop-target { -fx-background-color: -diyalamp-accent-subtle; -fx-border-color: -diyalamp-accent; -fx-border-radius: 8; }
+.file-tree .tree-cell:drop-target { -fx-background-color: -diyalamp-drop; -fx-border-color: -diyalamp-focus; -fx-border-radius: 8; }
 .file-row-action { -fx-min-width: 28; -fx-pref-width: 28; -fx-min-height: 28; -fx-pref-height: 28; -fx-padding: 6; }
-.writing-split { -fx-padding: 0; -fx-border-width: 0; -fx-background-color: #fcfcfd; }
-.writing-split > .split-pane-divider { -fx-padding: 0 .5 0 .5; -fx-background-color: #e9e9ed; }
-.document-pane { -fx-background-color: #fcfcfd; -fx-min-width: 200; }
-.document-pane:drop-target { -fx-border-color: -diyalamp-accent; -fx-border-width: 2; -fx-background-color: -diyalamp-accent-subtle; }
+.writing-split { -fx-padding: 0; -fx-border-width: 0; -fx-background-color: #121314; }
+.writing-split > .split-pane-divider { -fx-padding: 0 .5 0 .5; -fx-background-color: #2A2B2C; }
+.document-pane { -fx-background-color: #121314; -fx-min-width: 200; }
+.document-pane:drop-target { -fx-border-color: -diyalamp-focus; -fx-border-width: 2; -fx-background-color: -diyalamp-drop; }
 .document-tabs {
-  -color-tab-bg-selected: #ededf2;
-  -color-tab-fg-selected: #363840;
+  -color-tab-bg-selected: #121314;
+  -color-tab-fg-selected: #BFBFBF;
   -color-tab-border-selected: transparent;
-  -fx-background-color: #fcfcfd;
+  -fx-background-color: #191A1B;
   -fx-border-width: 0;
   -fx-padding: 8 16 0 16;
   -fx-min-height: 48;
 }
 .document-tabs.floating.dense > .root-container > .tabs > .tab { -fx-padding: 8 12; -fx-background-radius: 8; -fx-border-width: 0; }
+.document-tabs .tab { -fx-font-size: 16px; -fx-background-color: #191A1B; }
+.document-tabs .tab:selected { -fx-background-color: #121314; }
 .document-tabs .tab > .tab-box { -fx-spacing: 8; }
-.document-tabs .tab > .tab-box > .label { -fx-text-fill: #686a72; }
-.document-tabs .tab:selected > .tab-box > .label { -fx-text-fill: #383a42; }
+.document-tabs .tab > .tab-box > .label { -fx-text-fill: #8C8C8C; }
+.document-tabs .tab:selected > .tab-box > .label { -fx-text-fill: #BFBFBF; }
 .document-tabs .tab > .tab-box > .close-button { -fx-padding: 6; -fx-background-radius: 6; }
-.document-tabs .tab > .tab-box > .close-button > .graphic { -fx-background-color: #848690; }
+.document-tabs .tab > .tab-box > .close-button > .graphic { -fx-background-color: #8C8C8C; }
 .tab-tools { -fx-padding: 0 0 0 8; }
 .document-location { -fx-min-height: 32; -fx-padding: 8 24; -fx-spacing: 8; }
-.document-breadcrumb { -fx-text-fill: #6c6e76; }
-.note-page { -fx-background-color: #fcfcfd; -fx-padding: 0; }
-.diyalamp-editor, .diyalamp-editor > .viewport, .writing-area { -fx-background-color: #fcfcfd; }
+.document-breadcrumb { -fx-text-fill: #8C8C8C; }
+.note-page { -fx-background-color: #121314; -fx-padding: 0; }
+.diyalamp-editor, .diyalamp-editor > .viewport, .writing-area { -fx-background-color: #121314; }
 .writing-area { -fx-background-insets: 0; }
 .writing-area .paragraph-box { -fx-padding: 0; }
-.writing-area .caret { -fx-stroke: #43464f; }
-.writing-area .selection { -fx-fill: -diyalamp-accent-subtle; }
-.writing-area .md-link { -fx-fill: -diyalamp-accent; }
+.writing-area .caret { -fx-stroke: #BBBEBF; }
+.writing-area .selection { -fx-fill: -diyalamp-selection; }
+.writing-area .md-link { -fx-fill: -color-accent-fg; }
 .writing-area .md-task { -fx-padding: 0 8 0 0; }
-.writing-area .md-marker { -fx-text-fill: #92949e; }
-.workspace-status { -fx-background-color: #fcfcfd; -fx-border-width: 0; -fx-padding: 8 24; -fx-min-height: 40; }
-.workspace-status .label { -fx-text-fill: #6c6e76; }
-.workspace-empty { -fx-padding: 24; -fx-background-color: #fcfcfd; }
-.workspace-empty-title { -fx-font-family: "Inter SemiBold"; -fx-font-size: 22px; -fx-font-weight: normal; -fx-text-fill: #44464e; }
-.empty-detail { -fx-text-fill: #6c6e76; }
-.empty-heading { -fx-text-fill: #656771; }
+.writing-area .md-marker { -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #8C8C8C; }
+.workspace-status { -fx-background-color: #191A1B; -fx-border-color: #2A2B2C transparent transparent transparent; -fx-border-width: 1 0 0 0; -fx-padding: 8 24; -fx-min-height: 40; }
+.workspace-status .label { -fx-text-fill: #8C8C8C; }
+.workspace-empty { -fx-padding: 24; -fx-background-color: #121314; }
+.workspace-empty-title { -fx-font-family: "Inter SemiBold"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #BFBFBF; }
+.empty-detail { -fx-text-fill: #8C8C8C; }
+.empty-heading { -fx-text-fill: #8C8C8C; }
 .explorer-empty { -fx-padding: 16; -fx-alignment: top-left; }
-.save-warning { -fx-background-color: #fff5df; -fx-padding: 8 16; -fx-background-radius: 8; -fx-border-width: 0; }
-.save-warning .label { -fx-text-fill: #725222; }
-.zen-exit {
-  -fx-min-height: 40; -fx-padding: 8 16; -fx-graphic-text-gap: 8;
-  -fx-background-color: #f4f4f6f2; -fx-border-color: #e5e5ea; -fx-border-radius: 8; -fx-background-radius: 8;
-  -fx-text-fill: #686a72; -fx-effect: dropshadow(gaussian, #0000000d, 16, 0, 0, 4);
-}
-.zen-exit:hover { -fx-background-color: #ededf2; -fx-text-fill: #383a42; }
+.save-warning { -fx-background-color: #352A05; -fx-padding: 8 16; -fx-background-radius: 8; -fx-border-width: 0; }
+.save-warning .label { -fx-text-fill: #E5BA7D; }
 .workspace-accent-button {
   -fx-min-height: 36; -fx-pref-height: 36; -fx-max-height: 36;
   -fx-background-radius: 8; -fx-padding: 8 12; -fx-graphic-text-gap: 8;
@@ -115,7 +179,17 @@
 }
 .accent-swatch { -fx-min-width: 12; -fx-pref-width: 12; -fx-max-width: 12; -fx-min-height: 12; -fx-pref-height: 12; -fx-max-height: 12; -fx-background-radius: 99; }
 .accent-dialog { -fx-font-family: "Inter"; -fx-font-size: 16px; }
-.accent-choice { -fx-alignment: center-left; -fx-min-height: 40; -fx-padding: 8 16; -fx-graphic-text-gap: 8; -fx-border-width: 0; -fx-border-radius: 8; -fx-background-radius: 8; -fx-background-color: #f4f4f6; -fx-text-fill: #383940; }
+.accent-choice { -fx-alignment: center-left; -fx-min-height: 40; -fx-padding: 8 16; -fx-graphic-text-gap: 8; -fx-border-width: 0; -fx-border-radius: 8; -fx-background-radius: 8; -fx-background-color: #191A1B; -fx-text-fill: #BFBFBF; }
 .accent-choice:selected { -fx-background-color: -diyalamp-accent-subtle; }
-.accent-choice:hover { -fx-background-color: #eaeaef; }
-.accent-value { -fx-text-fill: #686a72; }
+.accent-choice:hover { -fx-background-color: #242526; }
+.accent-value { -fx-text-fill: #8C8C8C; }
+
+.workspace-root .scroll-bar .thumb { -fx-background-color: #A8A9AA85; }
+.workspace-root .scroll-bar .thumb:hover { -fx-background-color: #A8A9AA90; }
+.workspace-root .scroll-bar .thumb:pressed { -fx-background-color: #A8A9AA9C; }
+
+.workspace-sidebars > .split-pane-divider {
+  -fx-padding: 0 3;
+  -fx-background-color: transparent, -color-border-default;
+  -fx-background-insets: 0, 0 2.5;
+}
