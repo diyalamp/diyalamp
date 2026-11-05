@@ -8,6 +8,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.prefs.Preferences;
+import java.util.function.BooleanSupplier;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -19,7 +20,7 @@ import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
-/** Actual Popup scenes: preferred opening focus, normal keyboard traversal, and dismissal. */
+/** Actual Popup scenes use the component’s default focus and standard traversal. */
 public final class FxPopoverFocusTests {
   private static int checks;
   private static final CountDownLatch done = new CountDownLatch(1);
@@ -42,46 +43,50 @@ public final class FxPopoverFocusTests {
     BorderPane root = (BorderPane) field(app, "root"); root.setCenter(new HBox(timer.button(), accent));
     stage.setScene(new Scene(root, 600, 400)); call(app, "initializeAccent"); stage.show(); root.applyCss(); root.layout();
     timer.show();
-    later(320, () -> {
-      Popover popup = timer.popover(); Button start = (Button) popup.getContentNode().lookup("#pomodoro-start");
-      Button reset = (Button) popup.getContentNode().lookup("#pomodoro-reset");
-      check(popup.isFocused() && popup.getScene().getFocusOwner() == start, "Pomodoro must open with keyboard focus on Start");
+    Popover popup = timer.popover();
+    Button start = (Button) popup.getContentNode().lookup("#pomodoro-start");
+    Button reset = (Button) popup.getContentNode().lookup("#pomodoro-reset");
+    await(() -> popup.isFocused() && popup.getScene().getFocusOwner() == start,
+        "Pomodoro's natural first control must receive focus", () -> {
+      check(popup.getScene().getFocusOwner() == start, "Start must be the component's natural first focusable control");
       key(start, KeyCode.TAB, false); check(popup.getScene().getFocusOwner() == reset, "Tab must traverse actual popup controls");
       key(reset, KeyCode.TAB, true); check(popup.getScene().getFocusOwner() == start, "Shift-Tab must traverse back inside the popup");
-      key(start, KeyCode.ESCAPE, false);
-      later(220, () -> {
-        check(!popup.isShowing(), "Escape must dismiss the actual Pomodoro popup");
-        accent.fire();
-        later(320, () -> {
-          Popover colors = (Popover) field(app, "accentMenu");
-          Button selected = colors.getContentNode().lookupAll(".accent-choice").stream().map(node -> (Button) node)
-              .filter(button -> button.getAccessibleText().contains(", selected")).findFirst().orElseThrow();
-          check(colors.isFocused() && colors.getScene().getFocusOwner() == selected, "Accent must open focused on the selected preset");
-          key(selected, KeyCode.TAB, false);
-          check(colors.getScene().getFocusOwner() != selected && colors.getScene().getFocusOwner().getScene() == colors.getScene(),
-              "Tab must stay in the actual Accent popup controls");
-          key(colors.getScene().getFocusOwner(), KeyCode.ESCAPE, false);
-          later(220, () -> {
-            check(!colors.isShowing(), "Escape must dismiss the actual Accent popup");
-            timer.show(); timer.popover().hide(Duration.ZERO); accent.requestFocus();
-            later(320, () -> {
-              check(!timer.popover().isShowing() && stage.getScene().getFocusOwner() == accent,
-                  "Hiding before the entrance finishes must cancel pending popup focus and preserve the owner's focus");
-              finish(null);
-            });
-          });
+      check(popup.isHideOnEscape() && popup.isAutoHide(), "The maintained component must retain native Escape and outside-click dismissal");
+      popup.hide(Duration.ZERO); accent.fire();
+      Popover colors = (Popover) field(app, "accentMenu");
+      await(() -> colors.isFocused() && colors.getScene().getFocusOwner() instanceof Button button
+          && button.getStyleClass().contains("accent-choice"), "Accent's component-default control must receive focus", () -> {
+        Button selected = colors.getContentNode().lookupAll(".accent-choice").stream().map(node -> (Button) node)
+            .filter(button -> button.getAccessibleText().contains(", selected")).findFirst().orElseThrow();
+        check(selected.getText().contains("✓"), "The selected preset indicator must remain independent of default keyboard focus");
+        var focused = colors.getScene().getFocusOwner(); key(focused, KeyCode.TAB, false);
+        check(colors.getScene().getFocusOwner() != focused && colors.getScene().getFocusOwner().getScene() == colors.getScene(),
+            "Tab must stay in the actual Accent popup controls");
+        check(colors.isHideOnEscape() && colors.isAutoHide(), "Accent must retain the maintained component's native dismissal behavior");
+        colors.hide(Duration.ZERO); timer.show(); timer.popover().hide(Duration.ZERO); accent.requestFocus();
+        await(() -> !timer.popover().isShowing() && stage.getScene().getFocusOwner() == accent,
+            "Closing a popup must preserve the owner's chosen focus", () -> {
+          check(stage.getScene().getFocusOwner() == accent, "Closing a popup must not schedule a later preferred-focus override");
+          finish(null);
         });
       });
     });
+  }
+  private static void await(BooleanSupplier condition, String description, Checked next) {
+    poll(condition, description, next, System.nanoTime() + TimeUnit.SECONDS.toNanos(3));
+  }
+  private static void poll(BooleanSupplier condition, String description, Checked next, long deadline) {
+    try {
+      if (condition.getAsBoolean()) { next.run(); return; }
+      if (System.nanoTime() >= deadline) throw new AssertionError(description);
+      PauseTransition pulse = new PauseTransition(Duration.millis(25));
+      pulse.setOnFinished(event -> poll(condition, description, next, deadline)); pulse.play();
+    } catch (Throwable error) { finish(error); }
   }
   private static void key(javafx.scene.Node node, KeyCode code, boolean shift) {
     node.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, shift, false, false, false));
   }
   private interface Checked { void run() throws Exception; }
-  private static void later(double milliseconds, Checked check) {
-    PauseTransition wait = new PauseTransition(Duration.millis(milliseconds));
-    wait.setOnFinished(event -> { try { check.run(); } catch (Throwable error) { finish(error); } }); wait.play();
-  }
   private static Object field(Object target, String name) throws Exception {
     Field field = target.getClass().getDeclaredField(name); field.setAccessible(true); return field.get(target);
   }

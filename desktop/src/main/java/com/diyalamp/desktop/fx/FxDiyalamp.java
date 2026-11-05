@@ -1252,9 +1252,6 @@ public final class FxDiyalamp extends Application {
     VBox content = new VBox(16, title, choices); content.getStyleClass().add("accent-bubble"); content.setPrefWidth(320);
     Popover popup = new Popover(content); popup.setTitle("Accent color");
     FxPopovers.style(popup, stage);
-    FxPopovers.focusOnShow(popup, () -> choices.getChildren().stream()
-        .filter(node -> node.getPseudoClassStates().contains(ACCENT_SELECTED))
-        .findFirst().orElse(choices.getChildren().getFirst()));
     return popup;
   }
 

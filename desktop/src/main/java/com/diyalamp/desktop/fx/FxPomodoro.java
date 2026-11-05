@@ -66,11 +66,10 @@ final class FxPomodoro implements AutoCloseable {
     detail.textProperty().addListener((observable, previous, value) -> detail.setVisible(!value.isBlank()));
     HBox choices = new HBox(8, focus, rest); choices.setAlignment(Pos.CENTER);
     HBox actions = new HBox(8, start, reset); actions.setAlignment(Pos.CENTER);
-    VBox content = new VBox(16, choices, time, actions, detail);
+    VBox content = new VBox(16, time, actions, choices, detail);
     content.getStyleClass().add("pomodoro-bubble");
     content.setAlignment(Pos.CENTER); content.setPrefWidth(336);
     popup = new Popover(content); FxPopovers.style(popup, owner);
-    FxPopovers.focusOnShow(popup, () -> start);
     refresh(); return popup;
   }
 
