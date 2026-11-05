@@ -25,6 +25,10 @@ The application opens a folder of `.md` or `.markdown` files. Editing does not r
 - Undo/redo and macOS keyboard shortcuts.
 - Six muted accent choices in the tab toolbar, plus explicit in-app update checks.
 
+![Light diyalamp workspace with a folder explorer, note tabs, and rendered Markdown](assets/desktop-workspace-preview.png)
+
+_Workspace preview using fictional notes._
+
 ## macOS downloads
 
 Version **1.0.2** is available from [GitHub Releases](https://github.com/diyalamp/diyalamp/releases/tag/v1.0.2) and [diyalamp.com](https://diyalamp.com).
