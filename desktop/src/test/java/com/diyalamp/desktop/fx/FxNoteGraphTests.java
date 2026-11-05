@@ -14,6 +14,7 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.event.Event;
 import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.input.*;
@@ -35,6 +36,7 @@ public final class FxNoteGraphTests {
     try {
       Path origin = Files.writeString(root.resolve("Origin.md"), "[[Target]]\n");
       Path target = Files.writeString(root.resolve("Target.md"), "[[Origin]]\n");
+      Path source = Files.writeString(root.resolve("Source.md"), "[[Origin]]\n");
       SimpleDoubleProperty zen = new SimpleDoubleProperty();
       FxNoteGraph chosen = fx(() -> {
         FxTheme.setup();
@@ -59,17 +61,34 @@ public final class FxNoteGraphTests {
         @SuppressWarnings("unchecked") SmartGraphPanel<Path, NoteLinkIndex.Edge> graph = (SmartGraphPanel<Path, NoteLinkIndex.Edge>) field(chosen, "graph");
         check(graph != null, "Selected saved note creates the real SmartGraph component");
         check(graph.getModel() instanceof Digraph, "The component uses a directed graph model");
-        check(graph.getModel().numVertices() == 2 && graph.getModel().numEdges() == 2, "Reciprocal links retain two directed edges");
+        check(graph.getModel().numVertices() == 3 && graph.getModel().numEdges() == 3,
+            "Reciprocal links and an inbound-only note retain three directed edges");
         check(graph.getParent().getParent() instanceof javafx.scene.Group || graph.getParent() instanceof javafx.scene.Group,
             "The graph uses the upstream zoom container");
         check(surface.lookup(".note-graph-zoom") instanceof ContentZoomScrollPane, "Pan and zoom use the mature library component");
         @SuppressWarnings("unchecked") ListView<Path> in = (ListView<Path>) field(chosen, "incoming");
         @SuppressWarnings("unchecked") ListView<Path> out = (ListView<Path>) field(chosen, "outgoing");
-        check(in.getItems().equals(java.util.List.of(target)) && out.getItems().equals(java.util.List.of(target)),
+        check(in.getItems().equals(java.util.List.of(source, target)) && out.getItems().equals(java.util.List.of(target)),
             "Both directional lists reflect the selected note");
+        check(in.getAccessibleText().equals("Incoming links to the current note")
+            && out.getAccessibleText().equals("Outgoing links from the current note"),
+            "Connection lists must have distinct accessible names that explain their direction");
+        check(in.getAccessibleHelp().startsWith("Notes that link to the current note.")
+            && out.getAccessibleHelp().startsWith("Notes linked from the current note.")
+            && in.getAccessibleHelp().contains("Enter to open") && out.getAccessibleHelp().contains("Enter to open"),
+            "List help must explain each direction and its keyboard action");
+        check(((Label) field(chosen, "incomingTitle")).getLabelFor() == in
+            && ((Label) field(chosen, "outgoingTitle")).getLabelFor() == out,
+            "Each visible directional heading must label its own list");
+        check(in.queryAccessibleAttribute(AccessibleAttribute.TEXT).equals(in.getAccessibleText())
+            && out.queryAccessibleAttribute(AccessibleAttribute.TEXT).equals(out.getAccessibleText()),
+            "Actual JavaFX accessibility queries must expose the useful directional names");
         out.getSelectionModel().select(target);
         Event.fireEvent(out, new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ENTER, false, false, false, false));
         check(target.equals(opened.get()), "An outgoing list item opens the existing local note");
+        opened.set(null); in.getSelectionModel().select(source);
+        Event.fireEvent(in, new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ENTER, false, false, false, false));
+        check(source.equals(opened.get()), "Enter on an incoming-only row must open that existing source note");
         Label detail = (Label) field(chosen, "detail");
         check(detail.getFont().getSize() == 16 && detail.getFont().getName().equals("Inter Regular"),
             "Inspector detail uses readable Inter 16 regular");
@@ -94,7 +113,7 @@ public final class FxNoteGraphTests {
       fx(() -> { chosen.saved(target); return null; });
       await(() -> fx(() -> {
         NoteLinkIndex.Snapshot snapshot = (NoteLinkIndex.Snapshot) field(chosen, "snapshot");
-        return snapshot.incoming(origin).isEmpty();
+        return snapshot.incoming(origin).equals(java.util.List.of(source));
       }));
       check(true, "A safe-save hook refreshes incoming links asynchronously");
       Path next = Files.createDirectory(root.resolve("another-folder"));

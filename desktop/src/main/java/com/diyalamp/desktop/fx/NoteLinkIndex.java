@@ -34,7 +34,7 @@ public final class NoteLinkIndex {
       return edges.stream().filter(e -> e.from().equals(note)).map(Edge::to).distinct().sorted().toList();
     }
   }
-  private record Cached(long size, FileTime modified, List<Target> targets) { }
+  private record Cached(long size, FileTime modified, Object fileKey, List<Target> targets) { }
   private final Map<Path, Cached> cache = new HashMap<>();
 
   public void invalidate(Path note) { cache.remove(note); }
@@ -79,12 +79,15 @@ public final class NoteLinkIndex {
         }
         Cached old = cache.get(note);
         List<Target> targets;
-        if (old != null && old.size() == attributes.size() && old.modified().equals(attributes.lastModifiedTime()))
+        // A different file can reuse this path, size, and timestamp after a move. If the
+        // provider cannot identify files, reparse rather than guessing that it is unchanged.
+        if (old != null && attributes.fileKey() != null && attributes.fileKey().equals(old.fileKey())
+            && old.size() == attributes.size() && old.modified().equals(attributes.lastModifiedTime()))
           targets = old.targets();
         else {
           // NoteStore rechecks every path segment, UTF-8, and the bounded file read.
           targets = targets(store.load(note).text());
-          cache.put(note, new Cached(attributes.size(), attributes.lastModifiedTime(), targets));
+          cache.put(note, new Cached(attributes.size(), attributes.lastModifiedTime(), attributes.fileKey(), targets));
         }
         for (Target target : targets) {
           if (edges.size() >= MAX_LINKS) { partial[0] = true; break; }
