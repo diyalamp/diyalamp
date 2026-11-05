@@ -564,6 +564,7 @@ public final class FxDiyalamp extends Application {
     if (session != null && !save(session, true)) return false;
     try {
       Path moved = store.move(path, directory);
+      if (noteGraph != null) { noteGraph.saved(path); noteGraph.saved(moved); }
       if (session != null) {
         sessions.remove(path); session.path = moved; sessions.put(moved, session);
         session.views.forEach(this::updateView);

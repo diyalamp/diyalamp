@@ -15,6 +15,9 @@ import javafx.scene.control.ScrollBar;
 import javafx.geometry.Orientation;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.event.Event;
 import org.fxmisc.richtext.TextExt;
 import javax.swing.text.StyleConstants;
 
@@ -31,7 +34,7 @@ public final class FxWritingPaneTests {
     Platform.startup(() -> {
       try {
         FxTheme.setup();
-        roundTrips(); editingAndUndo(); blocksAndTasks(); shortcuts(); linksAndLifecycle(); pasteAndDivider(); incrementalSaving(); actualComponent();
+        roundTrips(); editingAndUndo(); blocksAndTasks(); shortcuts(); keyboardModifiers(); linksAndLifecycle(); pasteAndDivider(); incrementalSaving(); actualComponent();
       } catch (Throwable error) { failure.set(error); }
       finally { finished.countDown(); }
     });
@@ -138,6 +141,29 @@ public final class FxWritingPaneTests {
     check(editor.find("loaded"), "Search must find note text without case sensitivity");
     editor.dispose();
     editor.dispose();
+  }
+
+  private static void keyboardModifiers() {
+    boolean mac = System.getProperty("os.name", "").startsWith("Mac");
+    for (KeyCode code : List.of(KeyCode.B, KeyCode.I, KeyCode.BACK_QUOTE)) {
+      FxWritingPane editor = new FxWritingPane("Selected words\n");
+      StackPane parent = new StackPane(editor.node());
+      new Scene(parent);
+      int[] bubbled = {0};
+      parent.addEventHandler(KeyEvent.KEY_PRESSED, event -> bubbled[0]++);
+      editor.area().selectRange(0, 8);
+      Event.fireEvent(editor.area(), new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, true, !mac, false, mac));
+      check(editor.markdown().equals("Selected words\n") && !editor.canUndo(),
+          "Shift-Shortcut-" + code + " must not format the selected text");
+      check(bubbled[0] == 1, "Shift-Shortcut-" + code + " must remain available to workspace commands");
+      Event.fireEvent(editor.area(), new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, false, !mac, true, mac));
+      check(editor.markdown().equals("Selected words\n") && !editor.canUndo(),
+          "Alt-Shortcut-" + code + " must not trigger the unmodified formatting command");
+      Event.fireEvent(editor.area(), new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, false, !mac, false, mac));
+      check(editor.canUndo() && !editor.markdown().equals("Selected words\n"),
+          "The ordinary formatting shortcut must still work for " + code);
+      editor.dispose();
+    }
   }
 
   private static void pasteAndDivider() {

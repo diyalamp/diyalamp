@@ -11,7 +11,7 @@ public final class NoteLinkIndexTests {
     checks++; if (!condition) throw new AssertionError(message);
   }
   public static void main(String[] arguments) throws Exception {
-    parser(); pathsAndDirection(); bounded();
+    parser(); pathsAndDirection(); movedReplacement(); bounded();
     System.out.println("Passed " + checks + " note-link index checks.");
   }
   private static void parser() {
@@ -86,6 +86,32 @@ public final class NoteLinkIndexTests {
       check(NoteLinkIndex.resolve(root, source, "Space%20name.md", false, notes).isEmpty(), "A replaced file symlink cannot escape via an old snapshot");
       check(snapshot.notes().stream().noneMatch(path -> path.equals(outside)), "No outside note content enters the index");
     } finally { remove(directory); }
+  }
+  private static void movedReplacement() throws Exception {
+    Path root = Files.createTempDirectory("diyalamp-graph-move-").toRealPath();
+    try {
+      NoteStore store = new NoteStore(root);
+      Path a = store.createFolder(root, "A"), b = store.createFolder(root, "B");
+      Path one = store.create(root, "One", ""), two = store.create(root, "Two", "");
+      Path first = store.create(a, "Cached", "[[One]]\n");
+      Path second = store.create(b, "Cached", "[[Two]]\n");
+      Path reference = store.create(b, "Reference", "[[Cached]]\n");
+      Files.setLastModifiedTime(second, Files.getLastModifiedTime(first));
+      check(Files.size(first) == Files.size(second)
+          && Files.getLastModifiedTime(first).equals(Files.getLastModifiedTime(second)),
+          "Replacement fixture must have identical size and preserved modification time");
+      NoteLinkIndex index = new NoteLinkIndex();
+      check(index.scan(store).outgoing(first).equals(List.of(one)), "The original path is cached with its own links");
+      store.trash(first);
+      Path moved = store.move(second, a);
+      NoteLinkIndex.Snapshot result = index.scan(store);
+      check(result.outgoing(moved).equals(List.of(two)), "A moved replacement cannot reuse another file's cached outgoing links");
+      check(result.incoming(one).isEmpty() && result.incoming(two).equals(List.of(moved)),
+          "Incoming links must reflect the replacement file identity too");
+      check(result.outgoing(reference).equals(List.of(moved)), "A unique bare wiki link remains resolvable after the target moves");
+      check(Files.readString(moved).equals("[[Two]]\n") && Files.readString(reference).equals("[[Cached]]\n"),
+          "Index refresh and moving preserve file bytes without rewriting note links");
+    } finally { remove(root); }
   }
   private static void bounded() throws Exception {
     Path root = Files.createTempDirectory("diyalamp-graph-limits-").toRealPath();

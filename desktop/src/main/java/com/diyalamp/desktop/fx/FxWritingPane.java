@@ -40,6 +40,14 @@ public final class FxWritingPane {
   private static final Pattern BLOCK_SHORTCUT = Pattern.compile("^(#{1,6}) $|^([-*+]) $|^(\\d+)\\. $|^> $|^(?:[-*+] )?\\[ \\] $|^```(?:[a-zA-Z0-9_-]+)? $");
   private static final Pattern INLINE_SHORTCUT = Pattern.compile("(\\*\\*[^*\\n]+\\*\\*|~~[^~\\n]+~~|`[^`\\n]+`|(?<!\\*)\\*[^*\\n]+\\*)(?: )?$");
   private static final Map<String, Font> FONTS = new HashMap<>();
+  private static final KeyCombination BOLD_KEY = new KeyCodeCombination(KeyCode.B, KeyCombination.SHORTCUT_DOWN);
+  private static final KeyCombination ITALIC_KEY = new KeyCodeCombination(KeyCode.I, KeyCombination.SHORTCUT_DOWN);
+  private static final KeyCombination CODE_KEY = new KeyCodeCombination(KeyCode.BACK_QUOTE, KeyCombination.SHORTCUT_DOWN);
+  private static final KeyCombination LINK_KEY = new KeyCodeCombination(KeyCode.K, KeyCombination.SHORTCUT_DOWN);
+  private static final KeyCombination PASTE_KEY = new KeyCodeCombination(KeyCode.V, KeyCombination.SHORTCUT_DOWN);
+  private static final KeyCombination CHECKLIST_KEY = new KeyCodeCombination(KeyCode.ENTER,
+      KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN);
+  private static final KeyCombination OPEN_NOTE_KEY = new KeyCodeCombination(KeyCode.ENTER, KeyCombination.SHORTCUT_DOWN);
   private boolean changing, disposed, shortcutScheduled;
   private String original = "";
   private static final String[][] BLOCKS = {
@@ -325,12 +333,12 @@ public final class FxWritingPane {
   private void key(KeyEvent event) {
     KeyCode code = event.getCode();
     if (event.isShortcutDown()) {
-      String format = switch (code) { case B -> "bold"; case I -> "italic"; case BACK_QUOTE -> "code"; default -> null; };
+      String format = BOLD_KEY.match(event) ? "bold" : ITALIC_KEY.match(event) ? "italic" : CODE_KEY.match(event) ? "code" : null;
       if (format != null) { format(format); event.consume(); }
-      else if (code == KeyCode.K) { insertLink(); event.consume(); }
-      else if (code == KeyCode.V) { paste(); event.consume(); }
-      else if (code == KeyCode.ENTER && event.isShiftDown()) { toggleChecklist(); event.consume(); }
-      else if (code == KeyCode.ENTER && openNoteLinkAtCaret()) event.consume();
+      else if (LINK_KEY.match(event)) { insertLink(); event.consume(); }
+      else if (PASTE_KEY.match(event)) { paste(); event.consume(); }
+      else if (CHECKLIST_KEY.match(event)) { toggleChecklist(); event.consume(); }
+      else if (OPEN_NOTE_KEY.match(event) && openNoteLinkAtCaret()) event.consume();
     } else if (code == KeyCode.ENTER && !event.isShiftDown()) {
       enter(); event.consume();
     } else if (code.isArrowKey() || code == KeyCode.HOME || code == KeyCode.END) area.setTextInsertionStyle(null);

@@ -176,6 +176,11 @@ final class FxNoteGraph implements AutoCloseable {
 
   private VBox listSection(Label title, ListView<Path> list, String empty) {
     title.getStyleClass().add("graph-list-heading");
+    boolean inbound = list == incoming;
+    list.setAccessibleText(inbound ? "Incoming links to the current note" : "Outgoing links from the current note");
+    list.setAccessibleHelp((inbound ? "Notes that link to the current note." : "Notes linked from the current note.")
+        + " Use Up and Down to select a note, then Enter to open it.");
+    title.setLabelFor(list);
     list.getStyleClass().add("graph-note-list"); list.setFixedCellSize(40); list.setMinHeight(48);
     Label placeholder = new Label(empty); placeholder.setWrapText(true); placeholder.getStyleClass().add("graph-detail");
     list.setPlaceholder(placeholder);
