@@ -14,17 +14,20 @@ diyalamp is a desktop Markdown editor with rendered formatting and local file st
 
 The application opens a folder of `.md` or `.markdown` files. Editing does not require an account, subscription, server, database, or internet connection. Notes remain readable by other Markdown tools.
 
-![Dark desktop workspace with a Markdown note open](assets/desktop-workspace.png)
-
 ## Features
 
-- Dark-only workspace with Inter throughout, a compact action rail, file explorer, note tabs, and Lucide controls.
+- Light-only macOS workspace with the installed system font, Menlo for code, a file explorer, note tabs, and Lucide controls.
 - Rendered headings, bold, italic, inline code, links, lists, checklists, quotes, and fenced code blocks.
 - Formatting controls, Markdown typing shortcuts, and slash commands.
-- Search by filename, multiple closable note tabs, and side-by-side editing.
+- Folder explorer with nested Markdown files, filename search, closable note tabs, and side-by-side editing.
 - Local autosave with external-file conflict detection.
 - Note creation, import, rename, export, recoverable deletion, and restore.
 - Undo/redo and macOS keyboard shortcuts.
+- Six muted accent choices in the tab toolbar, plus explicit in-app update checks.
+
+![Light diyalamp workspace with a folder explorer, note tabs, and rendered Markdown](assets/desktop-workspace-preview.png)
+
+_Workspace preview using fictional notes._
 
 ## macOS downloads
 
@@ -33,7 +36,7 @@ Version **1.0.2** is available from [GitHub Releases](https://github.com/diyalam
 - [Apple silicon DMG · 36.4 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.0.2/diyalamp-1.0.2-macos-arm64.dmg)
 - [Intel DMG · 38.0 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.0.2/diyalamp-1.0.2-macos-x86_64.dmg)
 
-Drag diyalamp to Applications. The release includes SHA-256 checksums.
+Drag diyalamp to Applications. See the [installation guide](docs/install.md) for choosing Apple silicon or Intel, verifying the SHA-256 checksum, first-launch approval, and current macOS compatibility limits.
 
 **Size target: under 5 MB installed. This target has not been achieved.** Footprint reduction is tracked as an engineering objective, not a current product claim.
 
@@ -43,11 +46,11 @@ The first community release is **unsigned and not Apple-notarized**. macOS may d
 
 ## Build and test
 
-Requires JDK 21 or newer. The desktop app uses Swing, FlatLaf, Lucide icons, CommonMark Java, and Inter. There is no JavaScript runtime or web backend in the desktop application.
+Requires JDK 25 or newer. The desktop app uses JavaFX, AtlantaFX, RichTextFX, Lucide icons, and CommonMark Java. Fonts come from macOS; no font files are bundled. There is no JavaScript runtime or web backend in the desktop application.
 
 ```sh
 sh desktop/build.sh
-java -jar desktop/build/diyalamp.jar
+sh desktop/run.sh
 sh desktop/test.sh
 ```
 
@@ -61,7 +64,7 @@ See [`desktop/README.md`](desktop/README.md) for dependency checksums, architect
 
 ## Storage and privacy
 
-- The writer chooses the notes folder. The default is `~/Documents/diyalamp`.
+- Choose the notes folder with Open Folder; Markdown stays in that folder.
 - Notes are UTF-8 Markdown files, saved locally.
 - A file changed by another application is not silently overwritten; edits stay open for export.
 - Deleted notes move to `.diyalamp-trash` inside the notes folder and can be restored.

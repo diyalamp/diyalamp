@@ -3,10 +3,10 @@ package com.diyalamp.desktop;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.*;
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Stream;
 
 /** Local files, optimistic conflict checks, and recoverable deletion. No network access. */
 public final class NoteStore {
@@ -27,20 +27,67 @@ public final class NoteStore {
   }
 
   public List<Path> notes() throws IOException {
-    try (Stream<Path> stream = Files.walk(root, 12)) {
-      return stream
-          .filter(p -> !p.equals(root))
-          .filter(p -> root.relativize(p).toString().chars().count() < 4096)
-          .filter(
-              p -> {
-                for (Path part : root.relativize(p))
-                  if (part.toString().startsWith(".")) return false;
-                return true;
-              })
-          .filter(p -> Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS) && isMarkdown(p))
-          .sorted(Comparator.comparing(p -> root.relativize(p).toString().toLowerCase(Locale.ROOT)))
+    List<Path> found = new ArrayList<>();
+    Files.walkFileTree(
+        root,
+        new SimpleFileVisitor<>() {
+          @Override
+          public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes attributes) {
+            return directory.equals(root) || visible(directory)
+                ? FileVisitResult.CONTINUE
+                : FileVisitResult.SKIP_SUBTREE;
+          }
+
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attributes) {
+            if (attributes.isRegularFile() && visible(file) && isMarkdown(file)) found.add(file);
+            return FileVisitResult.CONTINUE;
+          }
+        });
+    found.sort(pathOrder());
+    return List.copyOf(found);
+  }
+
+  /** Direct folder contents for a lazy explorer; no recursive scan is needed to expand a row. */
+  public List<Path> children(Path directory) throws IOException {
+    directory = checkedDirectory(directory);
+    try (var entries = Files.list(directory)) {
+      return entries
+          .filter(this::visible)
+          .filter(p -> !Files.isSymbolicLink(p))
+          .filter(p -> Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)
+              || (Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS) && isMarkdown(p)))
+          .sorted(Comparator.comparing((Path p) -> !Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS))
+              .thenComparing(pathOrder()))
           .toList();
     }
+  }
+
+  public boolean isDirectory(Path directory) {
+    try {
+      checkedDirectory(directory);
+      return true;
+    } catch (IOException | IllegalArgumentException error) {
+      return false;
+    }
+  }
+
+  private Comparator<Path> pathOrder() {
+    return Comparator.comparing((Path p) -> root.relativize(p).toString().toLowerCase(Locale.ROOT))
+        .thenComparing(Path::toString);
+  }
+
+  private boolean visible(Path path) {
+    for (Path part : root.relativize(path))
+      if (part.toString().startsWith(".")) return false;
+    return true;
+  }
+
+  private Path checkedDirectory(Path path) throws IOException {
+    path = checkedPath(path, true);
+    if (!Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS))
+      throw new IOException("Choose an existing folder inside the open notes folder.");
+    return path;
   }
 
   public static boolean isMarkdown(Path p) {
@@ -49,19 +96,36 @@ public final class NoteStore {
   }
 
   private Path checked(Path p) throws IOException {
-    p = p.toAbsolutePath().normalize();
-    if (!p.startsWith(root) || p.equals(root))
-      throw new IOException("Choose a note inside the open folder.");
-    if (Files.isSymbolicLink(p) || !p.getParent().toRealPath().startsWith(root))
-      throw new IOException("Symbolic links outside the notes folder are not opened.");
-    return p;
+    return checkedPath(p, false);
+  }
+
+  private Path checkedPath(Path path, boolean allowRoot) throws IOException {
+    path = path.toAbsolutePath().normalize();
+    if (!path.startsWith(root) || (!allowRoot && path.equals(root)) || !visible(path))
+      throw new IOException("Choose a note or folder inside the open notes folder.");
+    Path part = root;
+    for (Path segment : root.relativize(path)) {
+      part = part.resolve(segment);
+      if (Files.isSymbolicLink(part))
+        throw new IOException("Symbolic links are not opened in the notes folder.");
+    }
+    if (!path.equals(root) && !path.getParent().toRealPath().startsWith(root))
+      throw new IOException("Choose a note or folder inside the open notes folder.");
+    return path;
+  }
+
+  private Path checkedNote(Path path) throws IOException {
+    path = checked(path);
+    if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) || !isMarkdown(path))
+      throw new IOException("Choose an existing Markdown note.");
+    return path;
   }
 
   public Loaded load(Path p) throws IOException {
-    p = checked(p);
+    p = checkedNote(p);
     if (Files.size(p) > MAX_BYTES)
       throw new IOException("This note is larger than the 5 MB editing limit.");
-    byte[] b = Files.readAllBytes(p);
+    byte[] b = readBounded(p, MAX_BYTES);
     return new Loaded(decode(b), hash(b));
   }
 
@@ -85,7 +149,9 @@ public final class NoteStore {
     if (bytes.length > MAX_BYTES)
       throw new IOException(
           "This note is larger than the 5 MB editing limit. Export a copy before continuing.");
-    if (!Files.exists(p) || !hash(Files.readAllBytes(p)).equals(expected))
+    if (!Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)
+        || Files.size(p) > MAX_BYTES
+        || !hash(readBounded(p, MAX_BYTES)).equals(expected))
       throw new ConflictException(
           "This file changed outside diyalamp. Your edits are still open. Export a copy to keep"
               + " them, then use File → Reload note from disk.");
@@ -104,20 +170,32 @@ public final class NoteStore {
   }
 
   public Path create(String name, String text) throws IOException {
-    Path p = unique(name);
-    Files.writeString(p, text, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+    return create(root, name, text);
+  }
+
+  public Path create(Path directory, String name, String text) throws IOException {
+    Path p = unique(directory, name);
+    byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
+    if (bytes.length > MAX_BYTES) throw new IOException("This note exceeds the 5 MB editing limit.");
+    Files.write(p, bytes, StandardOpenOption.CREATE_NEW);
     return p;
   }
 
   public Path unique(String name) throws IOException {
+    return unique(root, name);
+  }
+
+  public Path unique(Path directory, String name) throws IOException {
+    directory = checkedDirectory(directory);
     String base = cleanName(name);
-    Path p = root.resolve(base + ".md");
-    for (int i = 2; Files.exists(p); i++) p = root.resolve(base + " " + i + ".md");
+    Path p = directory.resolve(base + ".md");
+    for (int i = 2; Files.exists(p, LinkOption.NOFOLLOW_LINKS); i++)
+      p = directory.resolve(base + " " + i + ".md");
     return p;
   }
 
   public Path rename(Path from, String name) throws IOException {
-    from = checked(from);
+    from = checkedNote(from);
     Path to = from.resolveSibling(cleanName(name) + ".md");
     if (from.equals(to)) return from;
     return Files.move(from, to);
@@ -134,21 +212,121 @@ public final class NoteStore {
   }
 
   public Deleted trash(Path path) throws IOException {
-    path = checked(path);
-    Path trash = root.resolve(".diyalamp-trash");
-    Files.createDirectories(trash);
+    path = checkedNote(path);
+    Path trash = trashDirectory(true);
     Path dest =
         trash.resolve(
             Instant.now().toEpochMilli() + "-" + UUID.randomUUID() + "-" + path.getFileName());
-    Files.move(path, dest);
+    Path origin = originFile(dest);
+    String relative = root.relativize(path).toString();
+    Files.writeString(origin,
+        "diyalamp-trash-v1\n" + Base64.getUrlEncoder().encodeToString(relative.getBytes(StandardCharsets.UTF_8)),
+        StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+    try {
+      trashDirectory(false);
+      checkedNote(path);
+      Files.move(path, dest);
+    } catch (IOException error) {
+      try {
+        trashDirectory(false);
+        Files.deleteIfExists(origin);
+      } catch (IOException cleanup) {
+        error.addSuppressed(cleanup);
+      }
+      throw error;
+    }
     return new Deleted(path, dest);
   }
 
   public Path restore(Deleted deleted) throws IOException {
-    if (Files.exists(deleted.original()))
+    Path source = checkedTrashNote(deleted.trashed());
+    Path original = checked(deleted.original());
+    if (!isMarkdown(original)) throw new IOException("A restored note must have a Markdown extension.");
+    Path origin = originFile(source);
+    if (Files.exists(origin, LinkOption.NOFOLLOW_LINKS)
+        && !original.equals(readOriginal(source)))
+      throw new IOException("The deleted note's original location does not match its restore record.");
+    if (Files.exists(original, LinkOption.NOFOLLOW_LINKS))
       throw new IOException("A note already uses that name. Rename it before restoring.");
-    Files.move(deleted.trashed(), deleted.original());
-    return deleted.original();
+    Files.move(source, original);
+    try {
+      Files.deleteIfExists(origin);
+    } catch (IOException ignored) {
+      // The note is already restored; an orphaned metadata file must not report a failed restore.
+    }
+    return original;
+  }
+
+  /** Recoverable notes, including their original nested location after the app restarts. */
+  public List<Deleted> deleted() throws IOException {
+    Path trash = trashDirectory(false);
+    if (!Files.exists(trash, LinkOption.NOFOLLOW_LINKS)) return List.of();
+    List<Deleted> records = new ArrayList<>();
+    try (var files = Files.list(trash)) {
+      for (Path file : files.sorted(Comparator.comparing(Path::toString).reversed()).toList())
+        if (!Files.isSymbolicLink(file)
+            && Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)
+            && isMarkdown(file)) records.add(new Deleted(readOriginal(file), file));
+    }
+    return List.copyOf(records);
+  }
+
+  private Path trashDirectory(boolean create) throws IOException {
+    Path trash = root.resolve(".diyalamp-trash");
+    if (!Files.exists(trash, LinkOption.NOFOLLOW_LINKS)) {
+      if (!create) return trash;
+      Files.createDirectory(trash);
+    }
+    if (Files.isSymbolicLink(trash) || !Files.isDirectory(trash, LinkOption.NOFOLLOW_LINKS)
+        || !trash.toRealPath().equals(trash))
+      throw new IOException("The deleted-notes folder must be a real folder inside the notes folder.");
+    return trash;
+  }
+
+  private Path checkedTrashNote(Path path) throws IOException {
+    Path trash = trashDirectory(false);
+    path = path.toAbsolutePath().normalize();
+    if (!trash.equals(path.getParent()) || Files.isSymbolicLink(path)
+        || !Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) || !isMarkdown(path))
+      throw new IOException("Choose a deleted Markdown note from this notes folder.");
+    return path;
+  }
+
+  private Path readOriginal(Path trashed) throws IOException {
+    Path origin = originFile(trashed);
+    if (!Files.exists(origin, LinkOption.NOFOLLOW_LINKS)) {
+      String name = trashed.getFileName().toString().replaceFirst("^\\d+-[a-f0-9-]{36}-", "");
+      return root.resolve(name);
+    }
+    if (Files.isSymbolicLink(origin) || !Files.isRegularFile(origin, LinkOption.NOFOLLOW_LINKS))
+      throw new IOException("The deleted note's restore record is not a regular file.");
+    try {
+      String data = decode(readBounded(origin, 16384));
+      String prefix = "diyalamp-trash-v1\n";
+      if (!data.startsWith(prefix)) throw new IllegalArgumentException("Unknown restore record");
+      Path relative = Path.of(decode(Base64.getUrlDecoder().decode(data.substring(prefix.length()))));
+      if (relative.isAbsolute() || relative.toString().isBlank()
+          || relative.normalize().startsWith("..") || !relative.equals(relative.normalize()))
+        throw new IllegalArgumentException("Invalid restore path");
+      Path original = root.resolve(relative);
+      if (!visible(original) || !isMarkdown(original))
+        throw new IllegalArgumentException("Invalid Markdown restore path");
+      return original;
+    } catch (IllegalArgumentException error) {
+      throw new IOException("The deleted note's restore record is invalid; its file is unchanged.", error);
+    }
+  }
+
+  private static Path originFile(Path trashed) {
+    return trashed.resolveSibling(trashed.getFileName() + ".origin");
+  }
+
+  private static byte[] readBounded(Path path, long maximum) throws IOException {
+    try (var input = Files.newInputStream(path)) {
+      byte[] data = input.readNBytes((int) maximum + 1);
+      if (data.length > maximum) throw new IOException("This file exceeds the supported size limit.");
+      return data;
+    }
   }
 
   public static String hash(byte[] b) {

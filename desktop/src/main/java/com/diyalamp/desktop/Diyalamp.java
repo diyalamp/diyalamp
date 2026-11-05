@@ -14,7 +14,7 @@ import javax.swing.text.*;
 import javax.swing.undo.UndoManager;
 
 public final class Diyalamp {
-  public static final String VERSION = "1.0.2";
+  public static final String VERSION = "1.0.3";
   private final JFrame frame = new JFrame("diyalamp");
   private NoteStore store;
   private final boolean persistFolder;
@@ -133,7 +133,7 @@ public final class Diyalamp {
   private JPanel buildActivityRail() {
     JPanel rail = new JPanel();
     rail.setLayout(new BoxLayout(rail, BoxLayout.Y_AXIS));
-    rail.setBackground(new Color(18, 18, 18));
+    rail.setBackground(Theme.RAIL);
     rail.setPreferredSize(new Dimension(44, 0));
     rail.setBorder(
         BorderFactory.createCompoundBorder(
@@ -241,7 +241,7 @@ public final class Diyalamp {
             label.setFont(Theme.font(14));
             if (!selected) {
               label.setBackground(Theme.SIDEBAR);
-              label.setForeground(new Color(194, 194, 194));
+              label.setForeground(Theme.INK);
             }
             return label;
           }
@@ -393,6 +393,7 @@ public final class Diyalamp {
         help = new JMenu("Help");
     bar.add(file);
     bar.add(edit);
+    bar.add(WritingCommands.menu(() -> active));
     bar.add(view);
     bar.add(help);
     menuItem(file, "New note", KeyEvent.VK_N, 0, this::newNote);
@@ -471,17 +472,7 @@ public final class Diyalamp {
         () ->
             JOptionPane.showMessageDialog(
                 frame,
-                "⌘N  New note\n"
-                    + "⌘O  Open folder\n"
-                    + "⌘S  Save\n"
-                    + "⌘W  Close tab\n"
-                    + "⌘B / ⌘I  Bold / italic\n"
-                    + "⌘F  Find in note\n"
-                    + "⌘Z / ⇧⌘Z  Undo / redo\n"
-                    + "⌘\\  Side by side\n\n"
-                    + "Type / on an empty line for blocks.\n"
-                    + "Type # then Space for a heading.\n"
-                    + "Double-click a checklist line to toggle it.",
+                WritingCommands.helpText(),
                 "Writing shortcuts",
                 JOptionPane.PLAIN_MESSAGE));
     item(help, "About diyalamp", this::about);
@@ -704,7 +695,7 @@ public final class Diyalamp {
     tools.add(
         Theme.iconButton(
             "link",
-            "Insert a link",
+            "Insert or edit a link · ⌘K",
             () -> {
               active = editor;
               editor.link();

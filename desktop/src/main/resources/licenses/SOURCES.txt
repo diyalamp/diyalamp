@@ -1,0 +1,51 @@
+AtlantaFX-LICENSE.txt
+  https://github.com/mkpaz/atlantafx/blob/master/LICENSE
+  upstream Git blob: 994d1fc2aa92dfcef4a635a0a37b9a9d33cc60a6
+
+RichTextFX-LICENSE.txt
+  https://github.com/FXMisc/RichTextFX/blob/master/LICENSE
+  upstream Git blob: 9a8e68b18df3cb32c0cdbdeada4960e7c83c78b1
+
+ReactFX-LICENSE.txt
+  https://github.com/TomasMikula/ReactFX/blob/master/LICENSE
+  upstream Git blob: 801693cd47e2d44574b9d04b4ce4f7b9025022d5
+
+UndoFX-LICENSE.txt
+  https://github.com/FXMisc/UndoFX/blob/master/LICENSE
+  upstream Git blob: 55982dcd4d9ba6a5bc919fad4603226ef7e335d8
+
+Flowless-LICENSE.txt
+  https://github.com/FXMisc/Flowless/blob/master/LICENSE
+  upstream Git blob: 21be4ebc1f876629aa91f0d7c4638648370ff6bf
+
+WellBehavedFX-LICENSE.txt
+  https://github.com/FXMisc/WellBehavedFX/blob/master/LICENSE
+  upstream Git blob: 08e555028dea386cf91cd31c580b2920d9fadae4
+
+OpenJFX-LICENSE.txt
+  https://github.com/openjdk/jfx/blob/27-ga/LICENSE
+  upstream Git blob: 8b400c7ab81b7b18baff3f81d597f5e511883134
+
+OpenJFX-ADDITIONAL_LICENSE_INFO.txt
+  https://github.com/openjdk/jfx/blob/27-ga/ADDITIONAL_LICENSE_INFO
+  upstream Git blob: ff700cd09f6ea0cc497f68169fd5c210bdaa7c2b
+
+OpenJFX-ASSEMBLY_EXCEPTION.txt
+  https://github.com/openjdk/jfx/blob/27-ga/ASSEMBLY_EXCEPTION
+  upstream Git blob: 065b8d90239f30b7de3eba350f6446a932d4d131
+
+OpenJFX-javafx.graphics-gcc.md
+  https://github.com/openjdk/jfx/blob/27-ga/modules/javafx.graphics/src/main/legal/gcc.md
+  upstream Git blob: b78ca12caa94565709826ac6ea91153ca507b69b
+
+OpenJFX-javafx.graphics-jpeg_fx.md
+  https://github.com/openjdk/jfx/blob/27-ga/modules/javafx.graphics/src/main/legal/jpeg_fx.md
+  upstream Git blob: bd3d4d8317aa3c645b817fd965050a2a6557f601
+
+OpenJFX-javafx.graphics-mesa3d.md
+  https://github.com/openjdk/jfx/blob/27-ga/modules/javafx.graphics/src/main/legal/mesa3d.md
+  upstream Git blob: cdaa1acb2930bff36dce3622b207ed8d9dc40290
+
+OpenJFX-javafx.graphics-pipewire.md
+  https://github.com/openjdk/jfx/blob/27-ga/modules/javafx.graphics/src/main/legal/pipewire.md
+  upstream Git blob: 8275928e2715016441ba70cb276e566c880cf764

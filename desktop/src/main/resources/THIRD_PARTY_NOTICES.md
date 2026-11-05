@@ -2,8 +2,9 @@
 
 ## Desktop writing app
 
+- JavaFX 27 (OpenJFX), GPL v2 with the Classpath Exception and upstream additional notices. AtlantaFX 3.0.0, MIT. RichTextFX 0.11.7 and its ReactFX, UndoFX, Flowless, and WellBehavedFX dependencies retain their upstream license texts. Full notices and source references are included in `licenses/` inside this application JAR.
+
 - FlatLaf 3.7.2, copyright FormDev Software GmbH, Apache License 2.0. Official project: https://github.com/JFormDesigner/FlatLaf. The pinned JAR retains its upstream notices. The dependency checksum is verified during the build.
-- Inter 4.1, copyright the Inter Project Authors, SIL Open Font License 1.1. The font and license are bundled in the desktop resources. https://github.com/rsms/inter
 - The self-contained macOS package includes an OpenJDK runtime. Its upstream notices are retained in `Contents/runtime/Contents/Home/legal`.
 - The approved lamp artwork is a project brand asset. It is not relicensed as original Apache-licensed artwork.
 

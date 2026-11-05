@@ -3,6 +3,7 @@ package com.diyalamp.desktop;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
+import java.util.function.Function;
 import java.util.regex.*;
 import javax.swing.*;
 import javax.swing.event.*;
@@ -14,10 +15,19 @@ public final class WritingPane extends JTextPane {
   private final StyledDocument observedDocument;
   private final DocumentListener documentListener;
   private final Runnable changed;
+  private final Function<String, String> linkDestination;
   private final JPopupMenu commands = new JPopupMenu();
 
   public WritingPane(StyledDocument document, Runnable changed) {
+    this(document, changed, null);
+  }
+
+  WritingPane(StyledDocument document, Runnable changed, Function<String, String> linkDestination) {
     this.changed = changed;
+    this.linkDestination =
+        linkDestination == null
+            ? initial -> JOptionPane.showInputDialog(this, "Link destination", initial)
+            : linkDestination;
     observedDocument = document;
     setEditorKit(new PageKit());
     setDocument(document);
@@ -37,6 +47,8 @@ public final class WritingPane extends JTextPane {
     setFont(Theme.font(16));
     putClientProperty("JTextPane.honorDisplayProperties", true);
     getAccessibleContext().setAccessibleName("Markdown writing page");
+    addCaretListener(event -> describeContext());
+    describeContext();
     documentListener =
         new DocumentListener() {
           public void insertUpdate(DocumentEvent e) {
@@ -48,6 +60,7 @@ public final class WritingPane extends JTextPane {
           }
 
           public void changedUpdate(DocumentEvent e) {
+            describeContext();
             if (!converting) changed.run();
           }
 
@@ -70,13 +83,12 @@ public final class WritingPane extends JTextPane {
                 enter();
               }
             });
-    int menu =
-        GraphicsEnvironment.isHeadless()
-            ? InputEvent.CTRL_DOWN_MASK
-            : Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+    int menu = WritingCommands.shortcutMask();
     bind(KeyEvent.VK_B, menu, () -> toggle("bold"));
     bind(KeyEvent.VK_I, menu, () -> toggle("italic"));
     bind(KeyEvent.VK_BACK_QUOTE, menu, () -> toggle("code"));
+    bind(KeyEvent.VK_K, menu, this::link);
+    bind(KeyEvent.VK_ENTER, menu | InputEvent.SHIFT_DOWN_MASK, this::toggleChecklist);
     bind(KeyEvent.VK_1, menu | InputEvent.ALT_DOWN_MASK, () -> block("heading", 1));
     bind(KeyEvent.VK_2, menu | InputEvent.ALT_DOWN_MASK, () -> block("heading", 2));
     bind(KeyEvent.VK_3, menu | InputEvent.ALT_DOWN_MASK, () -> block("heading", 3));
@@ -84,14 +96,7 @@ public final class WritingPane extends JTextPane {
         new MouseAdapter() {
           public void mouseClicked(MouseEvent e) {
             if (e.getClickCount() == 2) {
-              Element p = getStyledDocument().getParagraphElement(viewToModel2D(e.getPoint()));
-              if ("task".equals(p.getAttributes().getAttribute(Markdown.KIND))) {
-                SimpleAttributeSet a = new SimpleAttributeSet();
-                a.addAttribute(
-                    Markdown.CHECKED,
-                    !Boolean.TRUE.equals(p.getAttributes().getAttribute(Markdown.CHECKED)));
-                getStyledDocument().setParagraphAttributes(p.getStartOffset(), 1, a, false);
-              }
+              toggleChecklistAt(viewToModel2D(e.getPoint()));
             }
           }
         });
@@ -131,32 +136,174 @@ public final class WritingPane extends JTextPane {
 
   public void toggle(String kind) {
     SimpleAttributeSet a = new SimpleAttributeSet();
-    AttributeSet at = getCharacterAttributes();
+    AttributeSet at =
+        getSelectionStart() < getSelectionEnd()
+            ? getStyledDocument().getCharacterElement(getSelectionStart()).getAttributes()
+            : getInputAttributes();
     switch (kind) {
       case "bold" -> StyleConstants.setBold(a, !StyleConstants.isBold(at));
       case "italic" -> StyleConstants.setItalic(a, !StyleConstants.isItalic(at));
       case "strike" -> StyleConstants.setStrikeThrough(a, !StyleConstants.isStrikeThrough(at));
       case "code" -> {
-        boolean next = !Boolean.TRUE.equals(at.getAttribute(Markdown.INLINE_CODE));
-        a.addAttribute(Markdown.INLINE_CODE, next);
-        StyleConstants.setFontFamily(a, "Inter");
-        StyleConstants.setBackground(a, next ? new Color(48, 48, 48) : Theme.PAPER);
+        inlineCode(!Boolean.TRUE.equals(at.getAttribute(Markdown.INLINE_CODE)));
+        requestFocusInWindow();
+        return;
       }
     }
     setCharacterAttributes(a, false);
     requestFocusInWindow();
   }
 
+  private void inlineCode(boolean enabled) {
+    StyledDocument document = getStyledDocument();
+    int start = getSelectionStart(), end = getSelectionEnd();
+    if (start == end) {
+      setCharacterAttributes(codeAttributes(getInputAttributes(), enabled, start), true);
+      return;
+    }
+    Runnable command =
+        () -> {
+          int position = start;
+          while (position < end) {
+            Element run = document.getCharacterElement(position);
+            int next = Math.min(end, run.getEndOffset());
+            document.setCharacterAttributes(
+                position,
+                next - position,
+                codeAttributes(run.getAttributes(), enabled, position),
+                true);
+            position = next;
+          }
+        };
+    if (document instanceof WritingDocument writing) writing.atomic(command);
+    else command.run();
+  }
+
+  private AttributeSet codeAttributes(AttributeSet original, boolean enabled, int position) {
+    SimpleAttributeSet attributes = new SimpleAttributeSet(original);
+    attributes.addAttribute(Markdown.INLINE_CODE, enabled);
+    // Removing the override restores each paragraph's own font, including fenced code.
+    attributes.removeAttribute(StyleConstants.FontFamily);
+    if (enabled) StyleConstants.setFontFamily(attributes, Theme.codeFont(16).getFamily());
+    boolean codeBlock =
+        "code".equals(
+            getStyledDocument()
+                .getParagraphElement(position)
+                .getAttributes()
+                .getAttribute(Markdown.KIND));
+    StyleConstants.setBackground(attributes, enabled || codeBlock ? Theme.CODE : Theme.PAPER);
+    return attributes;
+  }
+
   public void link() {
-    String target = JOptionPane.showInputDialog(this, "Link destination", "https://");
-    if (target == null || target.isBlank()) return;
-    SimpleAttributeSet a = new SimpleAttributeSet();
-    a.addAttribute(Markdown.LINK, target.strip());
-    StyleConstants.setUnderline(a, true);
-    StyleConstants.setForeground(a, Theme.INK);
-    if (getSelectedText() == null) replaceSelection(target.strip());
-    setCharacterAttributes(a, false);
+    LinkRange range = linkRange();
+    String target = linkDestination.apply(range.target() == null ? "https://" : range.target());
+    if (target != null && !target.isBlank()) {
+      select(range.start(), range.end());
+      applyLink(target);
+    }
     requestFocusInWindow();
+  }
+
+  /** Apply a destination to selected text, or insert a linked destination at the caret. */
+  void applyLink(String destination) {
+    if (destination == null || destination.isBlank()) return;
+    String target = destination.strip();
+    int start = getSelectionStart(), end = getSelectionEnd();
+    StyledDocument document = getStyledDocument();
+    SimpleAttributeSet following =
+        new SimpleAttributeSet(
+            end > start
+                ? document.getCharacterElement(end - 1).getAttributes()
+                : getInputAttributes());
+    following.removeAttribute(Markdown.LINK);
+    following.removeAttribute(Markdown.LINK_TITLE);
+    StyleConstants.setUnderline(following, false);
+    StyleConstants.setForeground(following, Theme.INK);
+    SimpleAttributeSet a = new SimpleAttributeSet();
+    a.addAttribute(Markdown.LINK, target);
+    StyleConstants.setUnderline(a, true);
+    StyleConstants.setForeground(a, Theme.RED);
+    if (start == end) {
+      SimpleAttributeSet inserted = new SimpleAttributeSet(getInputAttributes());
+      inserted.addAttributes(a);
+      try {
+        document.insertString(start, target, inserted);
+      } catch (BadLocationException error) {
+        throw new IllegalStateException(error);
+      }
+      end = start + target.length();
+    } else document.setCharacterAttributes(start, end - start, a, false);
+    setCaretPosition(end);
+    // A space or another sentence typed afterwards should not inherit the destination.
+    setCharacterAttributes(following, true);
+  }
+
+  private record LinkRange(int start, int end, String target) {}
+
+  private LinkRange linkRange() {
+    int start = getSelectionStart(), end = getSelectionEnd();
+    StyledDocument document = getStyledDocument();
+    Element run = document.getCharacterElement(start);
+    Object target = run.getAttributes().getAttribute(Markdown.LINK);
+    if (start != end) return new LinkRange(start, end, target instanceof String s ? s : null);
+    if (target == null && start > 0) {
+      Element previous = document.getCharacterElement(start - 1);
+      if (previous.getEndOffset() == start) {
+        run = previous;
+        target = run.getAttributes().getAttribute(Markdown.LINK);
+      }
+    }
+    if (!(target instanceof String destination)) return new LinkRange(start, end, null);
+    start = run.getStartOffset();
+    end = Math.min(document.getLength(), run.getEndOffset());
+    while (start > 0) {
+      Element previous = document.getCharacterElement(start - 1);
+      if (!destination.equals(previous.getAttributes().getAttribute(Markdown.LINK))) break;
+      start = previous.getStartOffset();
+    }
+    while (end < document.getLength()) {
+      Element next = document.getCharacterElement(end);
+      if (!destination.equals(next.getAttributes().getAttribute(Markdown.LINK))) break;
+      end = Math.min(document.getLength(), next.getEndOffset());
+    }
+    return new LinkRange(start, end, destination);
+  }
+
+  public void toggleChecklist() {
+    toggleChecklistAt(getCaretPosition());
+    requestFocusInWindow();
+  }
+
+  private void toggleChecklistAt(int position) {
+    if (position < 0 || position > getDocument().getLength()) return;
+    Element paragraph = getStyledDocument().getParagraphElement(position);
+    if (!"task".equals(paragraph.getAttributes().getAttribute(Markdown.KIND))) return;
+    SimpleAttributeSet a = new SimpleAttributeSet();
+    a.addAttribute(
+        Markdown.CHECKED,
+        !Boolean.TRUE.equals(paragraph.getAttributes().getAttribute(Markdown.CHECKED)));
+    getStyledDocument().setParagraphAttributes(paragraph.getStartOffset(), 1, a, false);
+  }
+
+  private void describeContext() {
+    if (disposed) return;
+    AttributeSet attributes =
+        getStyledDocument().getParagraphElement(getCaretPosition()).getAttributes();
+    String context =
+        "task".equals(attributes.getAttribute(Markdown.KIND))
+            ? (Boolean.TRUE.equals(attributes.getAttribute(Markdown.CHECKED))
+                    ? "Checked checklist item. "
+                    : "Unchecked checklist item. ")
+            : "";
+    String description =
+        context
+            + "Rich-text Markdown editor. Formatting commands are in the Format menu. "
+            + "Command K inserts or edits a link. "
+            + "Command Shift Enter toggles the current checklist item. "
+            + "Control Tab moves focus out of the writing page.";
+    if (!description.equals(getAccessibleContext().getAccessibleDescription()))
+      getAccessibleContext().setAccessibleDescription(description);
   }
 
   private void enter() {

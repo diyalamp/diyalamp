@@ -1,0 +1,20 @@
+macOS application icon
+
+profile-icon.png is the existing approved diyalamp profile artwork previously
+used directly as app-icon.png. It is retained here as the unchanged composition
+source, outside application resources so it is not bundled twice.
+
+render.swift draws a restrained macOS backplate in the empty margins: rounded
+white surface, off-white lower edge, thin highlight, and a soft outer shadow.
+The lamp's source position, scale, and every pixel in its colored bounds remain
+unchanged. The inline lamp.png asset is separate and is not modified.
+
+To rebuild on macOS using the installed Swift toolchain:
+
+    swift desktop/icon-source/render.swift
+
+Output: desktop/src/main/resources/app-icon.png (460 x 460, RGBA).
+The renderer verifies pixel equality against the approved source both before
+and after PNG encoding. Packaging derives ICNS sizes from this PNG as before.
+
+No generated replacement artwork, new typography, or third-party icon is used.
