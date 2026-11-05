@@ -1,6 +1,5 @@
 <div align="center">
-  <img src="assets/lamp.png" width="64" height="64" alt="diyalamp">
-  <h1>diyalamp</h1>
+  <h1><img src="assets/lamp.png" width="32" height="32" alt="" align="absmiddle"> diyalamp</h1>
   <p><strong>Open-source Markdown editor for macOS.</strong></p>
   <p>Live formatting · Local .md files · Multiple tabs · Split view · No sign-up</p>
   <p><a href="https://diyalamp.com">Website</a> · <a href="https://github.com/diyalamp/diyalamp/releases">Releases</a> · <a href="https://github.com/diyalamp/diyalamp/issues">Issues</a> · <a href="CONTRIBUTING.md">Contributing</a></p>
@@ -16,14 +15,18 @@ The application opens a folder of `.md` or `.markdown` files. Editing does not r
 
 ## Features
 
-- Light-only macOS workspace with the installed system font, Menlo for code, a file explorer, note tabs, and Lucide controls.
+- Light-only macOS workspace using Cupertino controls, Inter text, Menlo code, a file explorer, note tabs, and flat Lucide icons.
 - Rendered headings, bold, italic, inline code, links, lists, checklists, quotes, and fenced code blocks.
 - Formatting controls, Markdown typing shortcuts, and slash commands.
 - Folder explorer with nested Markdown files, filename search, closable note tabs, and side-by-side editing.
 - Local autosave with external-file conflict detection.
 - Note creation, import, rename, export, recoverable deletion, and restore.
 - Undo/redo and macOS keyboard shortcuts.
-- Six muted accent choices in the tab toolbar, plus explicit in-app update checks.
+- `[[Note name]]` links with directed incoming/outgoing navigation and a SmartGraph panel.
+- Smooth Zen mode, interrupted accent transitions, and consistently styled dialogs.
+- A toolbar Pomodoro with a compact animated popover for Start, Stop, and Reset.
+- Drag tabs between panes or move notes into workspace folders without overwrites.
+- Six muted accent choices in an animated toolbar popover, plus explicit in-app update checks.
 
 ![Light diyalamp workspace with a folder explorer, note tabs, and rendered Markdown](assets/desktop-workspace-preview.png)
 
@@ -46,7 +49,7 @@ This community release is **unsigned and not Apple-notarized**. macOS may displa
 
 ## Build and test
 
-Requires JDK 25 or newer. The desktop app uses JavaFX, AtlantaFX, RichTextFX, Lucide icons, and CommonMark Java. Fonts come from macOS; no font files are bundled. There is no JavaScript runtime or web backend in the desktop application.
+Requires JDK 25 or newer. The desktop app uses JavaFX, AtlantaFX, RichTextFX, Lucide icons, and CommonMark Java. Four static Inter faces are bundled for consistent reading and emphasis; Menlo comes from macOS. There is no JavaScript runtime or web backend in the desktop application.
 
 ```sh
 sh desktop/build.sh

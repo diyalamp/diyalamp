@@ -18,7 +18,7 @@ Describe the user-visible problem, the resulting behavior, and how you checked i
 
 ## Design
 
-Use the fixed lamp asset and lowercase **diyalamp** name. The desktop interface is light-only: soft-gray panels, quiet writing surfaces, and a selectable muted accent. Use the installed macOS System font for interface and prose, with Menlo only for code; do not bundle fonts. Reuse JavaFX/AtlantaFX controls and RichTextFX editing behavior. Maintain compact navigation, readable content, consistent spacing, and native macOS interactions. Avoid sign-in, telemetry, AI services, and paid dependencies in the local writing flow.
+Use the fixed lamp asset and lowercase **diyalamp** name. The desktop interface is light-only: soft-gray panels, quiet writing surfaces, and a selectable muted accent. Use static Inter Regular 16 for ordinary interface/prose, exact Inter SemiBold faces for headings/emphasis, and installed Menlo 16 for code. Keep the font license/provenance with the bundled static faces. Reuse AtlantaFX Cupertino controls and Popover components, RichTextFX editing behavior, and SmartGraph for note graphs. Maintain compact navigation, readable content, consistent spacing, and native macOS interactions. Avoid sign-in, telemetry, AI services, and paid dependencies in the local writing flow.
 
 ## Reporting a problem
 

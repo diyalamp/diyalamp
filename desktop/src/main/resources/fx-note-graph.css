@@ -1,0 +1,8 @@
+.graph { -fx-background-color: #fcfcfd; }
+.vertex { -fx-fill: #a1a6b0; -fx-stroke: #fcfcfd; -fx-stroke-width: 2; }
+.vertex:hover { -fx-fill: -diyalamp-accent; -fx-stroke: -diyalamp-accent-subtle; -fx-stroke-width: 4; }
+.vertex.current-note { -fx-fill: -diyalamp-accent; -fx-stroke: -diyalamp-accent-subtle; -fx-stroke-width: 5; }
+.vertex-label { -fx-font-family: "Inter"; -fx-font-size: 14px; -fx-font-weight: normal; -fx-fill: #777982; }
+.edge { -fx-stroke: #c9cbd2; -fx-stroke-width: 1.2; -fx-fill: transparent; }
+.arrow { -fx-stroke: #a1a6b0; -fx-stroke-width: 1.2; -fx-fill: #a1a6b0; }
+.edge-label { -fx-font-family: "Inter"; -fx-fill: #777982; }

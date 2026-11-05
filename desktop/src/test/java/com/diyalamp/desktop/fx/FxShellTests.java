@@ -147,91 +147,70 @@ public final class FxShellTests {
       Object host = field(view, "host");
       TabLine tabs = (TabLine) field(host, "tabs");
       HBox tools = (HBox) tabs.getRightNode();
-      check(tools.getChildren().size() == 3, "New-note and split controls must remain beside the accent control");
-      check(tools.getChildren().get(2) instanceof Button, "The toolbar accent control must be a standard accessible Button");
-      Button accent = (Button) tools.getChildren().get(2);
-      check(accent.getText().equals("Accent") && accent.getAccessibleText().equals("Workspace accent color")
-          && accent.getAccessibleRole() == AccessibleRole.BUTTON,
-          "The accent control must expose its visible name and a button role to accessibility");
-
-      call(fixture.app, "buildNavigation", new Class<?>[0]);
-      call(fixture.app, "buildExplorer", new Class<?>[0]);
-      call(fixture.app, "refreshTree", new Class<?>[0]);
-      Sidebar<?> navigation = (Sidebar<?>) field(fixture.app, "navigation");
-      Region pane = (Region) field(host, "container");
-      VBox explorer = (VBox) field(fixture.app, "explorer");
-      BorderPane root = new BorderPane(new HBox(navigation, explorer, pane));
+      check(tools.getChildren().size() == 2 && tools.getChildren().get(0).getAccessibleText().equals("New note")
+          && tools.getChildren().get(1).getAccessibleText().equals("Open note side by side"),
+          "Per-pane controls must remain focused on adjacent new-note and split actions");
+      Stage stage = new Stage(); set(fixture.app, "stage", stage);
+      call(fixture.app, "buildExplorer", new Class<?>[0]); call(fixture.app, "refreshTree", new Class<?>[0]);
+      var toolbar = (javafx.scene.control.ToolBar) call(fixture.app, "buildToolbar", new Class<?>[0]);
+      Button accent = (Button) call(fixture.app, "accentButton", new Class<?>[0]);
+      check(toolbar.getItems().contains(accent) && accent.getText().equals("Accent")
+          && accent.getAccessibleText().equals("Workspace accent color") && accent.getAccessibleRole() == AccessibleRole.BUTTON,
+          "A labelled accessible Accent button belongs in the global toolbar");
+      BorderPane root = (BorderPane) field(fixture.app, "root");
+      root.setTop(toolbar);
+      root.setCenter(new HBox((VBox) field(fixture.app, "explorer"), (Region) field(host, "container")));
       Label status = (Label) field(fixture.app, "status");
       HBox statusBar = new HBox(status); statusBar.getStyleClass().add("workspace-status"); root.setBottom(statusBar);
       root.getStyleClass().add("workspace-root");
-      FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
       root.getStylesheets().add(FxDiyalamp.class.getResource("/fx-workspace.css").toExternalForm());
-      Stage stage = new Stage(); set(fixture.app, "stage", stage);
+      call(fixture.app, "initializeAccent", new Class<?>[0]);
       tabs.getTabs().add((Tab) field(view, "tab")); tabs.getSelectionModel().selectFirst();
-      stage.setScene(new Scene(root, 1000, 500)); stage.show();
-      root.applyCss(); root.layout();
-      check(accent.getHeight() == 32 && accent.getWidth() > 70 && accent.getWidth() < 115,
-          "The labelled accent button must remain a compact 32-point toolbar control");
+      stage.setScene(new Scene(root, 1100, 600)); stage.show(); root.applyCss(); root.layout();
+      check(accent.getHeight() >= 36 && accent.getWidth() > 80 && accent.getWidth() < 160,
+          "The global Accent control must have comfortable compact dimensions");
       Region swatch = (Region) accent.getGraphic();
-      check(swatch.getWidth() == swatch.getHeight() && swatch.getWidth() == 12
+      check(swatch.getWidth() == swatch.getHeight() && swatch.getWidth() >= 12
           && swatch.getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius() >= 6,
-          "The toolbar color preview must render as a small circle");
-      var cells = navigation.lookupAll(".sidebar-cell").stream()
-          .filter(node -> node.isVisible()).sorted(java.util.Comparator.comparingDouble(node -> node.getBoundsInParent().getMinY())).toList();
-      check(cells.size() == 2, "Both existing navigation destinations must remain available");
-      check(cells.stream().allMatch(cell -> cell.getLayoutBounds().getHeight() >= 40),
-          "Navigation icons need comfortably sized click targets");
-      var first = cells.get(0).localToScene(cells.get(0).getBoundsInLocal());
-      var second = cells.get(1).localToScene(cells.get(1).getBoundsInLocal());
-      check(second.getCenterY() - first.getCenterY() >= 48,
-          "Navigation icons must have more vertical separation");
-      check(navigation.getItems().stream().allMatch(item -> item.getGraphic().prefWidth(-1) == 20),
-          "Both navigation icons should use the larger 20-point geometry");
+          "The current accent preview must render as a small circle");
       var uiFonts = new java.util.ArrayList<Font>();
       uiFonts.add(((javafx.scene.control.TextField) field(fixture.app, "search")).getFont());
-      uiFonts.add(((Label) field(host, "breadcrumb")).getFont());
-      uiFonts.add(status.getFont());
+      uiFonts.add(((Label) field(host, "breadcrumb")).getFont()); uiFonts.add(status.getFont()); uiFonts.add(accent.getFont());
       var fileLabels = root.lookupAll(".file-tree .tree-cell .label").stream()
           .filter(node -> node instanceof Label label && label.getText().equals(fixture.path.getFileName().toString()))
           .map(node -> ((Label) node).getFont()).toList();
       var tabLabels = root.lookupAll(".document-tabs .tab .label").stream()
           .filter(node -> node instanceof Label label && label.getText().equals(fixture.path.getFileName().toString()))
           .map(node -> ((Label) node).getFont()).toList();
-      check(!fileLabels.isEmpty() && !tabLabels.isEmpty(), "Actual file and tab labels must be laid out for the font check");
-      check(uiFonts.get(0).getSize() == 14 && uiFonts.get(1).getSize() == 13 && uiFonts.get(2).getSize() == 13
-          && fileLabels.stream().allMatch(font -> font.getSize() == 14)
-          && tabLabels.stream().allMatch(font -> font.getSize() == 14),
-          "Native UI text must use 14-point labels with 13-point breadcrumb and status text");
+      check(!fileLabels.isEmpty() && !tabLabels.isEmpty(), "Real file and tab labels must be laid out for the typography check");
       uiFonts.addAll(fileLabels); uiFonts.addAll(tabLabels);
-      check(uiFonts.stream().allMatch(font -> font.getFamily().equals(Font.getDefault().getFamily())
-          && font.getStyle().contains("Bold")),
-          "Small UI text must resolve a true bold native system face, rather than an ineffective semibold request: " + uiFonts);
+      check(uiFonts.stream().allMatch(font -> font.getName().equals("Inter Regular") && font.getSize() == 16),
+          "Every ordinary UI label must resolve the same real Inter Regular16 face: " + uiFonts);
       var prose = fixture.editor.area().lookupAll(".md-text").stream()
           .filter(node -> node instanceof TextExt text && text.getText().contains("Original"))
           .map(node -> ((TextExt) node).getFont()).toList();
-      check(!prose.isEmpty() && prose.stream().allMatch(font -> font.getSize() == 18 && !font.getStyle().contains("Bold")),
-          "Stronger UI labels must not change the approved 18-point regular reading font");
-
-      Dialog<Color> dialog = (Dialog<Color>) call(fixture.app, "accentDialog", new Class<?>[0]);
-      var choices = dialog.getDialogPane().getContent().lookupAll(".accent-choice").stream().map(node -> (Button) node).toList();
-      check(choices.size() == 6, "The accent dialog must offer exactly six named preset buttons");
-      check(dialog.getDialogPane().getContent().lookupAll(".color-picker").isEmpty()
-          && !(dialog.getDialogPane().getContent() instanceof ColorPicker),
-          "The preset dialog must not expose a full-spectrum color picker");
-      Button sage = choices.stream().filter(button -> button.getText().equals("Sage")).findFirst().orElseThrow();
-      sage.fire();
+      check(!prose.isEmpty() && prose.stream().allMatch(font -> font.getName().equals("Inter Regular") && font.getSize() == 16),
+          "Rendered prose must use the exact same regular face and size as the app controls");
+      accent.fire();
+      var popup = (atlantafx.base.controls.Popover) field(fixture.app, "accentMenu");
+      check(popup.isShowing() && popup.isAutoHide() && popup.isHideOnEscape() && !popup.isDetachable(),
+          "Accent choices must use the real anchored AtlantaFX Popover, dismissible without a modal window");
+      check(popup.isAnimated() && popup.getFadeInDuration().toMillis() > 0 && popup.getFadeOutDuration().toMillis() > 0,
+          "The maintained popover must provide its animated bubble transition");
+      popup.getRoot().applyCss(); popup.getRoot().layout();
+      var choices = popup.getContentNode().lookupAll(".accent-choice").stream().map(node -> (Button) node).toList();
+      check(choices.size() == 6 && popup.getContentNode().lookupAll(".color-picker").isEmpty(),
+          "The accent bubble must contain only the six approved muted presets");
+      check(choices.stream().allMatch(button -> button.getFont().getName().equals("Inter Regular") && button.getFont().getSize() == 16),
+          "Actual palette buttons must use the shared regular UI typography");
+      Button sage = choices.stream().filter(button -> button.getText().equals("Sage")).findFirst().orElseThrow(); sage.fire();
       check(sage.getAccessibleText().contains("selected") && sage.getText().contains("✓"),
-          "Selecting a preset must update both its visible and accessible selected state");
-      check(dialog.getResultConverter().call(ButtonType.APPLY).equals(Color.web("#7A9A85"))
-          && dialog.getResultConverter().call(ButtonType.CANCEL) == null,
-          "Apply must return the selected preset while Cancel leaves the workspace unchanged");
-      check(dialog.getDialogPane().getContent().lookupAll(".accent-value").stream()
-          .anyMatch(node -> ((Label) node).getText().contains("#7A9A85")),
-          "The selected color value must remain visible to keyboard and screen-reader users");
-      var value = (javafx.beans.property.ObjectProperty<Color>) field(fixture.app, "accent");
-      value.set(Color.web("#BA929B"));
-      check(swatch.getStyle().contains("#BA929B"), "Both toolbar previews must track workspace accent changes");
-      stage.close();
+          "Preset selection must have both a visible and accessible indicator");
+      check(fixture.preferences.get("accent", "").equals("#7A9A85") && popup.isShowing(),
+          "Choosing a preset must apply immediately while keeping the bubble available for another choice");
+      check(popup.getContentNode().lookupAll(".label").stream().filter(node -> node instanceof Label)
+          .noneMatch(node -> ((Label) node).getText().contains("#")), "The preset bubble must omit implementation-only color values");
+      popup.hide(javafx.util.Duration.ZERO); stage.close();
     }
   }
 

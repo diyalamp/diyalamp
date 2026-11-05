@@ -28,6 +28,7 @@ final class FxMarkdown {
     Span { values = Collections.unmodifiableMap(new LinkedHashMap<>(values)); }
     boolean flag(Object key) { return Boolean.TRUE.equals(values.get(key)); }
     String link() { return values.get(Markdown.LINK) instanceof String s ? s : null; }
+    String noteLink() { return values.get(Markdown.WIKI_TARGET) instanceof String s ? s : null; }
     SimpleAttributeSet attributes() { return attributesOf(values); }
     static Span plain(Block block) { return new Span(Map.of(), block.kind(), block.level()); }
     static Span of(AttributeSet attributes, Block block) {

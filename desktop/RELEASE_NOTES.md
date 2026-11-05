@@ -1,31 +1,29 @@
-## diyalamp 1.1.1
+## diyalamp 1.1.3
 
-The macOS app now uses maintained JavaFX, AtlantaFX, and RichTextFX components for its light-only writing workspace. The custom Swing text renderer is replaced by RichTextFX text layout, selection, caret, and undo behavior. The existing Markdown parser remains a semantic adapter.
+The light macOS workspace combines AtlantaFX Cupertino controls and animated popovers with RichTextFX editing and SmartGraph note navigation.
 
-### Workspace
+### Connected notes
 
-- A folder explorer with nested Markdown files, visible extensions, rounded search, and hover/focus file actions.
-- Closable, reorderable tabs, with new note, split view, and a visible accent picker together.
-- Six muted accent choices with circular previews, quieter light surfaces, installed macOS System text faces, and Menlo for code. No font files are bundled.
-- Rendered editing, slash commands, links, lists, checklists, quotes, code blocks, keyboard commands, and side-by-side notes.
-- Debounced and incremental Markdown serialization to keep whole-note conversion off the immediate typing path.
-- The approved padded lamp icon, with subtle backplate shine and shadow.
+- Type `[[Note name]]` to link one note to another. Wiki markup remains in the saved Markdown; the editor shows a local-note link.
+- The right panel shows a directed graph above incoming and outgoing note lists. Incoming notes point into the current note; outgoing notes are linked from it.
+- The graph uses SmartGraph's force layout and zoom/pan controls. Connections are indexed from local notes in the background, with visible limits for partial scans. Web links, hidden files, and paths outside the selected workspace are excluded.
 
-### Local files and updates
+### Focus and interface
 
-- Save conflicts retain edits instead of overwriting external changes.
-- Recoverable deletion preserves original nested locations across app restarts.
-- Folder/trash boundary checks reject links that would move notes outside the selected folder.
-- Help → Check for updates contacts the project's fixed GitHub release channel only when requested. It can download and verify the matching Mac installer, save notes, quit, replace the app, and restart. Save conflicts cancel installation. A rollback copy is retained; administrator access and security bypasses are not requested.
+- Zen mode smoothly hides workspace controls and restores the previous sidebar and split arrangement. Use the toolbar, View menu, or Shift-Command-F; an exit control remains available.
+- Six muted accents transition smoothly, including when a new choice interrupts a transition. Accessibility attachment no longer disables animations; the explicit reduced-motion option remains.
+- Static Inter Regular 16 is used for ordinary text; exact Inter Semibold faces are used for headings, and Menlo 16 for code. Static italic faces preserve emphasis. Font files add about 1.6 MiB, measured separately from the runtime.
+- The global toolbar, sidebar, tabs, graph, dialogs, and popovers use a shared 8/16/24 spacing scale and Cupertino controls.
+- A compact toolbar Pomodoro opens an animated bubble for 25-minute focus and 5-minute breaks with Start, Stop, and Reset. Each next session starts explicitly; completion uses an in-app notice. The timer stops when the app quits.
+- Move tabs between split panes and move notes into workspace folders by dragging. Folder moves preserve note bytes and reject overwrites or destinations outside the workspace.
+- The lamp and product name appear together on one line. Packaged macOS launches retain the bundled ICNS rather than replacing it with a separate runtime image. Global Dock settings are unchanged.
 
-### Downloads and verification
+### Files and updates
 
-Apple silicon and Intel DMGs include the app and runtime. No separate Java installation or account is required for writing. Matching SHA-256 files accompany the installers. See the [installation guide](https://github.com/diyalamp/diyalamp/blob/main/docs/install.md).
+Notes remain ordinary local Markdown files. Save conflicts, recoverable deletion, safe folder boundaries, and explicit verified in-app updates remain in place. Both architecture DMGs include the runtime. Matching SHA-256 files accompany the installers.
 
-This community release is **unsigned and not Apple-notarized**. A matching checksum verifies downloaded bytes, not cryptographic publisher identity. macOS may require per-app first-launch approval.
+This community release is **unsigned and not Apple-notarized**. A checksum verifies downloaded bytes, not cryptographic publisher identity. See the [installation guide](https://github.com/diyalamp/diyalamp/blob/main/docs/install.md).
 
-Tests cover Markdown preservation, actual JavaFX controls, keyboard editing and undo, immediate saves after typing bursts, conflict handling, folder boundaries, and updater verification/rollback fixtures. Physical Intel UI testing and a complete VoiceOver review remain unverified. Actual artifact and deployment checks are recorded with the release work.
+The under 5 MB installed target is not achieved. Download and installed measurements differ; see the actual release assets and README. Full VoiceOver review and physical Intel UI testing remain open.
 
-The bundled runtime dominates installed size. The under-5-MB installed target remains unachieved; exact download sizes are listed with the release assets. No unmeasured startup or throughput claims are made.
-
-License: Apache 2.0. Upstream component and brand-asset notices are retained.
+License: Apache 2.0. Upstream licenses, including SmartGraph MIT notices, are retained.

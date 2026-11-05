@@ -30,7 +30,7 @@ public final class FxWritingPaneTests {
     AtomicReference<Throwable> failure = new AtomicReference<>();
     Platform.startup(() -> {
       try {
-        Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
+        FxTheme.setup();
         roundTrips(); editingAndUndo(); blocksAndTasks(); shortcuts(); linksAndLifecycle(); pasteAndDivider(); incrementalSaving(); actualComponent();
       } catch (Throwable error) { failure.set(error); }
       finally { finished.countDown(); }
@@ -210,7 +210,7 @@ public final class FxWritingPaneTests {
   }
 
   private static void actualComponent() {
-    FxWritingPane editor = new FxWritingPane("# Title\nBody\n- [ ] Task\n`value`\n");
+    FxWritingPane editor = new FxWritingPane("# Title\nBody\n- [ ] Task\n`value`\n**strong** *slant* ***both***\n");
     StackPane root = new StackPane(editor.node());
     root.getStyleClass().add("workspace-root");
     root.setStyle("-diyalamp-accent-subtle: #e8eaff; -color-accent-emphasis: #5868cf;");
@@ -221,7 +221,7 @@ public final class FxWritingPaneTests {
     root.applyCss(); root.layout();
     check(editor.area().getClass().getName().startsWith("org.fxmisc.richtext."),
         "Maintained RichTextFX must own the editing surface");
-    check(editor.area().getText().equals("Title\nBody\nTask\nvalue"), "The editing surface must render Markdown without markers");
+    check(editor.area().getText().equals("Title\nBody\nTask\nvalue\nstrong slant both"), "The editing surface must render Markdown without markers");
     check(editor.area().getParagraphGraphic(2) instanceof javafx.scene.control.CheckBox,
         "Checklist graphics must be standard JavaFX controls, not custom painting");
     editor.area().selectRange(editor.area().getAbsolutePosition(1, 0), editor.area().getAbsolutePosition(1, 0));
@@ -229,20 +229,26 @@ public final class FxWritingPaneTests {
     var caret = editor.area().getCaretBounds();
     check(caret.isPresent(), "The maintained editor must expose an actual laid-out caret");
     check(caret.get().getHeight() >= 16 && caret.get().getHeight() <= 27,
-        "Body caret geometry must match the 18-point text, rather than inflated paragraph spacing");
+        "Body caret geometry must match the 16-point text, rather than inflated paragraph spacing");
     for (var node : editor.area().lookupAll(".md-text")) if (node instanceof TextExt text) {
       if (text.getText().equals("Body")) {
-        check(text.getFont().getFamily().equals(Font.getDefault().getFamily()) && text.getFont().getSize() == 18,
-            "Full application CSS must preserve the one system font family at the intended body size");
+        check(text.getFont().getName().equals("Inter Regular") && text.getFont().getSize() == 16,
+            "Full application CSS must preserve static Inter Regular at the intended body size");
         check(!text.getFont().getStyle().contains("Bold") && !text.getFont().getStyle().contains("Thin"),
             "Body copy must resolve a true regular face rather than a heavy or thin substitution");
         check(text.getFill() instanceof Color ink && !ink.equals(Color.BLACK) && ink.getBrightness() < .45,
             "Reading ink should be softened while remaining dark enough for the paper");
       } else if (text.getText().equals("Title")) {
-        check(text.getFont().getFamily().equals(Font.getDefault().getFamily()) && text.getFont().getSize() == 30,
-            "Headings must use the same system family with a clear size hierarchy");
+        check(text.getFont().getName().equals("Inter SemiBold") && text.getFont().getSize() == 22,
+            "Headings must use the exact static Inter SemiBold face with a clear size hierarchy");
       } else if (text.getText().equals("value") && System.getProperty("os.name").startsWith("Mac"))
-        check(text.getFont().getFamily().equals("Menlo"), "Only code should switch to installed Menlo");
+        check(text.getFont().getFamily().equals("Menlo") && text.getFont().getSize() == 16, "Only code should switch to installed Menlo16");
+      else if (text.getText().equals("strong"))
+        check(text.getFont().getName().equals("Inter SemiBold"), "Markdown emphasis must use the real static semibold face");
+      else if (text.getText().equals("slant"))
+        check(text.getFont().getName().equals("Inter Italic"), "Italic text must retain a real slanted face");
+      else if (text.getText().equals("both"))
+        check(text.getFont().getName().equals("Inter SemiBold Italic"), "Bold italic text must retain its own real static face");
     }
     System.out.println("RichTextFX body caret height: " + caret.get().getHeight());
     editor.dispose(); stage.close();

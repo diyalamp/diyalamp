@@ -1,0 +1,10 @@
+Inter 4.1 static desktop fonts, unmodified upstream release files.
+Source: https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip
+License: SIL Open Font License 1.1, reproduced in Inter-LICENSE.txt.
+Archive SHA-256: 9883fdd4a49d4fb66bd8177ba6625ef9a64aa45899767dde3d36aa425756b11e
+
+Each file comes from the release's extras/ttf directory.
+Inter-Regular.ttf: 40d692fce188e4471e2b3cba937be967878f631ad3ebbbdcd587687c7ebe0c82
+Inter-Italic.ttf: bbc051dd204b5019a1aa0bc0ae2aa8a05ab13e7a3f979fa357631dc7feb6833a
+Inter-SemiBold.ttf: 78a843fade9d4612a5567302fb595b56976eb5fcebf4fea5a5912d638bafcde3
+Inter-SemiBoldItalic.ttf: eff2930c3d3b35d3fcf5f76252b6baef4c3e907d9d2fde1d16cf5d417f8deef4
