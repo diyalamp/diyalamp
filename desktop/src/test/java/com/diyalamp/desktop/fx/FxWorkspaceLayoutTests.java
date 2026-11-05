@@ -110,6 +110,11 @@ public final class FxWorkspaceLayoutTests {
   }
 
   private static void snapshot(Stage stage, Path path) throws Exception {
+    // The macOS system menu is outside the app's content; omit its headless fallback in exports.
+    stage.getScene().getRoot().lookupAll(".menu-bar").forEach(menu -> {
+      menu.setManaged(false); menu.setVisible(false);
+    });
+    stage.getScene().getRoot().applyCss(); stage.getScene().getRoot().layout();
     WritableImage image = stage.getScene().getRoot().snapshot(null, null);
     BufferedImage bitmap = new BufferedImage((int) image.getWidth(), (int) image.getHeight(), BufferedImage.TYPE_INT_ARGB);
     for (int y = 0; y < bitmap.getHeight(); y++) for (int x = 0; x < bitmap.getWidth(); x++)
