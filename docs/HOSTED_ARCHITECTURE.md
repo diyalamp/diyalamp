@@ -1,6 +1,6 @@
 # Hosted Notion-first architecture
 
-Status: approved product direction, not implemented or live validated.
+Status: historical proposal, superseded by the local macOS editor described in [PRODUCT.md](PRODUCT.md). This hosted service is not part of the current desktop release.
 
 ## Product and repository
 
