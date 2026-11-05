@@ -34,18 +34,18 @@ _Workspace preview using fictional notes._
 
 ## macOS downloads
 
-Version **1.0.2** is available from [GitHub Releases](https://github.com/diyalamp/diyalamp/releases/tag/v1.0.2) and [diyalamp.com](https://diyalamp.com).
+Version **1.1.1** is available from [GitHub Releases](https://github.com/diyalamp/diyalamp/releases/tag/v1.1.1) and [diyalamp.com](https://diyalamp.com).
 
-- [Apple silicon DMG · 36.4 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.0.2/diyalamp-1.0.2-macos-arm64.dmg)
-- [Intel DMG · 38.0 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.0.2/diyalamp-1.0.2-macos-x86_64.dmg)
+- [Apple silicon DMG · 47.1 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.1.1/diyalamp-1.1.1-macos-arm64.dmg)
+- [Intel DMG · 48.5 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.1.1/diyalamp-1.1.1-macos-x86_64.dmg)
 
 Drag diyalamp to Applications. See the [installation guide](docs/install.md) for choosing Apple silicon or Intel, verifying the SHA-256 checksum, first-launch approval, and current macOS compatibility limits.
 
 **Size target: under 5 MB installed. This target has not been achieved.** Footprint reduction is tracked as an engineering objective, not a current product claim.
 
-The package includes a runtime; users do not need to install Java separately. The local Apple silicon installation occupies approximately **47 MiB**. Release downloads are **36,377,208 bytes** (Apple silicon) and **38,040,077 bytes** (Intel). Architecture and runtime builds can differ; release assets provide SHA-256 checksums.
+The package includes a runtime; users do not need to install Java separately. The Apple silicon app from the verified release DMG occupies approximately **63.8 MiB**. Release downloads are **47,054,874 bytes** (Apple silicon) and **48,502,211 bytes** (Intel). Architecture and runtime builds can differ; release assets provide SHA-256 checksums.
 
-The first community release is **unsigned and not Apple-notarized**. macOS may display a security warning. Signing and notarization are not configured yet.
+This community release is **unsigned and not Apple-notarized**. macOS may display a security warning. Signing and notarization are not configured yet.
 
 ## Build and test
 
