@@ -3,7 +3,6 @@
 ## Desktop writing app
 
 - FlatLaf 3.7.2, copyright FormDev Software GmbH, Apache License 2.0. Official project: https://github.com/JFormDesigner/FlatLaf. The pinned JAR retains its upstream notices. The dependency checksum is verified during the build.
-- Inter 4.1, copyright the Inter Project Authors, SIL Open Font License 1.1. The font and license are bundled in the desktop resources. https://github.com/rsms/inter
 - The self-contained macOS package includes an OpenJDK runtime. Its upstream notices are retained in `Contents/runtime/Contents/Home/legal`.
 - The approved lamp artwork is a project brand asset. It is not relicensed as original Apache-licensed artwork.
 

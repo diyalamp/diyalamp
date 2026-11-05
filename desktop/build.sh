@@ -2,7 +2,7 @@
 set -eu
 cd "$(dirname "$0")"
 JDK="${DIYALAMP_JAVA_HOME:-$(/usr/libexec/java_home -v 21 2>/dev/null || dirname "$(dirname "$(command -v javac)")")}"
-mkdir -p build/deps build/classes
+mkdir -p build/deps
 DEP=build/deps/flatlaf-3.7.2.jar
 if [ ! -f "$DEP" ]; then
   curl --fail --location --proto '=https' --tlsv1.2 https://repo.maven.apache.org/maven2/com/formdev/flatlaf/3.7.2/flatlaf-3.7.2.jar -o "$DEP.tmp"
@@ -25,6 +25,9 @@ for specification in com/formdev/flatlaf-extras/3.7.2/flatlaf-extras-3.7.2 com/g
   fi
 done
 printf '%s  %s\n' 7d03612d5c11d27a4ac714e79b11c73405d07f84a3214fe4ae091daadc8b5166 build/deps/flatlaf-extras-3.7.2.jar a538142d27c57c55066da02a535cc8eee3afd0d37b3daff8eba6344bd0ffc1b6 build/deps/jsvg-2.1.0.jar | shasum -a 256 -c -
+# Rebuild generated classes/resources so removed assets cannot leak into a later package.
+rm -rf build/classes
+mkdir -p build/classes
 find src/main/java -name '*.java' | sort > build/sources.txt
 "$JDK/bin/javac" --release 21 -cp "build/deps/*" -d build/classes @build/sources.txt
 cp -R src/main/resources/. build/classes/

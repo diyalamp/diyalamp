@@ -21,7 +21,7 @@ Cloud storage, account backends, AI agents, embeddings, collaboration, databases
 
 ## Identity
 
-Lowercase **diyalamp**, the existing fixed lamp image, and “A tool for the mind.” Keep the website's approved identity; do not replace it with unrelated JRXNA merchandise styling. The app is dark-only, using JRXNA black, white, and #EE0000 red, with dark-gray writing surfaces. There is no light mode or appearance switch. The website and component-based browser prototype establish the visual direction.
+Lowercase **diyalamp**, the existing fixed lamp image, and “A tool for the mind.” The desktop app is light-only: white writing pages, soft-gray panels, dark text, and #EE0000 red accents. Use the installed macOS system font for prose and interface text, and installed Menlo for inline code and fenced code blocks. Do not bundle a replacement font or add an appearance switch. The app icon retains the approved lamp's size and position on a subtly shaded white backplate. The website and browser prototype retain their separately approved dark presentation.
 
 ## Release truth
 

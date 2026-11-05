@@ -1,6 +1,5 @@
 package com.diyalamp.desktop;
 
-import java.awt.Color;
 import java.util.*;
 import java.util.regex.*;
 import javax.swing.text.*;
@@ -37,7 +36,7 @@ public final class Markdown {
       Pattern.compile("^(#{1,6}) (.*)$|^([-+*]) (\\[[ xX]\\] )?(.*)$|^(\\d+)\\. (.*)$|^> ?(.*)$");
 
   public static DefaultStyledDocument read(String source) {
-    DefaultStyledDocument d = new DefaultStyledDocument();
+    DefaultStyledDocument d = new WritingDocument();
     String[] lines = source.replace("\r\n", "\n").replace('\r', '\n').split("\n", -1);
     int fenceId = 0;
     try {
@@ -170,8 +169,8 @@ public final class Markdown {
     }
     if (node instanceof org.commonmark.node.Code c) {
       a.addAttribute(INLINE_CODE, true);
-      StyleConstants.setFontFamily(a, "Inter");
-      StyleConstants.setBackground(a, new Color(48, 48, 48));
+      StyleConstants.setFontFamily(a, Theme.codeFont(16).getFamily());
+      StyleConstants.setBackground(a, Theme.CODE);
       d.insertString(d.getLength(), c.getLiteral(), a);
       return;
     }
@@ -182,7 +181,7 @@ public final class Markdown {
       a.addAttribute(LINK, link.getDestination());
       if (link.getTitle() != null) a.addAttribute(LINK_TITLE, link.getTitle());
       StyleConstants.setUnderline(a, true);
-      StyleConstants.setForeground(a, new Color(242, 242, 242));
+      StyleConstants.setForeground(a, Theme.RED);
     }
     if (node.getFirstChild() == null) {
       d.insertString(d.getLength(), source(node, input), a);
@@ -205,7 +204,8 @@ public final class Markdown {
     SimpleAttributeSet a = new SimpleAttributeSet();
     a.addAttribute(KIND, kind);
     a.addAttribute(LEVEL, level);
-    StyleConstants.setFontFamily(a, "Inter");
+    StyleConstants.setFontFamily(
+        a, kind.equals("code") ? Theme.codeFont(16).getFamily() : Theme.font(16).getFamily());
     StyleConstants.setFontSize(
         a,
         kind.equals("heading")
@@ -217,7 +217,8 @@ public final class Markdown {
             }
             : 16);
     StyleConstants.setBold(a, kind.equals("heading"));
-    StyleConstants.setForeground(a, new Color(242, 242, 242));
+    StyleConstants.setForeground(a, Theme.INK);
+    if (kind.equals("code")) StyleConstants.setBackground(a, Theme.CODE);
     StyleConstants.setSpaceAbove(a, kind.equals("heading") ? 18 : 3);
     StyleConstants.setSpaceBelow(a, kind.equals("heading") ? 10 : 6);
     StyleConstants.setLineSpacing(a, .28f);

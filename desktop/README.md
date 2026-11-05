@@ -1,6 +1,6 @@
 # diyalamp desktop
 
-A focused, local Markdown writing app for macOS. Built with Java 21, Swing, the FlatLaf macOS dark component theme, and Inter. No backend, model provider, database, or account is required.
+A focused, local Markdown writing app for macOS. Built with Java 21, Swing, the FlatLaf macOS light component theme, and installed macOS system fonts. No backend, model provider, database, or account is required.
 
 ## Build and run
 
@@ -19,7 +19,7 @@ A separate folder of fictional notes is useful while developing:
 java -jar desktop/build/diyalamp.jar --workspace /tmp/diyalamp-notes
 ```
 
-Build outputs and downloaded dependencies stay in ignored `desktop/build/`. The build pins and verifies SHA-256 checksums for FlatLaf and CommonMark Java (core and GFM strikethrough). Inter and its license are tracked application resources.
+Build outputs and downloaded dependencies stay in ignored `desktop/build/`. The build pins and verifies SHA-256 checksums for FlatLaf and CommonMark Java (core and GFM strikethrough). No font files are bundled: interface text uses the installed macOS system font, and code uses Menlo.
 
 ## Tests
 
@@ -41,7 +41,7 @@ This produces a self-contained `.app`, a compressed DMG for the current processo
 
 The first community release is unsigned and not Apple-notarized. Do not describe it as notarized or suppress macOS security checks. Signing requires the owner's Apple Developer identity and a separate notarization setup.
 
-The interface is dark-only. JRXNA black, white, and #EE0000 red provide the identity; darker gray writing surfaces reduce glare. There is no theme switch.
+The interface is light-only: white writing pages, soft gray panels, dark text, and #EE0000 red accents. There is no theme switch. Typography uses the installed macOS system font, with Menlo for inline code and code blocks.
 
 ## Writing and storage
 
@@ -56,4 +56,4 @@ Common Markdown is supported; this first release does not implement the full Com
 
 ## Icon assets
 
-`src/main/resources/app-icon.png` is the project’s existing profile-picture artwork, including its white background and padding. Both the packaged ICNS and application-window icon use it. `lamp.png` remains the separate, compact inline brand mark.
+`src/main/resources/app-icon.png` preserves the approved profile artwork's lamp size and position, with a rounded white backplate, subtle edge shading, and a soft shadow. Both the packaged ICNS and application-window icon use it. `icon-source/` contains the unchanged composition source and a reproducible macOS renderer; it is not bundled into the app. `lamp.png` remains the separate, compact inline brand mark.

@@ -14,11 +14,9 @@ diyalamp is a desktop Markdown editor with rendered formatting and local file st
 
 The application opens a folder of `.md` or `.markdown` files. Editing does not require an account, subscription, server, database, or internet connection. Notes remain readable by other Markdown tools.
 
-![Dark desktop workspace with a Markdown note open](assets/desktop-workspace.png)
-
 ## Features
 
-- Dark-only workspace with Inter throughout, a compact action rail, file explorer, note tabs, and Lucide controls.
+- Light-only macOS workspace with the installed system font, Menlo for code, a compact action rail, file explorer, note tabs, and Lucide controls.
 - Rendered headings, bold, italic, inline code, links, lists, checklists, quotes, and fenced code blocks.
 - Formatting controls, Markdown typing shortcuts, and slash commands.
 - Search by filename, multiple closable note tabs, and side-by-side editing.
@@ -33,7 +31,7 @@ Version **1.0.2** is available from [GitHub Releases](https://github.com/diyalam
 - [Apple silicon DMG · 36.4 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.0.2/diyalamp-1.0.2-macos-arm64.dmg)
 - [Intel DMG · 38.0 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.0.2/diyalamp-1.0.2-macos-x86_64.dmg)
 
-Drag diyalamp to Applications. The release includes SHA-256 checksums.
+Drag diyalamp to Applications. See the [installation guide](docs/install.md) for choosing Apple silicon or Intel, verifying the SHA-256 checksum, first-launch approval, and current macOS compatibility limits.
 
 **Size target: under 5 MB installed. This target has not been achieved.** Footprint reduction is tracked as an engineering objective, not a current product claim.
 
@@ -43,7 +41,7 @@ The first community release is **unsigned and not Apple-notarized**. macOS may d
 
 ## Build and test
 
-Requires JDK 21 or newer. The desktop app uses Swing, FlatLaf, Lucide icons, CommonMark Java, and Inter. There is no JavaScript runtime or web backend in the desktop application.
+Requires JDK 21 or newer. The desktop app uses Swing, FlatLaf, Lucide icons, and CommonMark Java. Fonts come from macOS; no font files are bundled. There is no JavaScript runtime or web backend in the desktop application.
 
 ```sh
 sh desktop/build.sh
