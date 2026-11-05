@@ -11,6 +11,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.prefs.Preferences;
+import javafx.animation.Animation;
 import javafx.application.Platform;
 import javafx.scene.control.Button;
 import javafx.scene.control.Menu;
@@ -63,7 +64,11 @@ public final class FxZenTests {
     });
     check(Math.abs(beforeAfter[0] - beforeAfter[1]) < .01,
         "Reversing the files sidebar must continue from its current width");
-    Thread.sleep(300);
+    awaitFx(() -> {
+      fixture.layout();
+      return stopped(fixture.app, "sidebarAnimation") && fixture.explorer.isManaged()
+          && fixture.explorer.isVisible() && Math.abs(fixture.explorer.getWidth() - initial) < 1;
+    }, "the interrupted sidebar to reopen");
     fx(() -> {
       fixture.layout(); check(fixture.explorer.isManaged() && Math.abs(fixture.explorer.getWidth() - initial) < 1,
           "The interrupted files sidebar must return to its original width"); return null;
@@ -99,7 +104,7 @@ public final class FxZenTests {
     });
     check(Math.abs(beforeAfter[0] - beforeAfter[1]) < .01,
         "Reversing an in-flight transition must begin at the current position, without a jump");
-    Thread.sleep(430);
+    awaitZen(fixture, false);
     fx(() -> {
       fixture.layout();
       check(!fixture.app.zenModeProperty().get() && fixture.explorer.isManaged(), "Reversal must restore normal layout");
@@ -114,7 +119,7 @@ public final class FxZenTests {
     double[] window = fx(() -> new double[] {fixture.stage.getX(), fixture.stage.getY(),
         fixture.stage.getWidth(), fixture.stage.getHeight()});
     fx(() -> { fixture.zenMenu().fire(); return null; });
-    Thread.sleep(430);
+    awaitZen(fixture, true);
     fx(() -> {
       fixture.layout();
       check(fixture.app.zenModeProperty().get() && fixture.app.zenProgressProperty().get() == 1,
@@ -134,7 +139,7 @@ public final class FxZenTests {
           KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN)), "The View command must expose Shift-Command-F on macOS");
       fixture.exit.fire(); return null;
     });
-    Thread.sleep(430);
+    awaitZen(fixture, false);
     fx(() -> {
       fixture.layout();
       check(fixture.primaryChrome.isManaged() && fixture.secondaryChrome.isManaged() && fixture.footer.isManaged(),
@@ -146,11 +151,13 @@ public final class FxZenTests {
 
   private static void preservesCollapsedSidebar(Fixture fixture) throws Exception {
     fx(() -> { call(fixture.app, "toggleSidebar", new Class<?>[0]); return null; });
-    Thread.sleep(300);
+    awaitFx(() -> stopped(fixture.app, "sidebarAnimation")
+        && !fixture.explorer.isManaged() && !fixture.explorer.isVisible()
+        && fixture.explorer.getPrefWidth() == 0, "the files sidebar to close");
     fx(() -> { fixture.zenButton().fire(); return null; });
-    Thread.sleep(430);
+    awaitZen(fixture, true);
     fx(() -> { fixture.exit.fire(); return null; });
-    Thread.sleep(430);
+    awaitZen(fixture, false);
     fx(() -> {
       fixture.layout();
       check(!fixture.explorer.isManaged() && !fixture.explorer.isVisible(),
@@ -159,6 +166,31 @@ public final class FxZenTests {
       check(fixture.splitItems().size() == 2, "The split layout must survive repeated Zen entry and exit");
       return null;
     });
+  }
+
+  private static void awaitZen(Fixture fixture, boolean enabled) throws Exception {
+    awaitFx(() -> {
+      fixture.layout();
+      return fixture.app.zenModeProperty().get() == enabled
+          && fixture.app.zenProgressProperty().get() == (enabled ? 1 : 0)
+          && stopped(fixture.app, "zenAnimation")
+          && fixture.exit.isVisible() == enabled && fixture.exit.isManaged() == enabled
+          && fixture.toolbar.isManaged() != enabled;
+    }, enabled ? "Zen to finish entering" : "Zen to finish exiting");
+  }
+
+  private static boolean stopped(Object owner, String name) throws Exception {
+    Animation animation = (Animation) field(owner, name);
+    return animation == null || animation.getStatus() == Animation.Status.STOPPED;
+  }
+
+  private static void awaitFx(Callable<Boolean> condition, String description) throws Exception {
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+    do {
+      if (fx(condition)) return;
+      Thread.sleep(20);
+    } while (System.nanoTime() < deadline);
+    throw new AssertionError("Timed out waiting for " + description);
   }
 
   private static void pendingInputSurvives(Fixture fixture) throws Exception {
@@ -171,6 +203,7 @@ public final class FxZenTests {
           "Entering Zen must not discard keystrokes waiting for autosave");
       return null;
     });
+    awaitZen(fixture, true);
   }
 
   private static final class Fixture implements AutoCloseable {
