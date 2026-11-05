@@ -1,9 +1,7 @@
 package com.diyalamp.desktop.fx;
 
-import atlantafx.base.controls.Sidebar;
-import atlantafx.base.controls.SidebarNav;
 import atlantafx.base.controls.Tab;
-import atlantafx.base.controls.TabLine;
+import atlantafx.base.controls.Popover;
 import atlantafx.base.controls.TabSkin;
 import atlantafx.base.theme.Styles;
 import com.diyalamp.desktop.DesktopLauncher;
@@ -64,6 +62,7 @@ public final class FxDiyalamp extends Application {
   static TransferMode paneDropMode(boolean fromTab) { return fromTab ? TransferMode.MOVE : TransferMode.COPY; }
   private static final PseudoClass DROP_TARGET = PseudoClass.getPseudoClass("drop-target");
   private static final PseudoClass ACCENT_SELECTED = PseudoClass.getPseudoClass("selected");
+  private static final double SIDEBAR_WIDTH = 272;
   private static final String[][] ACCENT_CHOICES = {
       {"Sage", "#7A9A85"}, {"Blue", "#7B8FB7"}, {"Lavender", "#A497BD"},
       {"Rose", "#BA929B"}, {"Amber", "#B5A073"}, {"Slate", "#8A929F"}
@@ -80,8 +79,8 @@ public final class FxDiyalamp extends Application {
   private final StackPane workspaceLayer = new StackPane(body);
   private final SplitPane split = new SplitPane();
   private final BorderPane root = new BorderPane();
-  private final Sidebar<String> navigation = new Sidebar<>();
-  private final StackPane navigationClip = clipped(navigation);
+  private final ToolBar toolbar = new ToolBar();
+  private final StackPane toolbarClip = clipped(toolbar);
   private final HBox footer = new HBox();
   private final StackPane footerClip = clipped(footer);
   private final Button exitZen = new Button("Exit Zen", FxTheme.icon("focus", 15));
@@ -94,6 +93,8 @@ public final class FxDiyalamp extends Application {
   private final ObjectProperty<Color> accent = new SimpleObjectProperty<>(FxTheme.DEFAULT_ACCENT);
   private final ObjectProperty<Color> displayedAccent = new SimpleObjectProperty<>(FxTheme.DEFAULT_ACCENT);
   private Timeline accentAnimation;
+  private Button accentControl;
+  private Popover accentMenu;
   private Stage stage;
   private NoteStore store;
   private PaneHost primary, secondary;
@@ -157,7 +158,7 @@ public final class FxDiyalamp extends Application {
   }
 
   private final class PaneHost {
-    final TabLine tabs = new TabLine();
+    final FxDocumentTabs tabs = new FxDocumentTabs();
     final BorderPane container = new BorderPane();
     final Label breadcrumb = new Label();
     final VBox chrome = new VBox();
@@ -165,24 +166,12 @@ public final class FxDiyalamp extends Application {
     PaneHost() {
       tabs.getStyleClass().addAll(Styles.DENSE, Styles.TABS_FLOATING, "document-tabs");
       tabs.setTabClosingPolicy(Tab.ClosingPolicy.ALL_TABS);
-      tabs.setTabDragPolicy(Tab.DragPolicy.REORDER);
       tabs.setTabResizePolicy(Tab.ResizePolicy.COMPUTED_WIDTH);
       tabs.setTabMinWidth(110);
       tabs.setAnimated(true);
       Button add = FxTheme.iconButton("plus", "New note", () -> newNote(null));
       Button beside = FxTheme.iconButton("columns-2", "Open note side by side", FxDiyalamp.this::splitActive);
-      ToggleButton zen = new ToggleButton(null, FxTheme.icon("focus", 16));
-      zen.getStyleClass().addAll("flat", "button-icon", "workspace-tool", "zen-toggle");
-      zen.setTooltip(new Tooltip("Zen mode · ⇧⌘F"));
-      zen.setAccessibleText("Zen mode");
-      zen.selectedProperty().bindBidirectional(zenMode);
-      Button color = new Button("Accent", accentSwatch(displayedAccent));
-      color.setContentDisplay(ContentDisplay.RIGHT);
-      color.setTooltip(new Tooltip("Workspace accent color"));
-      color.setAccessibleText("Workspace accent color");
-      color.getStyleClass().add("workspace-accent-button");
-      color.setOnAction(event -> chooseAccent());
-      HBox tools = new HBox(8, add, beside, zen, color);
+      HBox tools = new HBox(8, add, beside);
       tools.setAlignment(Pos.CENTER); tools.getStyleClass().add("tab-tools");
       tabs.setRightNode(tools);
       HBox location = new HBox(breadcrumb);
@@ -223,11 +212,11 @@ public final class FxDiyalamp extends Application {
     primary = new PaneHost(); secondary = new PaneHost();
     split.getItems().add(primary.container);
     split.getStyleClass().add("writing-split");
-    buildExplorer(); buildNavigation();
-    body.getChildren().addAll(navigationClip, explorerClip, split, noteGraph.node());
+    buildExplorer();
+    body.getChildren().addAll(explorerClip, split, noteGraph.node());
     HBox.setHgrow(split, Priority.ALWAYS);
     root.getStyleClass().add("workspace-root");
-    root.setTop(buildMenu()); root.setCenter(workspaceLayer);
+    root.setCenter(workspaceLayer);
     exitZen.getStyleClass().add("zen-exit");
     exitZen.setAccessibleText("Exit Zen mode");
     exitZen.setTooltip(new Tooltip("Exit Zen mode · ⇧⌘F"));
@@ -237,7 +226,9 @@ public final class FxDiyalamp extends Application {
     StackPane.setMargin(exitZen, new Insets(16));
     workspaceLayer.getChildren().add(exitZen);
     pomodoro = new FxPomodoro(stage, status::setText);
-    footer.getChildren().setAll(status, spacer(), pomodoro.button(), words);
+    buildToolbar();
+    root.setTop(new VBox(buildMenu(), toolbarClip));
+    footer.getChildren().setAll(status, spacer(), words);
     footer.getStyleClass().add("workspace-status");
     footer.setAlignment(Pos.CENTER_LEFT); root.setBottom(footerClip);
     Scene scene = new Scene(root, 1180, 800);
@@ -274,44 +265,45 @@ public final class FxDiyalamp extends Application {
     }
   }
 
-  private void buildNavigation() {
-    navigation.setCollapsed(true);
-    navigation.setAnimationDuration(Duration.millis(160));
-    navigation.getStyleClass().add("workspace-navigation");
-    navigation.setMinWidth(56); navigation.setPrefWidth(56); navigation.setMaxWidth(56);
-    SidebarNav<String> files = new SidebarNav<>("Files", FxTheme.icon("files", 20));
-    files.setValue("files");
-    SidebarNav<String> find = new SidebarNav<>("Search notes", FxTheme.icon("search", 20));
-    find.setValue("search");
-    SidebarNav<String> connections = new SidebarNav<>("Connections", FxTheme.icon("network", 20));
-    connections.setValue("connections");
-    navigation.getItems().addAll(List.of(files, find, connections));
-    navigation.getSelectionModel().select(files);
-    navigation.setOnItemClick(event -> {
-      if ("connections".equals(event.getItem().getValue())) {
-        if (noteGraph != null) noteGraph.showingProperty().set(!noteGraph.showingProperty().get());
-      } else if ("search".equals(event.getItem().getValue())) {
-        if (!sidebarOpen) toggleSidebar();
-        search.requestFocus(); search.selectAll();
-      } else toggleSidebar();
-    });
+  private ToolBar buildToolbar() {
+    toolbar.getStyleClass().add("workspace-toolbar");
+    Button files = FxTheme.iconButton("panel-left", "Toggle files sidebar", this::toggleSidebar);
+    Label name = new Label("diyalamp"); name.getStyleClass().add("workspace-brand-name");
+    HBox brand = new HBox(8, FxTheme.lamp(24), name);
+    brand.setAlignment(Pos.CENTER_LEFT); brand.getStyleClass().add("workspace-brand");
+    Button folder = FxTheme.iconButton("folder-open", "Open folder…", this::chooseFolder);
+    Label workspace = new Label(); workspace.textProperty().bind(folderLabel.textProperty());
+    workspace.getStyleClass().add("workspace-folder"); workspace.setMinWidth(0); workspace.setMaxWidth(160);
+    HBox identity = new HBox(8, brand, folder, workspace); identity.setAlignment(Pos.CENTER_LEFT);
+    ToggleButton connections = new ToggleButton(null, FxTheme.icon("network", 18));
+    connections.getStyleClass().addAll("flat", "button-icon", "workspace-tool");
+    connections.setAccessibleText("Show note connections");
+    connections.setTooltip(new Tooltip("Show note connections"));
+    if (noteGraph != null) connections.selectedProperty().bindBidirectional(noteGraph.showingProperty());
+    ToggleButton zen = new ToggleButton(null, FxTheme.icon("focus", 18));
+    zen.getStyleClass().addAll("flat", "button-icon", "workspace-tool", "zen-toggle");
+    zen.setTooltip(new Tooltip("Zen mode · ⇧⌘F")); zen.setAccessibleText("Zen mode");
+    zen.selectedProperty().bindBidirectional(zenMode);
+    toolbar.getItems().setAll(files, identity, spacer());
+    if (pomodoro != null) toolbar.getItems().add(pomodoro.button());
+    toolbar.getItems().addAll(accentButton(), connections, zen);
+    return toolbar;
   }
 
   private void buildExplorer() {
     explorer.getStyleClass().add("file-explorer");
-    explorer.setMinWidth(0); explorer.setPrefWidth(236);
-    explorerClip.setMinWidth(0); explorerClip.setPrefWidth(236); explorerClip.setMaxWidth(236);
+    explorer.setMinWidth(0); explorer.setPrefWidth(SIDEBAR_WIDTH);
+    explorerClip.setMinWidth(0); explorerClip.setPrefWidth(SIDEBAR_WIDTH); explorerClip.setMaxWidth(SIDEBAR_WIDTH);
     Rectangle clipping = new Rectangle();
     clipping.widthProperty().bind(explorerClip.widthProperty());
     clipping.heightProperty().bind(explorerClip.heightProperty()); explorerClip.setClip(clipping);
-    Button folder = FxTheme.iconButton("folder-open", "Open folder…", this::chooseFolder);
     Button add = FxTheme.iconButton("plus", "New note", () -> newNote(null));
     Button folderAdd = FxTheme.iconButton("folder-plus", "New folder", () -> newFolder(null));
     add.disableProperty().bind(Bindings.createBooleanBinding(() -> store == null, tree.rootProperty()));
     folderAdd.disableProperty().bind(add.disableProperty());
-    HBox heading = new HBox(6, folderLabel, spacer(), folder, folderAdd, add);
+    Label files = new Label("Files"); files.getStyleClass().add("explorer-title");
+    HBox heading = new HBox(8, files, spacer(), folderAdd, add);
     heading.setAlignment(Pos.CENTER_LEFT); heading.getStyleClass().add("explorer-heading");
-    folderLabel.getStyleClass().add("folder-name"); folderLabel.setMaxWidth(130);
     search.setPromptText("Find a note…"); search.setAccessibleText("Find a note by name");
     search.getStyleClass().addAll(Styles.ROUNDED, "explorer-search");
     search.textProperty().addListener((observable, previous, query) -> refreshTree());
@@ -915,34 +907,48 @@ public final class FxDiyalamp extends Application {
     });
   }
 
-  /** Keep AtlantaFX's within-bar reordering; crossing the bar edge begins native drag-and-drop. */
+  /** Start the one native gesture immediately, so it can reach headers, panes, and folders. */
   private void installTabDrag(PaneHost host) {
     TabSkin[] candidate = {null};
     host.tabs.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
       candidate[0] = event.getButton() == MouseButton.PRIMARY ? tabSkin(event.getTarget()) : null;
     });
-    host.tabs.addEventFilter(MouseEvent.MOUSE_DRAGGED, event -> {
-      if (candidate[0] == null) return;
-      var point = host.tabs.sceneToLocal(event.getSceneX(), event.getSceneY());
-      event.setDragDetect(point.getY() < -10 || point.getY() > host.tabs.getHeight() + 10
-          || point.getX() < -10 || point.getX() > host.tabs.getWidth() + 10);
-    });
     host.tabs.addEventFilter(MouseEvent.DRAG_DETECTED, event -> {
       TabSkin skin = candidate[0];
       if (skin == null || !(skin.getTab().getUserData() instanceof View view)) return;
-      var point = host.tabs.sceneToLocal(event.getSceneX(), event.getSceneY());
-      if (point.getY() >= -10 && point.getY() <= host.tabs.getHeight() + 10
-          && point.getX() >= -10 && point.getX() <= host.tabs.getWidth() + 10) return;
-      // Let the existing component finish its reorder gesture before transferring a tab.
-      skin.fireEvent(event.copyFor(skin, skin, MouseEvent.MOUSE_RELEASED));
       Dragboard board = skin.startDragAndDrop(TAB_DRAG_MODES.toArray(TransferMode[]::new));
       ClipboardContent content = new ClipboardContent();
       content.put(NOTE_DRAG, view.session.path.toString()); content.put(TAB_DRAG, view.tab.getId());
-      content.putFiles(List.of(view.session.path.toFile())); board.setContent(content);
+      board.setContent(content);
       board.setDragView(skin.snapshot(null, null));
       candidate[0] = null; event.consume();
     });
     host.tabs.addEventFilter(MouseEvent.MOUSE_RELEASED, event -> candidate[0] = null);
+    host.tabs.setOnDragOver(event -> {
+      if (event.getDragboard().hasContent(TAB_DRAG)
+          && draggedView((String) event.getDragboard().getContent(TAB_DRAG)) != null) {
+        event.acceptTransferModes(TransferMode.MOVE); event.consume();
+      }
+    });
+    host.tabs.setOnDragDropped(event -> {
+      if (!event.getDragboard().hasContent(TAB_DRAG)) return;
+      View view = draggedView((String) event.getDragboard().getContent(TAB_DRAG));
+      int insertion = tabInsertionIndex(host, event.getSceneX());
+      boolean moved = view != null && moveView(view, host);
+      if (moved) host.tabs.moveToInsertion(view.tab, insertion);
+      event.setDropCompleted(moved); event.consume();
+    });
+  }
+
+  private int tabInsertionIndex(PaneHost host, double sceneX) {
+    for (int index = 0; index < host.tabs.getTabs().size(); index++) {
+      Tab tab = host.tabs.getTabs().get(index);
+      for (Node node : host.tabs.lookupAll(".tab")) {
+        if (node instanceof TabSkin skin && skin.getTab() == tab
+            && sceneX < skin.localToScene(skin.getBoundsInLocal()).getCenterX()) return index;
+      }
+    }
+    return host.tabs.getTabs().size();
   }
 
   private TabSkin tabSkin(Object target) {
@@ -986,15 +992,16 @@ public final class FxDiyalamp extends Application {
     sidebarOpen = !sidebarOpen;
     if (sidebarAnimation != null) sidebarAnimation.stop();
     explorerClip.setManaged(true); explorerClip.setVisible(true);
-    double end = sidebarOpen ? 236 : 0;
-    if (Platform.isAccessibilityActive()) {
+    double end = sidebarOpen ? SIDEBAR_WIDTH : 0;
+    if (Boolean.getBoolean("diyalamp.reduceMotion")) {
       explorerClip.setPrefWidth(end); explorerClip.setMaxWidth(end);
+      explorer.setOpacity(sidebarOpen ? 1 : 0);
       explorerClip.setManaged(sidebarOpen); explorerClip.setVisible(sidebarOpen); return;
     }
-    sidebarAnimation = new Timeline(new KeyFrame(Duration.millis(180),
-        new KeyValue(explorerClip.prefWidthProperty(), end),
-        new KeyValue(explorerClip.maxWidthProperty(), end),
-        new KeyValue(explorer.opacityProperty(), sidebarOpen ? 1 : 0)));
+    sidebarAnimation = new Timeline(new KeyFrame(Duration.millis(240),
+        new KeyValue(explorerClip.prefWidthProperty(), end, Interpolator.EASE_BOTH),
+        new KeyValue(explorerClip.maxWidthProperty(), end, Interpolator.EASE_BOTH),
+        new KeyValue(explorer.opacityProperty(), sidebarOpen ? 1 : 0, Interpolator.EASE_BOTH)));
     sidebarAnimation.setOnFinished(event -> {
       explorerClip.setManaged(sidebarOpen); explorerClip.setVisible(sidebarOpen);
       if (!sidebarOpen && active != null) active.editor.focus();
@@ -1019,25 +1026,25 @@ public final class FxDiyalamp extends Application {
     if (zenAnimation != null) zenAnimation.stop();
     if (sidebarAnimation != null) sidebarAnimation.stop();
     if (enabled && zenProgress.get() < .0001) preZenSidebarOpen = sidebarOpen;
-    normalizeWidth(navigationClip); normalizeWidth(explorerClip);
-    normalizeHeight(primary.chromeClip); normalizeHeight(secondary.chromeClip); normalizeHeight(footerClip);
-    for (Region chrome : List.of(navigationClip, explorerClip, primary.chromeClip, secondary.chromeClip, footerClip)) {
+    normalizeWidth(explorerClip);
+    normalizeHeight(toolbarClip); normalizeHeight(primary.chromeClip); normalizeHeight(secondary.chromeClip); normalizeHeight(footerClip);
+    for (Region chrome : List.of(toolbarClip, explorerClip, primary.chromeClip, secondary.chromeClip, footerClip)) {
       chrome.setManaged(true); chrome.setVisible(true); chrome.setMouseTransparent(enabled);
     }
     exitZen.setManaged(true); exitZen.setVisible(true);
     List<KeyValue> values = new ArrayList<>();
-    width(values, navigationClip, enabled ? 0 : navigation.prefWidth(-1));
-    width(values, explorerClip, enabled || !preZenSidebarOpen ? 0 : 236);
+    width(values, explorerClip, enabled || !preZenSidebarOpen ? 0 : SIDEBAR_WIDTH);
+    height(values, toolbarClip, enabled ? 0 : toolbar.prefHeight(-1));
     height(values, primary.chromeClip, enabled ? 0 : primary.chrome.prefHeight(-1));
     height(values, secondary.chromeClip, enabled ? 0 : secondary.chrome.prefHeight(-1));
     height(values, footerClip, enabled ? 0 : footer.prefHeight(-1));
-    for (Region chrome : List.of(navigationClip, primary.chromeClip, secondary.chromeClip, footerClip))
+    for (Region chrome : List.of(toolbarClip, primary.chromeClip, secondary.chromeClip, footerClip))
       values.add(new KeyValue(chrome.opacityProperty(), enabled ? 0 : 1, Interpolator.EASE_BOTH));
     values.add(new KeyValue(explorerClip.opacityProperty(), enabled || !preZenSidebarOpen ? 0 : 1, Interpolator.EASE_BOTH));
     values.add(new KeyValue(explorer.opacityProperty(), enabled || !preZenSidebarOpen ? 0 : 1, Interpolator.EASE_BOTH));
     values.add(new KeyValue(exitZen.opacityProperty(), enabled ? 1 : 0, Interpolator.EASE_BOTH));
     values.add(new KeyValue(zenProgress, enabled ? 1 : 0, Interpolator.EASE_BOTH));
-    if (Platform.isAccessibilityActive() || Boolean.getBoolean("diyalamp.reduceMotion")) {
+    if (Boolean.getBoolean("diyalamp.reduceMotion")) {
       finishZen(enabled);
     } else {
       double distance = Math.abs((enabled ? 1 : 0) - zenProgress.get());
@@ -1073,15 +1080,13 @@ public final class FxDiyalamp extends Application {
 
   private void finishZen(boolean enabled) {
     zenProgress.set(enabled ? 1 : 0);
-    navigationClip.setPrefWidth(enabled ? 0 : Region.USE_COMPUTED_SIZE);
-    navigationClip.setMaxWidth(enabled ? 0 : Region.USE_PREF_SIZE);
-    explorerClip.setPrefWidth(enabled || !preZenSidebarOpen ? 0 : 236);
-    explorerClip.setMaxWidth(enabled || !preZenSidebarOpen ? 0 : 236);
-    for (Region chrome : List.of(primary.chromeClip, secondary.chromeClip, footerClip)) {
+    explorerClip.setPrefWidth(enabled || !preZenSidebarOpen ? 0 : SIDEBAR_WIDTH);
+    explorerClip.setMaxWidth(enabled || !preZenSidebarOpen ? 0 : SIDEBAR_WIDTH);
+    for (Region chrome : List.of(toolbarClip, primary.chromeClip, secondary.chromeClip, footerClip)) {
       chrome.setPrefHeight(enabled ? 0 : Region.USE_COMPUTED_SIZE);
       chrome.setMaxHeight(enabled ? 0 : Region.USE_PREF_SIZE);
     }
-    for (Region chrome : List.of(navigationClip, primary.chromeClip, secondary.chromeClip, footerClip)) {
+    for (Region chrome : List.of(toolbarClip, primary.chromeClip, secondary.chromeClip, footerClip)) {
       chrome.setManaged(!enabled); chrome.setVisible(!enabled); chrome.setOpacity(enabled ? 0 : 1);
       chrome.setMouseTransparent(enabled);
     }
@@ -1178,7 +1183,22 @@ public final class FxDiyalamp extends Application {
   }
 
   private void chooseAccent() {
-    accentDialog().showAndWait().ifPresent(accent::set);
+    Button anchor = accentButton();
+    if (anchor.getScene() == null) return;
+    if (accentMenu == null) accentMenu = accentPopover();
+    if (accentMenu.isShowing()) accentMenu.hide(); else accentMenu.show(anchor);
+  }
+
+  private Button accentButton() {
+    if (accentControl != null) return accentControl;
+    accentControl = new Button("Accent", accentSwatch(displayedAccent));
+    accentControl.setContentDisplay(ContentDisplay.RIGHT);
+    accentControl.setTooltip(new Tooltip("Workspace accent color"));
+    accentControl.setAccessibleText("Workspace accent color");
+    accentControl.setAccessibleHelp("Choose from six muted accent colors. Changes apply immediately.");
+    accentControl.getStyleClass().add("workspace-accent-button");
+    accentControl.setOnAction(event -> chooseAccent());
+    return accentControl;
   }
 
   private void initializeAccent() {
@@ -1207,9 +1227,8 @@ public final class FxDiyalamp extends Application {
     transition.play();
   }
 
-  private Dialog<Color> accentDialog() {
-    ObjectProperty<Color> selected = new SimpleObjectProperty<>(accent.get());
-    Label text = new Label("Choose an accent for selection, links, and focus."); text.setWrapText(true);
+  private Popover accentPopover() {
+    Label title = new Label("Accent color"); title.getStyleClass().add("popover-title");
     GridPane choices = new GridPane(); choices.setHgap(8); choices.setVgap(8);
     choices.getStyleClass().add("accent-choices");
     for (int i = 0; i < ACCENT_CHOICES.length; i++) {
@@ -1221,26 +1240,22 @@ public final class FxDiyalamp extends Application {
       choice.setMaxWidth(Double.MAX_VALUE);
       GridPane.setHgrow(choice, Priority.ALWAYS);
       Runnable state = () -> {
-        boolean current = value.equals(selected.get());
+        boolean current = value.equals(accent.get());
         choice.setText(name + (current ? " ✓" : ""));
         choice.setAccessibleText(name + " accent color" + (current ? ", selected" : ""));
         choice.pseudoClassStateChanged(ACCENT_SELECTED, current);
       };
-      selected.addListener((observable, previous, next) -> state.run()); state.run();
-      choice.setOnAction(event -> selected.set(value));
+      accent.addListener((observable, previous, next) -> state.run()); state.run();
+      choice.setOnAction(event -> accent.set(value));
       choices.add(choice, i % 2, i / 2);
     }
-    Label value = new Label();
-    value.getStyleClass().add("accent-value");
-    value.textProperty().bind(Bindings.createStringBinding(() -> "Selected color: " + FxTheme.hex(selected.get()), selected));
-    VBox content = new VBox(16, text, choices, value); content.setPrefWidth(370);
-    Dialog<Color> dialog = new Dialog<>(); dialog.setTitle("Accent color");
-    dialog.getDialogPane().getStyleClass().add("accent-dialog");
-    dialog.getDialogPane().setContent(content);
-    dialog.getDialogPane().getButtonTypes().setAll(ButtonType.CANCEL, ButtonType.APPLY);
-    dialog.setResultConverter(result -> result == ButtonType.APPLY ? selected.get() : null);
-    FxDialogs.style(dialog, stage);
-    return dialog;
+    VBox content = new VBox(16, title, choices); content.getStyleClass().add("accent-bubble"); content.setPrefWidth(320);
+    Popover popup = new Popover(content); popup.setTitle("Accent color");
+    FxPopovers.style(popup, stage);
+    FxPopovers.focusOnShow(popup, () -> choices.getChildren().stream()
+        .filter(node -> node.getPseudoClassStates().contains(ACCENT_SELECTED))
+        .findFirst().orElse(choices.getChildren().getFirst()));
+    return popup;
   }
 
   private static Region accentSwatch(ObjectProperty<Color> color) {

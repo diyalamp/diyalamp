@@ -58,12 +58,12 @@ public final class FxDialogsTests {
     Button cancel = (Button) input.getDialogPane().lookupButton(ButtonType.CANCEL);
     check(accept.isDefaultButton() && cancel.isCancelButton(), "Standard Enter and Escape roles must remain intact");
     check(accept.getStyleClass().contains("accent"), "Affirmative actions must use the maintained AtlantaFX accent style");
-    check(accept.getFont().getFamily().equals(Font.getDefault().getFamily()) && accept.getFont().getSize() == 14,
-        "Action text must resolve the native system family at the shared 14-point size");
-    check(input.getEditor().getFont().getSize() == 14 && input.getEditor().getHeight() >= 38,
+    check(accept.getFont().getName().equals("Inter Regular") && accept.getFont().getSize() == 16,
+        "Action text must resolve the native system family at the shared 16-point size");
+    check(input.getEditor().getFont().getSize() == 16 && input.getEditor().getHeight() >= 38,
         "Text fields must use the shared readable size and control height");
     check(input.getDialogPane().getGraphic() == null, "The dialog must not add an oversized icon above its content");
-    check(input.getDialogPane().getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius() == 14,
+    check(input.getDialogPane().getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius() == 12,
         "Actual laid-out dialog surfaces must have the shared soft rounding");
     input.getEditor().setText("Renamed note"); accept.fire();
     check(input.getResult().equals("Renamed note"), "Standard input acceptance must still return the edited value");

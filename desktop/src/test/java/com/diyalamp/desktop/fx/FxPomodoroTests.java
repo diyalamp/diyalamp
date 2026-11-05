@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import javafx.application.Platform;
 import javafx.scene.control.Button;
-import javafx.scene.control.Dialog;
+import atlantafx.base.controls.Popover;
 import javafx.scene.control.Label;
 import javafx.scene.control.ToggleButton;
 
@@ -21,13 +21,14 @@ public final class FxPomodoroTests {
         FxTheme.setup(); AtomicLong now = new AtomicLong(); PomodoroClock clock = new PomodoroClock(now::get);
         ArrayList<String> notices = new ArrayList<>();
         try (FxPomodoro timer = new FxPomodoro(null, notices::add, clock)) {
-          Dialog<Void> dialog = timer.dialog();
-          check(dialog.getDialogPane().getStyleClass().contains("diyalamp-dialog"), "Timer uses the shared polished dialog");
+          Popover popup = timer.popover();
+          check(popup.getRoot().getStyleClass().contains("diyalamp-popover") && popup.isAutoHide()
+              && popup.isHideOnEscape() && popup.isAnimated(), "Timer uses the shared animated popover");
           check(timer.button().getGraphic() != null, "Timer has a flat Lucide graphic");
           check(timer.button().getText().contains("25:00"), "Status starts with the focus duration");
-          Button start = (Button) dialog.getDialogPane().lookup("#pomodoro-start");
-          Button reset = (Button) dialog.getDialogPane().lookup("#pomodoro-reset");
-          start.fire(); check(clock.running() && start.getText().equals("Pause"), "Start begins the focus session");
+          Button start = (Button) popup.getContentNode().lookup("#pomodoro-start");
+          Button reset = (Button) popup.getContentNode().lookup("#pomodoro-reset");
+          start.fire(); check(clock.running() && start.getText().equals("Stop"), "Start begins the focus session");
           now.addAndGet(60_000_000_000L); timer.refresh();
           check(timer.button().getText().contains("24:00"), "Status tracks elapsed time");
           start.fire(); check(!clock.running() && start.getText().equals("Start"), "Pause is reversible");
@@ -37,7 +38,7 @@ public final class FxPomodoroTests {
           check(!clock.running() && timer.button().getText().equals("Break · 05:00"), "Completion prepares a manual break");
           check(notices.size() == 1 && notices.getFirst().contains("Focus session complete"), "Completion uses a single non-blocking notice");
           timer.refresh(); check(notices.size() == 1, "Further refreshes do not repeat the notice");
-          var choices = dialog.getDialogPane().lookupAll(".toggle-button").stream().map(node -> (ToggleButton) node).toList();
+          var choices = popup.getContentNode().lookupAll(".toggle-button").stream().map(node -> (ToggleButton) node).toList();
           choices.stream().filter(node -> node.getText().startsWith("Focus")).findFirst().orElseThrow().fire();
           check(clock.phase() == PomodoroClock.Phase.FOCUS && clock.seconds() == 1500, "Mode choices select their fixed duration");
           start.fire(); now.addAndGet(20_000_000_000L); reset.fire();

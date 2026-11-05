@@ -1,32 +1,27 @@
-/* Standard JavaFX DialogPane and controls, styled by AtlantaFX Primer Light. */
+/* Standard JavaFX DialogPane and controls, styled by AtlantaFX Cupertino Light. */
 .diyalamp-dialog {
-  -fx-font-family: "System";
-  -fx-font-size: 14px;
+  -fx-font-family: "Inter";
+  -fx-font-size: 16px;
   -fx-background-color: #fcfcfd;
-  -fx-background-radius: 14;
+  -fx-background-radius: 12;
   -fx-border-color: #e1e2e7;
-  -fx-border-radius: 14;
+  -fx-border-radius: 12;
   -fx-padding: 0;
   -fx-min-width: 420;
   -fx-max-width: 560;
   -fx-graphic: null;
 }
-.diyalamp-dialog > .content { -fx-padding: 22 24 2 24; }
+.diyalamp-dialog > .content { -fx-padding: 16 24 0 24; }
 .diyalamp-dialog > .content.label { -fx-wrap-text: true; -fx-text-fill: #484b55; }
-.diyalamp-dialog > .button-bar > .container { -fx-padding: 20 24 22 24; -fx-spacing: 8; }
-.diyalamp-dialog > .header-panel { -fx-background-color: transparent; -fx-padding: 22 24 0 24; }
-.diyalamp-dialog > .header-panel > .label { -fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #363840; }
+.diyalamp-dialog > .button-bar > .container { -fx-padding: 16 24 16 24; -fx-spacing: 8; }
+.diyalamp-dialog > .header-panel { -fx-background-color: transparent; -fx-padding: 16 24 0 24; }
+.diyalamp-dialog > .header-panel > .label { -fx-font-family: "Inter SemiBold"; -fx-font-size: 20px; -fx-font-weight: normal; -fx-text-fill: #363840; }
 .diyalamp-dialog .label { -fx-text-fill: #484b55; }
-.diyalamp-dialog .button { -fx-min-height: 36; -fx-padding: 7 14; -fx-background-radius: 8; -fx-border-radius: 8; -fx-font-size: 14px; -fx-font-weight: bold; }
+.diyalamp-dialog .button { -fx-min-height: 40; -fx-padding: 8 16; -fx-background-radius: 8; -fx-border-radius: 8; -fx-font-size: 16px; -fx-font-weight: normal; }
 .diyalamp-dialog .text-field, .diyalamp-dialog .combo-box-base {
-  -fx-min-height: 38;
+  -fx-min-height: 40;
   -fx-background-radius: 8;
   -fx-border-radius: 8;
-  -fx-font-size: 14px;
+  -fx-font-size: 16px;
   -fx-background-color: #ffffff;
 }
-.diyalamp-dialog .accent-choice { -fx-min-height: 44; -fx-padding: 10 14; -fx-graphic-text-gap: 10; -fx-background-color: #f5f5f8; -fx-border-color: #e0e1e8; }
-.diyalamp-dialog .accent-choice:hover { -fx-background-color: #ededf3; }
-.diyalamp-dialog .accent-choice:selected { -fx-background-color: -diyalamp-accent-subtle; -fx-border-color: -diyalamp-accent; }
-.diyalamp-dialog .accent-swatch { -fx-min-width: 16; -fx-pref-width: 16; -fx-max-width: 16; -fx-min-height: 16; -fx-pref-height: 16; -fx-max-height: 16; }
-.diyalamp-dialog .accent-value { -fx-font-size: 13px; -fx-text-fill: #6d707a; }

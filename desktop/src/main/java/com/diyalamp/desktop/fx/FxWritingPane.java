@@ -537,14 +537,13 @@ public final class FxWritingPane {
   private static void applySpan(TextExt text, FxMarkdown.Span span) {
     boolean code = span.flag(Markdown.INLINE_CODE) || span.blockKind().equals("code");
     boolean heading = span.blockKind().equals("heading");
-    double size = heading ? switch (span.level()) { case 1 -> 30; case 2 -> 24; case 3 -> 20; default -> 18; }
-        : code ? 15.5 : 18;
+    double size = code ? 16 : heading ? (span.level() == 1 ? 22 : 20) : 16;
     boolean bold = heading || span.flag(StyleConstants.Bold), italic = span.flag(StyleConstants.Italic);
     String face = code ? "Menlo " + (bold ? "Bold" : "Regular") : "System " + (bold ? "Bold" : "Regular");
     if (italic) face = code ? (bold ? "Menlo Bold Italic" : "Menlo Italic")
         : (bold ? "System Bold Italic" : "System Italic");
     final String exactFace = face;
-    text.setFont(FONTS.computeIfAbsent(exactFace + ":" + size, ignored ->
+    text.setFont(!code ? FxTheme.textFont(size, bold, italic) : FONTS.computeIfAbsent(exactFace + ":" + size, ignored ->
         code && !System.getProperty("os.name").startsWith("Mac")
             ? Font.font("Monospaced", bold ? FontWeight.BOLD : FontWeight.NORMAL,
                 italic ? FontPosture.ITALIC : FontPosture.REGULAR, size)

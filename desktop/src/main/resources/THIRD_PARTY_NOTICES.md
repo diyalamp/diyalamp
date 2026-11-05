@@ -34,3 +34,7 @@ The new workspace uses Playwright (Apache-2.0), TypeScript (Apache-2.0), tsx (MI
 CommonMark Java 0.32.0 (core and GFM strikethrough), Atlassian Pty Ltd and contributors. BSD 2-Clause license: CommonMark-LICENSE.txt. https://github.com/commonmark/commonmark-java
 
 FlatLaf Extras 3.7.2 (Apache2.0), JSVG2.1.0 (MIT; notices retained in dependency JAR), and Lucide SVG icons (ISC/FeatherMIT; Lucide-LICENSE.txt). Native icon source revision1980e3d59b0fa1a2aeb566d5902b25ee98204001, Bold from Lucide0.468.0.
+
+## Inter static desktop fonts
+
+The desktop app includes unmodified Inter 4.1 Regular, Italic, SemiBold, and SemiBoldItalic static TTF files from https://github.com/rsms/inter/releases/tag/v4.1 under the SIL Open Font License 1.1. Copyright 2016 The Inter Project Authors. The complete license and upstream file checksums are included in desktop/src/main/resources/fonts/. Menlo remains an installed macOS font and is not redistributed.

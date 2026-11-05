@@ -48,12 +48,8 @@ public final class FxAccentTests {
     Color initial = Color.web("#7A9A85"), rose = Color.web("#BA929B"), blue = Color.web("#7B8FB7");
     preferences.put("accent", FxTheme.hex(initial));
     FxDiyalamp app = new FxDiyalamp(preferences);
-    Class<?> hostType = Class.forName(FxDiyalamp.class.getName() + "$PaneHost");
-    Constructor<?> constructor = hostType.getDeclaredConstructor(FxDiyalamp.class); constructor.setAccessible(true);
-    Object host = constructor.newInstance(app);
-    HBox tools = (HBox) ((TabLine) field(host, "tabs")).getRightNode();
-    Button button = tools.getChildren().stream().filter(node -> node instanceof Button
-        && "Workspace accent color".equals(node.getAccessibleText())).map(node -> (Button) node).findFirst().orElseThrow();
+    Method factory = FxDiyalamp.class.getDeclaredMethod("accentButton"); factory.setAccessible(true);
+    Button button = (Button) factory.invoke(app);
     Region preview = (Region) button.getGraphic();
     call(app, "initializeAccent");
     ObjectProperty<Color> target = (ObjectProperty<Color>) field(app, "accent");

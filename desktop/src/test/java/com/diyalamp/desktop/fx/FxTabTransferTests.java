@@ -36,7 +36,7 @@ public final class FxTabTransferTests {
       Fixture fixture = null;
       try {
         fixture = new Fixture();
-        transferModes(); moveToSplit(fixture); coalesceSameNote(fixture); moveToFolder(fixture);
+        transferModes(); reorderHeaders(fixture); moveToSplit(fixture); coalesceSameNote(fixture); moveToFolder(fixture);
         singlePaneTransfer(fixture);
         Fixture current = fixture;
         PauseTransition settle = new PauseTransition(Duration.millis(220));
@@ -75,6 +75,34 @@ public final class FxTabTransferTests {
         "Moving a tab cannot advertise a duplicate-view operation");
   }
 
+  private static void reorderHeaders(Fixture fixture) throws Exception {
+    Object original = fixture.active(); FxWritingPane editor = fixture.editor();
+    Tab tab = (Tab) field(original, "tab");
+    Path second = fixture.store().create("Second", "Second note\n");
+    Path third = fixture.store().create("Third", "Third note\n");
+    call(fixture.app, "open", new Class<?>[] {Path.class, boolean.class}, second, false);
+    Tab secondTab = (Tab) field(fixture.active(), "tab");
+    call(fixture.app, "open", new Class<?>[] {Path.class, boolean.class}, third, false);
+    Tab thirdTab = (Tab) field(fixture.active(), "tab");
+    FxDocumentTabs tabs = (FxDocumentTabs) tabs(fixture.primary);
+    boolean[] permuted = {false};
+    javafx.collections.ListChangeListener<Tab> listener = change -> {
+      while (change.next()) if (change.wasPermutated()) permuted[0] = true;
+    };
+    tabs.getTabs().addListener(listener);
+    check(tabs.moveToInsertion(tab, 3) && tabs.getTabs().equals(List.of(secondTab, thirdTab, tab)),
+        "A native header drop after the last tab must reorder the existing models");
+    check(permuted[0], "Header reordering must use AtlantaFX's real permutation event, not detach and recreate tab skins");
+    check(tabs.getSelectionModel().getSelectedItem() == tab && fixture.active() == original && fixture.editor() == editor,
+        "Header reordering must retain the dragged editor and select its document");
+    check(tabs.moveToInsertion(tab, 0) && tabs.getTabs().getFirst() == tab,
+        "A header drop before the first tab must also reorder backwards");
+    tabs.getTabs().removeListener(listener);
+    tabs.getSelectionModel().select(secondTab); call(fixture.app, "closeActive", new Class<?>[0]);
+    tabs.getSelectionModel().select(thirdTab); call(fixture.app, "closeActive", new Class<?>[0]);
+    tabs.getSelectionModel().select(tab);
+  }
+
   private static void moveToSplit(Fixture fixture) throws Exception {
     FxWritingPane editor = fixture.editor();
     editor.area().appendText(" unsaved before transfer");
@@ -101,9 +129,9 @@ public final class FxTabTransferTests {
     check(editor.recoveryText().contains("unsaved before transfer"), "Redo must retain the same editor history");
     SplitPane split = (SplitPane) field(fixture.app, "split");
     check(split.getItems().size() == 2, "Moving into a split must reveal the secondary pane");
-    check(tabs(fixture.primary).getTabDragPolicy() == Tab.DragPolicy.REORDER
-        && tabs(fixture.secondary).getTabDragPolicy() == Tab.DragPolicy.REORDER,
-        "Cross-pane transfers must preserve AtlantaFX's existing within-host reorder policy");
+    check(tabs(fixture.primary) instanceof FxDocumentTabs && tabs(fixture.secondary) instanceof FxDocumentTabs
+        && tabs(fixture.primary).getTabDragPolicy() == Tab.DragPolicy.FIXED,
+        "All headers must use one native drag gesture with AtlantaFX's reorder API, without its competing mouse-only drag handler");
   }
 
   private static void coalesceSameNote(Fixture fixture) throws Exception {

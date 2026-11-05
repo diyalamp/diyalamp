@@ -33,3 +33,7 @@ Project and upstream license: https://github.com/pgjdbc/pgjdbc
 ## TypeScript workspace
 
 The new workspace uses Playwright (Apache-2.0), TypeScript (Apache-2.0), tsx (MIT), esbuild (MIT), and Node.js types (MIT). Exact dependency versions and integrity hashes are recorded in workspace/pnpm-lock.yaml. The Node.js runtime retains its upstream license. Inter is provided under the SIL Open Font License in workspace/public/fonts/Inter-LICENSE.txt. Dependencies retain their own upstream notices; they are not relicensed by this project.
+
+## Inter static desktop fonts
+
+The desktop app includes unmodified Inter 4.1 Regular, Italic, SemiBold, and SemiBoldItalic static TTF files from https://github.com/rsms/inter/releases/tag/v4.1 under the SIL Open Font License 1.1. Copyright 2016 The Inter Project Authors. The complete license and upstream file checksums are included in desktop/src/main/resources/fonts/. Menlo remains an installed macOS font and is not redistributed.

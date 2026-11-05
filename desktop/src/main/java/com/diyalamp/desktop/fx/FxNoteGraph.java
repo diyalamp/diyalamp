@@ -36,8 +36,8 @@ final class FxNoteGraph implements AutoCloseable {
   });
   private final Set<Path> invalidated = ConcurrentHashMap.newKeySet();
   private final AtomicBoolean clearCache = new AtomicBoolean(true);
-  private final BooleanProperty showing = new SimpleBooleanProperty(true);
-  private final DoubleProperty reveal = new SimpleDoubleProperty(1);
+  private final BooleanProperty showing = new SimpleBooleanProperty(false);
+  private final DoubleProperty reveal = new SimpleDoubleProperty(0);
   private final StackPane wrapper = new StackPane();
   private final VBox content = new VBox();
   private final Label selected = new Label("Open a note"), detail = new Label("Local note connections");
@@ -70,13 +70,13 @@ final class FxNoteGraph implements AutoCloseable {
     Region spring = new Region(); HBox.setHgrow(spring, Priority.ALWAYS);
     Button refresh = FxTheme.iconButton("refresh-cw", "Refresh note connections", this::refresh);
     Button close = FxTheme.iconButton("panel-right", "Hide connections", () -> showing.set(false));
-    HBox heading = new HBox(4, title, spring, refresh, close); heading.setAlignment(Pos.CENTER_LEFT);
+    HBox heading = new HBox(8, title, spring, refresh, close); heading.setAlignment(Pos.CENTER_LEFT);
     heading.getStyleClass().add("graph-heading-row");
     selected.getStyleClass().add("graph-current-note"); selected.setWrapText(true);
     detail.getStyleClass().add("graph-detail"); detail.setWrapText(true);
-    VBox summary = new VBox(5, selected, detail); summary.getStyleClass().add("graph-summary");
-    VBox lists = new VBox(listSection(incomingTitle, incoming, "No notes link here yet"),
-        listSection(outgoingTitle, outgoing, "No outgoing note links yet"));
+    VBox summary = new VBox(8, selected, detail); summary.getStyleClass().add("graph-summary");
+    VBox lists = new VBox(listSection(incomingTitle, incoming, "No incoming links"),
+        listSection(outgoingTitle, outgoing, "No outgoing links"));
     lists.getStyleClass().add("graph-link-sections");
     for (Node node : lists.getChildren()) VBox.setVgrow(node, Priority.ALWAYS);
     canvas.getStyleClass().add("graph-canvas"); canvas.setMinHeight(110);
@@ -155,7 +155,7 @@ final class FxNoteGraph implements AutoCloseable {
     if (closed || store == null) return;
     if (pending != null) pending.cancel(true);
     NoteStore chosen = store; long request = ++generation;
-    detail.setText("Indexing saved note links…");
+    detail("Updating connections…");
     pending = worker.submit(() -> {
       try {
         if (clearCache.getAndSet(false)) index.clear();
@@ -168,7 +168,7 @@ final class FxNoteGraph implements AutoCloseable {
       } catch (CancellationException error) { /* A newer workspace or save superseded this scan. */ }
       catch (IOException | RuntimeException error) {
         Platform.runLater(() -> {
-          if (!closed && generation == request) detail.setText("Connections could not be indexed. Refresh to try again.");
+          if (!closed && generation == request) detail("Could not update connections. Try refreshing.");
         });
       }
     });
@@ -176,14 +176,14 @@ final class FxNoteGraph implements AutoCloseable {
 
   private VBox listSection(Label title, ListView<Path> list, String empty) {
     title.getStyleClass().add("graph-list-heading");
-    list.getStyleClass().add("graph-note-list"); list.setFixedCellSize(34); list.setMinHeight(45);
+    list.getStyleClass().add("graph-note-list"); list.setFixedCellSize(40); list.setMinHeight(48);
     Label placeholder = new Label(empty); placeholder.setWrapText(true); placeholder.getStyleClass().add("graph-detail");
     list.setPlaceholder(placeholder);
     list.setCellFactory(unused -> new ListCell<>() {
       @Override protected void updateItem(Path path, boolean emptyCell) {
         super.updateItem(path, emptyCell);
         setText(emptyCell || path == null ? null : title(path));
-        setGraphic(emptyCell || path == null ? null : FxTheme.icon("file-text", 14));
+        setGraphic(emptyCell || path == null ? null : FxTheme.icon("file-text", 16));
         setTooltip(emptyCell || path == null || store == null ? null : new Tooltip(store.root().relativize(path).toString()));
       }
     });
@@ -191,7 +191,7 @@ final class FxNoteGraph implements AutoCloseable {
       if (event.getClickCount() == 1 && event.getButton() == javafx.scene.input.MouseButton.PRIMARY) openSelected(list);
     });
     list.setOnKeyPressed(event -> { if (event.getCode() == KeyCode.ENTER) { openSelected(list); event.consume(); } });
-    VBox section = new VBox(6, title, list); section.getStyleClass().add("graph-link-section");
+    VBox section = new VBox(8, title, list); section.getStyleClass().add("graph-link-section");
     VBox.setVgrow(list, Priority.ALWAYS); return section;
   }
   private void openSelected(ListView<Path> list) {
@@ -200,15 +200,15 @@ final class FxNoteGraph implements AutoCloseable {
 
   private void render() {
     stopLayout();
-    selected.setText(active == null ? "Open a note" : title(active));
+    selected.setText(active == null ? "" : title(active));
+    selected.setVisible(active != null); selected.setManaged(active != null);
     selected.setTooltip(active == null || store == null ? null : new Tooltip(store.root().relativize(active).toString()));
     List<Path> in = snapshot == null || active == null ? List.of() : snapshot.incoming(active);
     List<Path> out = snapshot == null || active == null ? List.of() : snapshot.outgoing(active);
     incoming.getItems().setAll(in); outgoing.getItems().setAll(out);
     incomingTitle.setText("Incoming · " + in.size()); outgoingTitle.setText("Outgoing · " + out.size());
-    detail.setText(store == null ? "Open a folder to connect notes" : active == null ? "Open a note to see what flows in and out"
-        : snapshot == null ? "Indexing saved note links…" : snapshot.partial() ? "Partial index · some notes were skipped"
-        : "[[Note name]] links flow toward the arrow");
+    detail(active != null && snapshot == null ? "Updating connections…"
+        : snapshot != null && snapshot.partial() ? "Some notes were skipped while indexing." : "");
     if (active == null || snapshot == null) { emptyCanvas(); return; }
     LinkedHashSet<Path> visible = new LinkedHashSet<>(); visible.add(active);
     java.util.stream.Stream.concat(in.stream(), out.stream()).distinct().limit(MAX_VISIBLE_NODES - 1).forEach(visible::add);
@@ -235,16 +235,21 @@ final class FxNoteGraph implements AutoCloseable {
     zoom.getStyleClass().add("note-graph-zoom"); zoom.setMinSize(0, 0);
     Tooltip.install(zoom, new Tooltip("Scroll to zoom · drag to pan · double-click a note to open"));
     canvas.getChildren().setAll(zoom);
-    if (in.size() + out.size() >= MAX_VISIBLE_NODES) detail.setText("Graph shows 60 notes · lists contain every indexed connection");
+    if (in.size() + out.size() >= MAX_VISIBLE_NODES)
+      detail("Showing 60 notes. Lists include all indexed links.");
     if (showing.get() && wrapper.isVisible()) { graph.setAutomaticLayout(true); settle.playFromStart(); }
   }
   private void emptyCanvas() {
-    Label empty = new Label("Links between notes appear here"); empty.getStyleClass().add("graph-detail");
+    Label empty = new Label(store == null ? "Open a folder to see connections" : "Open a note to see connections");
+    empty.getStyleClass().add("graph-detail");
     empty.setWrapText(true); canvas.getChildren().setAll(empty); graph = null;
   }
   private static String title(Path path) {
     String name = path.getFileName().toString();
     return name.replaceFirst("(?i)\\.(md|markdown)$", "");
+  }
+  private void detail(String text) {
+    detail.setText(text); detail.setVisible(!text.isBlank()); detail.setManaged(!text.isBlank());
   }
   private void stopLayout() { settle.stop(); if (graph != null) graph.setAutomaticLayout(false); }
   @Override public void close() {

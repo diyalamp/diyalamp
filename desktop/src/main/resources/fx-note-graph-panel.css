@@ -1,17 +1,27 @@
-.note-graph-panel { -fx-background-color: #f7f7f9; -fx-border-color: transparent transparent transparent #e4e4e9; -fx-border-width: 0 0 0 1; }
-.graph-heading-row { -fx-padding: 8 10 6 14; }
-.graph-heading { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #555760; }
-.graph-summary { -fx-padding: 0 14 10 14; }
-.graph-current-note { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #484b55; }
-.graph-detail { -fx-font-family: "System"; -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #666975; }
-.tooltip { -fx-font-family: "System"; -fx-font-size: 13px; -fx-font-weight: bold; }
+/* A quiet inspector beside the writing surface. Geometry follows the shared 8-point scale. */
+.note-graph-panel {
+  -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal;
+  -fx-background-color: #f4f4f6;
+  -fx-border-color: transparent transparent transparent #e5e5ea; -fx-border-width: 0 0 0 1;
+}
+.graph-heading-row { -fx-padding: 8 16; }
+.graph-heading { -fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #383940; }
+.graph-summary { -fx-padding: 0 16 8 16; }
+.graph-current-note { -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #777982; }
+.graph-detail { -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #777982; }
+.tooltip { -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; }
 .graph-sections { -fx-background-color: transparent; -fx-padding: 0; }
-.graph-sections > .split-pane-divider { -fx-padding: .5 0; -fx-background-color: #e4e4e9; }
-.graph-canvas { -fx-background-color: #f7f7f9; -fx-padding: 0; }
-.note-graph-zoom, .note-graph-zoom > .viewport { -fx-background-color: #f7f7f9; -fx-background-insets: 0; -fx-padding: 0; -fx-border-width: 0; }
-.graph-link-section { -fx-padding: 12 10 8 10; -fx-border-color: #e8e8ed transparent transparent transparent; -fx-border-width: 1 0 0 0; }
-.graph-list-heading { -fx-padding: 0 4; -fx-font-family: "System"; -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #666975; }
+.graph-sections > .split-pane-divider { -fx-padding: .5 0; -fx-background-color: #e5e5ea; }
+.graph-canvas { -fx-background-color: #fcfcfd; -fx-padding: 16; }
+.note-graph-zoom, .note-graph-zoom > .viewport {
+  -fx-background-color: #fcfcfd; -fx-background-insets: 0; -fx-padding: 0; -fx-border-width: 0;
+}
+.graph-link-section { -fx-padding: 16 8 8 8; }
+.graph-list-heading { -fx-padding: 0 8; -fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #777982; }
 .graph-note-list, .graph-note-list .virtual-flow { -fx-background-color: transparent; -fx-border-width: 0; -fx-padding: 0; }
-.graph-note-list .list-cell { -fx-background-color: transparent; -fx-background-radius: 6; -fx-padding: 6 8; -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #555760; -fx-graphic-text-gap: 8; }
-.graph-note-list .list-cell:filled:hover { -fx-background-color: #ededf1; }
+.graph-note-list .list-cell {
+  -fx-background-color: transparent; -fx-background-radius: 8; -fx-padding: 8;
+  -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #383940; -fx-graphic-text-gap: 8;
+}
+.graph-note-list .list-cell:filled:hover { -fx-background-color: #eaeaec; }
 .graph-note-list .list-cell:filled:selected { -fx-background-color: -diyalamp-accent-subtle; }

@@ -1,6 +1,6 @@
-## diyalamp 1.1.2
+## diyalamp 1.1.3
 
-The light macOS workspace adds connected-note navigation, focus tools, and consistent dialogs using JavaFX, AtlantaFX, RichTextFX, CommonMark, and SmartGraph components.
+The light macOS workspace combines AtlantaFX Cupertino controls and animated popovers with RichTextFX editing and SmartGraph note navigation.
 
 ### Connected notes
 
@@ -11,8 +11,10 @@ The light macOS workspace adds connected-note navigation, focus tools, and consi
 ### Focus and interface
 
 - Zen mode smoothly hides workspace controls and restores the previous sidebar and split arrangement. Use the toolbar, View menu, or Shift-Command-F; an exit control remains available.
-- Six muted accents transition smoothly, including when a new choice interrupts a transition. Dialogs share the workspace's native System text, neutral surfaces, spacing, and AtlantaFX button styling.
-- A simple in-app Pomodoro provides 25-minute focus and 5-minute breaks with Start, Pause, and Reset. Each next session starts explicitly; completion uses an in-app notice. The timer stops when the app quits.
+- Six muted accents transition smoothly, including when a new choice interrupts a transition. Accessibility attachment no longer disables animations; the explicit reduced-motion option remains.
+- Static Inter Regular 16 is used for ordinary text; exact Inter Semibold faces are used for headings, and Menlo 16 for code. Static italic faces preserve emphasis. Font files add about 1.6 MiB, measured separately from the runtime.
+- The global toolbar, sidebar, tabs, graph, dialogs, and popovers use a shared 8/16/24 spacing scale and Cupertino controls.
+- A compact toolbar Pomodoro opens an animated bubble for 25-minute focus and 5-minute breaks with Start, Stop, and Reset. Each next session starts explicitly; completion uses an in-app notice. The timer stops when the app quits.
 - Move tabs between split panes and move notes into workspace folders by dragging. Folder moves preserve note bytes and reject overwrites or destinations outside the workspace.
 - The lamp and product name appear together on one line. Packaged macOS launches retain the bundled ICNS rather than replacing it with a separate runtime image. Global Dock settings are unchanged.
 

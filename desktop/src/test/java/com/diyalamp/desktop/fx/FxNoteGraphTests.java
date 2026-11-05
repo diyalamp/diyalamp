@@ -40,6 +40,8 @@ public final class FxNoteGraphTests {
         FxTheme.setup();
         FxNoteGraph graph = new FxNoteGraph(opened::set, status::set);
         graph.bindZen(zen);
+        check(!graph.showingProperty().get() && !graph.node().isManaged(), "Connections default closed to leave room for writing");
+        graph.showingProperty().set(true);
         HBox surface = new HBox(graph.node());
         surface.getStyleClass().add("workspace-root");
         Scene scene = new Scene(surface, 620, 760);
@@ -51,6 +53,7 @@ public final class FxNoteGraphTests {
       });
       panel = chosen;
       await(() -> fx(() -> field(chosen, "snapshot") != null));
+      await(() -> fx(() -> ((javafx.scene.layout.Region) chosen.node()).getPrefWidth() == 304));
       fx(() -> {
         HBox surface = (HBox) chosen.node().getScene().getRoot(); surface.applyCss(); surface.layout();
         @SuppressWarnings("unchecked") SmartGraphPanel<Path, NoteLinkIndex.Edge> graph = (SmartGraphPanel<Path, NoteLinkIndex.Edge>) field(chosen, "graph");
@@ -68,7 +71,14 @@ public final class FxNoteGraphTests {
         Event.fireEvent(out, new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ENTER, false, false, false, false));
         check(target.equals(opened.get()), "An outgoing list item opens the existing local note");
         Label detail = (Label) field(chosen, "detail");
-        check(detail.getFont().getSize() == 13 && detail.getFont().getStyle().contains("Bold"), "Secondary graph UI matches readable 13px system bold");
+        check(detail.getFont().getSize() == 16 && detail.getFont().getName().equals("Inter Regular"),
+            "Inspector detail uses readable Inter 16 regular");
+        check(!detail.isManaged(), "A healthy graph does not repeat instructional status copy");
+        var row = out.lookupAll(".list-cell").stream()
+            .filter(node -> node instanceof javafx.scene.control.ListCell<?> cell && target.equals(cell.getItem()))
+            .map(node -> (javafx.scene.control.ListCell<?>) node).findFirst().orElseThrow();
+        check(row.getFont().getSize() == 16 && row.getFont().getName().equals("Inter Regular"),
+            "Incoming and outgoing notes use the shared Inter 16 regular face");
         zen.set(1); surface.layout();
         check(!chosen.node().isManaged() && !chosen.node().isVisible(), "Zen completely removes the right panel from layout");
         check(chosen.showingProperty().get(), "Zen preserves the user's graph preference");
