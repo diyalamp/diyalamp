@@ -32,18 +32,24 @@ The application opens a folder of `.md` or `.markdown` files. Editing does not r
 
 _Workspace preview using fictional notes._
 
+| Quick focus timer | Workspace accent |
+| --- | --- |
+| ![Pomodoro bubble with Start, Reset, and focus or break choices](assets/pomodoro-popover-preview.png) | ![Accent bubble with six muted color choices](assets/accent-popover-preview.png) |
+
+_Previews exported from the app's actual popover components._
+
 ## macOS downloads
 
-Version **1.1.1** is available from [GitHub Releases](https://github.com/diyalamp/diyalamp/releases/tag/v1.1.1) and [diyalamp.com](https://diyalamp.com).
+Version **1.1.3** is available from [GitHub Releases](https://github.com/diyalamp/diyalamp/releases/tag/v1.1.3) and [diyalamp.com](https://diyalamp.com).
 
-- [Apple silicon DMG · 47.1 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.1.1/diyalamp-1.1.1-macos-arm64.dmg)
-- [Intel DMG · 48.5 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.1.1/diyalamp-1.1.1-macos-x86_64.dmg)
+- [Apple silicon DMG · 48.0 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.1.3/diyalamp-1.1.3-macos-arm64.dmg)
+- [Intel DMG · 49.5 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.1.3/diyalamp-1.1.3-macos-x86_64.dmg)
 
 Drag diyalamp to Applications. See the [installation guide](docs/install.md) for choosing Apple silicon or Intel, verifying the SHA-256 checksum, first-launch approval, and current macOS compatibility limits.
 
 **Size target: under 5 MB installed. This target has not been achieved.** Footprint reduction is tracked as an engineering objective, not a current product claim.
 
-The package includes a runtime; users do not need to install Java separately. The Apple silicon app from the verified release DMG occupies approximately **63.8 MiB**. Release downloads are **47,054,874 bytes** (Apple silicon) and **48,502,211 bytes** (Intel). Architecture and runtime builds can differ; release assets provide SHA-256 checksums.
+The package includes a runtime; users do not need to install Java separately. The apps from the verified release DMGs occupy approximately **64.8 MiB** (Apple silicon) and **67.3 MiB** (Intel). Release downloads are **48,033,713 bytes** (Apple silicon) and **49,514,944 bytes** (Intel). Architecture and runtime builds can differ; release assets provide SHA-256 checksums.
 
 This community release is **unsigned and not Apple-notarized**. macOS may display a security warning. Signing and notarization are not configured yet.
 

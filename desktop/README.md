@@ -1,6 +1,6 @@
 # diyalamp desktop
 
-A focused, local Markdown writing app for macOS. The desktop interface uses JavaFX 27, AtlantaFX controls, RichTextFX rendered editing, and installed macOS fonts. No backend, model provider, database, or account is required.
+A focused, local Markdown writing app for macOS. The desktop interface uses JavaFX 27, AtlantaFX Cupertino controls, RichTextFX rendered editing, bundled static Inter text, and installed Menlo for code. No backend, model provider, database, or account is required.
 
 ## Build and run
 
@@ -39,9 +39,9 @@ sh desktop/package-macos.sh
 
 This produces a self-contained `.app`, a compressed DMG for the current processor architecture, and a SHA-256 file. The runtime is included; users do not need to install Java. The manual GitHub packaging workflow builds separate Apple silicon and Intel artifacts. Both the artifact names and draft release tag use the application version declared in `DesktopLauncher.VERSION`; published assets are never overwritten.
 
-The first community release is unsigned and not Apple-notarized. Do not describe it as notarized or suppress macOS security checks. Signing requires the owner's Apple Developer identity and a separate notarization setup.
+This community release is unsigned and not Apple-notarized. Do not describe it as notarized or suppress macOS security checks. Signing requires the owner's Apple Developer identity and a separate notarization setup.
 
-The interface is light-only: quiet writing pages, soft gray panels, and a user-selected accent color. There is no theme switch. Typography uses the installed macOS system font, with Menlo for inline code and code blocks.
+The interface is light-only: quiet writing pages, soft gray panels, and a user-selected accent color. There is no theme switch. Ordinary interface text and prose use static Inter Regular 16. Headings use the exact Inter SemiBold faces at 20 or 22, with real italic and semibold-italic faces for emphasis. Inline code and code blocks use installed Menlo 16.
 
 ## Writing and storage
 
@@ -56,7 +56,7 @@ Common Markdown is supported; this first release does not implement the full Com
 
 ## Icon assets
 
-`src/main/resources/app-icon.png` preserves the approved profile artwork's lamp size and position, with a rounded white backplate, subtle edge shading, and a soft shadow. Both the packaged ICNS and application-window icon use it. `icon-source/` contains the unchanged composition source and a reproducible macOS renderer; it is not bundled into the app. `lamp.png` remains the separate, compact inline brand mark.
+`src/main/resources/app-icon.png` preserves the approved profile artwork's lamp size and position, with a rounded white backplate, subtle edge shading, and a soft shadow. The packaged macOS app retains its bundled ICNS for the Dock. Development launches outside the app bundle use the PNG window icon. `icon-source/` contains the unchanged composition source and a reproducible macOS renderer; it is not bundled into the app. `lamp.png` remains the separate, compact inline brand mark.
 
 ## Connected notes and focus
 

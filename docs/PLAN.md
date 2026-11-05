@@ -1,5 +1,7 @@
 # 🪔 diyalamp implementation plan
 
+**Historical plan.** This document records an earlier AI writing-review experiment. Current desktop scope is in [PRODUCT.md](PRODUCT.md); the macOS editor does not require Notion, a hosted service, billing, or an AI provider.
+
 Defensible writing with AI in Notion. Java 21. The local CLI is the existing foundation; the next release is a hosted Notion-first service. See [hosted architecture](HOSTED_ARCHITECTURE.md) for onboarding, billing, access gates, and open-source boundaries.
 
 ## First release: implemented
