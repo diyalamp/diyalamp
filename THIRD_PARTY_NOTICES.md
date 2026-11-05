@@ -2,6 +2,8 @@
 
 ## Desktop writing app
 
+- SmartGraph 2.6.1, copyright Bruno Silva, MIT. Official project: https://github.com/brunomnsilva/JavaFXSmartGraph. The directed note graph uses its layout, pan, zoom, and interaction components. Full license: `licenses/SmartGraph-LICENSE.txt`; Maven artifact checksum pinned in `desktop/fx-dependencies.sha256`.
+
 - JavaFX 27 (OpenJFX), GPL v2 with the Classpath Exception and upstream additional notices. AtlantaFX 3.0.0, MIT. RichTextFX 0.11.7 and its ReactFX, UndoFX, Flowless, and WellBehavedFX dependencies retain their upstream license texts. Copies and source references are bundled under `desktop/src/main/resources/licenses/`. These libraries are not relicensed by this project.
 
 - FlatLaf 3.7.2, copyright FormDev Software GmbH, Apache License 2.0. Official project: https://github.com/JFormDesigner/FlatLaf. The pinned JAR retains its upstream notices. The dependency checksum is verified during the build.

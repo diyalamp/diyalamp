@@ -30,6 +30,10 @@
 .explorer-search { -fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #555862; -fx-background-color: #ffffff; -fx-border-color: #e3e3e9; -fx-background-radius: 7; -fx-border-radius: 7; -fx-padding: 6 9; }
 .workspace-tool { -fx-min-width: 32; -fx-pref-width: 32; -fx-min-height: 32; -fx-pref-height: 32; -fx-padding: 8; -fx-background-radius: 6; }
 .workspace-tool:hover { -fx-background-color: #e9e9ee; }
+.zen-toggle:selected { -fx-background-color: -diyalamp-accent-subtle; }
+.zen-toggle:selected .icon-stroke { -fx-stroke: -diyalamp-accent; }
+.zen-exit { -fx-min-height: 32; -fx-padding: 6 11; -fx-graphic-text-gap: 8; -fx-background-color: #fcfcfdf2; -fx-border-color: #e1e2e7; -fx-border-radius: 7; -fx-background-radius: 7; -fx-text-fill: #666975; -fx-font-size: 13px; }
+.zen-exit:hover { -fx-background-color: #f0f0f5; -fx-text-fill: #363840; }
 .icon-stroke { -fx-stroke: #777984; }
 .file-tree { -fx-background-color: transparent; -fx-background-insets: 0; -fx-padding: 0 7 12 7; -fx-border-width: 0; }
 .file-tree .virtual-flow { -fx-background-color: transparent; }
@@ -39,6 +43,7 @@
 .file-tree .tree-cell:filled:selected { -fx-background-color: -diyalamp-accent-subtle; }
 .file-tree .tree-cell:filled:selected .label { -fx-text-fill: #30313a; }
 .file-tree .tree-cell:filled:selected .icon-stroke { -fx-stroke: -diyalamp-accent; }
+.file-tree .tree-cell:drop-target { -fx-background-color: -diyalamp-accent-subtle; -fx-border-color: -diyalamp-accent; -fx-border-radius: 6; }
 .file-row-action { -fx-min-width: 23; -fx-pref-width: 23; -fx-min-height: 23; -fx-pref-height: 23; -fx-padding: 4; }
 .writing-split { -fx-padding: 0; -fx-border-width: 0; -fx-background-color: #fcfcfd; }
 .writing-split > .split-pane-divider { -fx-padding: 0 .5 0 .5; -fx-background-color: #e4e4e9; }
@@ -81,3 +86,10 @@
 .save-warning { -fx-background-color: #fff5df; -fx-padding: 8 10; -fx-background-radius: 6; -fx-border-color: #eed9a9; -fx-border-radius: 6; -fx-border-width: 1; }
 .save-warning .label { -fx-text-fill: #725222; -fx-font-size: 13px; }
 .save-warning .button { -fx-font-size: 13px; }
+
+/* Compact focus timer, using the same control and dialog system as the workspace. */
+.pomodoro-control { -fx-font-size: 13px; -fx-font-weight: bold; -fx-min-height: 24; -fx-pref-height: 24; -fx-padding: 2 7; -fx-background-radius: 6; -fx-graphic-text-gap: 6; }
+.pomodoro-control:hover { -fx-background-color: #ededf2; }
+.pomodoro-time { -fx-font-size: 38px; -fx-font-weight: bold; -fx-text-fill: #363840; }
+.pomodoro-phase { -fx-font-size: 14px; -fx-font-weight: bold; }
+.pomodoro-detail { -fx-font-size: 13px; -fx-text-fill: #666975; }

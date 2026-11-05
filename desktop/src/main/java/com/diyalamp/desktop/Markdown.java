@@ -19,6 +19,8 @@ public final class Markdown {
       CHECKED = "md.checked",
       NUMBER = "md.number",
       LINK_TITLE = "md.linkTitle",
+      WIKI_TARGET = "md.wikiTarget",
+      WIKI_ID = "md.wikiId",
       RAW_INLINE = "md.rawInline",
       FENCE_ID = "md.fenceId",
       FENCE_OPEN = "md.fenceOpen",
@@ -31,6 +33,57 @@ public final class Markdown {
           .includeSourceSpans(IncludeSourceSpans.BLOCKS_AND_INLINES)
           .extensions(List.of(StrikethroughExtension.create()))
           .build();
+
+  private record WikiToken(int end, String target, String label) {}
+
+  /** Wiki syntax is recognized only inside CommonMark text nodes, never code or HTML. */
+  private static WikiToken wikiAt(String source, int opening) {
+    StringBuilder inside = new StringBuilder();
+    int separator = -1;
+    for (int i = opening + 2; i < source.length(); i++) {
+      char next = source.charAt(i);
+      if (next == ']' && i + 1 < source.length() && source.charAt(i + 1) == ']') {
+        String target = wikiUnescape(separator < 0 ? inside.toString() : inside.substring(0, separator)).strip();
+        String label = separator < 0 ? target : wikiUnescape(inside.substring(separator + 1));
+        return target.isEmpty() || label.isEmpty() ? null : new WikiToken(i + 2, target, label);
+      }
+      if (next == '[' || next == ']' || next == '\n' || next == '\r') return null;
+      inside.append(next);
+      if (next == '\\' && i + 1 < source.length()) inside.append(source.charAt(++i));
+      else if (next == '|' && separator < 0) separator = inside.length() - 1;
+    }
+    return null;
+  }
+
+  private static void appendText(DefaultStyledDocument document, String literal, String raw, AttributeSet inherited)
+      throws BadLocationException {
+    if (inherited.getAttribute(LINK) != null || !org.commonmark.internal.util.Escaping.unescapeString(raw).equals(literal)) {
+      document.insertString(document.getLength(), literal, inherited); return;
+    }
+    int plain = 0;
+    for (int i = 0; i + 1 < raw.length(); i++) {
+      if (raw.charAt(i) == '\\') { i++; continue; }
+      if (!raw.startsWith("[[", i)) continue;
+      WikiToken wiki = wikiAt(raw, i);
+      if (wiki == null) continue;
+      document.insertString(document.getLength(), org.commonmark.internal.util.Escaping.unescapeString(raw.substring(plain, i)), inherited);
+      SimpleAttributeSet attributes = new SimpleAttributeSet(inherited);
+      attributes.addAttribute(WIKI_TARGET, wiki.target());
+      attributes.addAttribute(WIKI_ID, UUID.randomUUID().toString());
+      StyleConstants.setUnderline(attributes, true);
+      document.insertString(document.getLength(), wiki.label(), attributes);
+      i = wiki.end() - 1; plain = wiki.end();
+    }
+    document.insertString(document.getLength(), org.commonmark.internal.util.Escaping.unescapeString(raw.substring(plain)), inherited);
+  }
+
+  private static String wikiUnescape(String text) {
+    return text.replaceAll("\\\\([\\\\\\[\\]\\|])", "$1");
+  }
+
+  private static String wikiEscape(String text) {
+    return text.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]").replace("|", "\\|");
+  }
   private static final Pattern FENCE = Pattern.compile("^( {0,3})(`{3,}|~{3,})(.*)$");
   private static final Pattern BLOCK =
       Pattern.compile("^(#{1,6}) (.*)$|^([-+*]) (\\[[ xX]\\] )?(.*)$|^(\\d+)\\. (.*)$|^> ?(.*)$");
@@ -140,7 +193,8 @@ public final class Markdown {
     boolean prefix = true;
     for (Node n = paragraph.getFirstChild(); n != null; n = n.getNext()) {
       if (prefix && n instanceof org.commonmark.node.Text t) {
-        d.insertString(d.getLength(), t.getLiteral().substring(2), inherited);
+        String raw = source(t, input);
+        appendText(d, t.getLiteral().substring(2), raw.startsWith("x ") ? raw.substring(2) : "", inherited);
         prefix = false;
       } else {
         appendInline(d, n, inherited, input);
@@ -154,7 +208,7 @@ public final class Markdown {
       throws BadLocationException {
     SimpleAttributeSet a = new SimpleAttributeSet(inherited);
     if (node instanceof org.commonmark.node.Text t) {
-      d.insertString(d.getLength(), t.getLiteral(), a);
+      appendText(d, t.getLiteral(), source(t, input), a);
       return;
     }
     if (node instanceof org.commonmark.node.HtmlInline html) {
@@ -300,7 +354,9 @@ public final class Markdown {
               && Boolean.TRUE.equals(before.getAttribute(INLINE_CODE))
                   == Boolean.TRUE.equals(after.getAttribute(INLINE_CODE))
               && Objects.equals(before.getAttribute(LINK), after.getAttribute(LINK))
-              && Objects.equals(before.getAttribute(LINK_TITLE), after.getAttribute(LINK_TITLE));
+              && Objects.equals(before.getAttribute(LINK_TITLE), after.getAttribute(LINK_TITLE))
+              && (Boolean.TRUE.equals(before.getAttribute(INLINE_CODE))
+                  || Objects.equals(before.getAttribute(WIKI_TARGET), after.getAttribute(WIKI_TARGET)));
     }
     if (!matches)
       throw new IllegalStateException(
@@ -371,7 +427,9 @@ public final class Markdown {
       boolean code,
       String link,
       String title,
-      String raw) {}
+      String raw,
+      String wiki,
+      Object wikiId) {}
 
   private record Run(String text, Format format) {}
 
@@ -397,7 +455,9 @@ public final class Markdown {
               Boolean.TRUE.equals(a.getAttribute(INLINE_CODE)),
               (String) a.getAttribute(LINK),
               (String) a.getAttribute(LINK_TITLE),
-              (String) a.getAttribute(RAW_INLINE));
+              (String) a.getAttribute(RAW_INLINE),
+              (String) a.getAttribute(WIKI_TARGET),
+              a.getAttribute(WIKI_ID));
       if (!runs.isEmpty() && runs.getLast().format.equals(f)) {
         Run previous = runs.removeLast();
         runs.add(new Run(previous.text + t, f));
@@ -436,6 +496,8 @@ public final class Markdown {
         transition(out, active, scopes);
         String content = t.substring(from, to);
         if (f.code) out.append(codeSpan(content));
+        else if (f.wiki != null) out.append("[[").append(wikiEscape(f.wiki))
+            .append(content.equals(f.wiki) ? "" : "|" + wikiEscape(content)).append("]]");
         else out.append(f.raw != null && f.raw.equals(content) ? content : escape(content));
       }
       if (to < t.length()) {

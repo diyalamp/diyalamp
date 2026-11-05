@@ -34,6 +34,7 @@ public final class FxWritingPane {
   private final Subscription richSubscription, plainSubscription;
   private final FxMarkdown.Writer writer = new FxMarkdown.Writer();
   private Runnable onChange = () -> {};
+  private Consumer<String> onNoteLink = target -> {};
   private long revision, serializedRevision = -1;
   private String serialized = "";
   private static final Pattern BLOCK_SHORTCUT = Pattern.compile("^(#{1,6}) $|^([-*+]) $|^(\\d+)\\. $|^> $|^(?:[-*+] )?\\[ \\] $|^```(?:[a-zA-Z0-9_-]+)? $");
@@ -68,6 +69,15 @@ public final class FxWritingPane {
     viewport.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
     area.addEventFilter(KeyEvent.KEY_PRESSED, this::key);
     area.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> area.setTextInsertionStyle(null));
+    area.caretPositionProperty().addListener((observable, previous, current) -> leaveNoteLinkAtBoundary());
+    area.addEventHandler(MouseEvent.MOUSE_RELEASED, event -> leaveNoteLinkAtBoundary());
+    area.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+      if (event.getButton() != MouseButton.PRIMARY || !event.isStillSincePress() || event.isShiftDown()
+          || event.getClickCount() != 1 || area.getSelection().getLength() != 0) return;
+      area.hit(event.getX(), event.getY()).getCharacterIndex().ifPresent(index -> {
+        if (openNoteLink(index)) event.consume();
+      });
+    });
     area.setContextMenu(contextMenu());
     for (String[] item : BLOCKS) {
       MenuItem command = new MenuItem(item[0]);
@@ -96,6 +106,7 @@ public final class FxWritingPane {
   public Node node() { return viewport; }
   public void focus() { area.requestFocus(); }
   public void setOnChange(Runnable handler) { onChange = handler == null ? () -> {} : handler; }
+  public void setOnNoteLink(Consumer<String> handler) { onNoteLink = handler == null ? target -> {} : handler; }
   public int textLength() { return area.getLength(); }
   public String recoveryText() { return area.getText(); }
   public String markdown() {
@@ -134,6 +145,7 @@ public final class FxWritingPane {
     plainSubscription.unsubscribe();
     area.dispose();
     onChange = () -> {};
+    onNoteLink = target -> {};
   }
 
   public void undo() { if (canUndo()) { area.undo(); area.requestFollowCaret(); } }
@@ -272,7 +284,7 @@ public final class FxWritingPane {
     dialog.setTitle("Insert or edit link");
     dialog.setHeaderText(null);
     dialog.setContentText("Destination");
-    if (area.getScene() != null) dialog.initOwner(area.getScene().getWindow());
+    FxDialogs.style(dialog, area.getScene() == null ? null : area.getScene().getWindow());
     dialog.showAndWait().ifPresent(this::insertLink);
     focus();
   }
@@ -298,7 +310,14 @@ public final class FxWritingPane {
       attributes.addAttribute(Markdown.LINK, destination);
       StyleConstants.setUnderline(attributes, true);
       if (from == to) insert(document, from, destination, attributes);
-      else document.setCharacterAttributes(from, to - from, attributes, false);
+      else for (int offset = from; offset < to;) {
+        Element run = document.getCharacterElement(offset);
+        int runEnd = Math.min(to, run.getEndOffset());
+        SimpleAttributeSet replacement = new SimpleAttributeSet(run.getAttributes());
+        replacement.removeAttribute(Markdown.WIKI_TARGET); replacement.removeAttribute(Markdown.WIKI_ID);
+        replacement.addAttributes(attributes);
+        document.setCharacterAttributes(offset, runEnd - offset, replacement, true); offset = runEnd;
+      }
     }, caret, caret);
     area.setTextInsertionStyle(FxMarkdown.Span.plain(currentBlock()));
   }
@@ -311,6 +330,7 @@ public final class FxWritingPane {
       else if (code == KeyCode.K) { insertLink(); event.consume(); }
       else if (code == KeyCode.V) { paste(); event.consume(); }
       else if (code == KeyCode.ENTER && event.isShiftDown()) { toggleChecklist(); event.consume(); }
+      else if (code == KeyCode.ENTER && openNoteLinkAtCaret()) event.consume();
     } else if (code == KeyCode.ENTER && !event.isShiftDown()) {
       enter(); event.consume();
     } else if (code.isArrowKey() || code == KeyCode.HOME || code == KeyCode.END) area.setTextInsertionStyle(null);
@@ -349,10 +369,40 @@ public final class FxWritingPane {
     if (column == 0) return;
     int position = area.getCaretPosition();
     char last = area.getText(position - 1, position).charAt(0);
-    if (last != ' ' && last != '*' && last != '~' && last != '`' && last != '/') return;
+    if (last != ' ' && last != '*' && last != '~' && last != '`' && last != '/' && last != ']') return;
     String paragraphText = area.getParagraph(row).getText();
     String before = paragraphText.substring(0, column);
     if (currentBlock().kind().equals("code")) return;
+    if (before.endsWith("]]")) {
+      int opening = before.lastIndexOf("[[");
+      int escapes = 0;
+      for (int i = opening - 1; i >= 0 && before.charAt(i) == '\\'; i--) escapes++;
+      if (opening >= 0 && escapes % 2 == 0 && (opening == 0 || before.charAt(opening - 1) != '[')) {
+        int from = area.getAbsolutePosition(row, opening), end = area.getCaretPosition();
+        boolean plain = area.getStyleSpans(from, end).stream().allMatch(span ->
+            !span.getStyle().flag(Markdown.INLINE_CODE) && span.getStyle().link() == null && span.getStyle().noteLink() == null);
+        String token = before.substring(opening);
+        var parsed = FxMarkdown.read(token);
+        if (plain && parsed.getParagraph(0).getStyledSegments().stream().anyMatch(segment -> segment.getStyle().noteLink() != null)) {
+          int caret = from + parsed.length();
+          mutate(document -> {
+            SimpleAttributeSet inherited = new SimpleAttributeSet(document.getCharacterElement(from).getAttributes());
+            remove(document, from, token.length());
+            try {
+              DefaultStyledDocument inline = FxMarkdown.semantic(parsed);
+              for (int offset = 0; offset < parsed.length();) {
+                Element run = inline.getCharacterElement(offset);
+                int next = Math.min(parsed.length(), run.getEndOffset());
+                SimpleAttributeSet attributes = new SimpleAttributeSet(inherited); attributes.addAttributes(run.getAttributes());
+                insert(document, from + offset, inline.getText(offset, next - offset), attributes); offset = next;
+              }
+            } catch (javax.swing.text.BadLocationException error) { throw new IllegalStateException(error); }
+          }, caret, caret);
+          area.setTextInsertionStyle(FxMarkdown.Span.plain(currentBlock()));
+          return;
+        }
+      }
+    }
     if (before.equals("/")) {
       if (area.getScene() != null && area.getScene().getWindow() != null)
         area.getCaretBounds().ifPresent(bounds -> slash.show(area, bounds.getMinX(), bounds.getMaxY() + 4));
@@ -398,6 +448,28 @@ public final class FxWritingPane {
   }
 
   private FxMarkdown.Block currentBlock() { return area.getParagraph(area.getCurrentParagraph()).getParagraphStyle(); }
+  private void leaveNoteLinkAtBoundary() {
+    int caret = area.getCaretPosition();
+    if (caret == 0 || area.getSelection().getLength() != 0) return;
+    FxMarkdown.Span previous = area.getStyleOfChar(caret - 1);
+    if (previous.noteLink() == null) return;
+    Object identity = previous.values().get(Markdown.WIKI_ID);
+    if (caret < area.getLength() && Objects.equals(identity, area.getStyleOfChar(caret).values().get(Markdown.WIKI_ID))) return;
+    SimpleAttributeSet plain = previous.attributes();
+    plain.removeAttribute(Markdown.WIKI_TARGET); plain.removeAttribute(Markdown.WIKI_ID);
+    if (previous.link() == null) plain.removeAttribute(StyleConstants.Underline);
+    area.setTextInsertionStyle(FxMarkdown.Span.of(plain, currentBlock()));
+  }
+  private boolean openNoteLinkAtCaret() {
+    int caret = area.getCaretPosition();
+    return openNoteLink(caret) || (caret > 0 && openNoteLink(caret - 1));
+  }
+  boolean openNoteLink(int position) {
+    if (position < 0 || position >= area.getLength()) return false;
+    FxMarkdown.Span span = area.getStyleOfChar(position);
+    if (span.noteLink() == null || span.flag(Markdown.INLINE_CODE) || span.blockKind().equals("code")) return false;
+    onNoteLink.accept(span.noteLink()); return true;
+  }
   private void mutate(Consumer<DefaultStyledDocument> command, int anchor, int caret) {
     DefaultStyledDocument semantic = FxMarkdown.semantic(area.getDocument());
     command.accept(semantic);
@@ -478,11 +550,17 @@ public final class FxWritingPane {
                 italic ? FontPosture.ITALIC : FontPosture.REGULAR, size)
             : new Font(exactFace, size)));
     text.setStrikethrough(span.flag(StyleConstants.StrikeThrough));
-    text.setUnderline(span.link() != null);
+    boolean link = span.link() != null || (!code && span.noteLink() != null);
+    text.setUnderline(link);
     text.getStyleClass().add("md-text");
     if (code) text.getStyleClass().add("md-inline-code");
-    if (span.link() != null) text.getStyleClass().add("md-link");
-    text.setStyle("-fx-fill: " + (span.link() != null ? "-color-accent-emphasis" : "-color-fg-default") + ";"
+    if (link) text.getStyleClass().add("md-link");
+    if (!code && span.noteLink() != null) {
+      text.setAccessibleRole(AccessibleRole.HYPERLINK);
+      text.setAccessibleText("Note link: " + span.noteLink());
+      text.setCursor(javafx.scene.Cursor.HAND);
+    }
+    text.setStyle("-fx-fill: " + (link ? "-color-accent-emphasis" : "-color-fg-default") + ";"
         + (code ? "-rtfx-background-color: -color-bg-subtle;" : ""));
   }
 

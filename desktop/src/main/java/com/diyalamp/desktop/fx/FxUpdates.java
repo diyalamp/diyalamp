@@ -60,7 +60,7 @@ final class FxUpdates {
           "Version " + release.version() + " is available. Download its verified Mac installer? "
               + "The running app and your notes stay unchanged until you choose Install and Restart.",
           ButtonType.CANCEL, download);
-      alert.initOwner(owner); alert.setTitle("Update available"); alert.setHeaderText(null);
+      alert.setTitle("Update available"); alert.setHeaderText(null); FxDialogs.style(alert, owner);
       alert.showAndWait().filter(download::equals).ifPresent(ignored -> prepare(release));
     });
     run(task, "Check for updates");
@@ -86,10 +86,11 @@ final class FxUpdates {
     message.setWrapText(true); message.setMaxWidth(320);
     ProgressIndicator indicator = new ProgressIndicator(); indicator.setPrefSize(26, 26);
     HBox line = new HBox(14, indicator, message); line.setAlignment(Pos.CENTER_LEFT);
-    VBox content = new VBox(line); content.setPadding(new Insets(18)); content.setPrefWidth(390);
-    Dialog<ButtonType> dialog = new Dialog<>(); dialog.initOwner(owner); dialog.initModality(Modality.NONE);
+    VBox content = new VBox(line); content.setPrefWidth(390);
+    Dialog<ButtonType> dialog = new Dialog<>(); dialog.initModality(Modality.NONE);
     dialog.setTitle(title); dialog.getDialogPane().setContent(content);
     dialog.getDialogPane().getButtonTypes().add(ButtonType.CANCEL);
+    FxDialogs.style(dialog, owner);
     dialog.setOnCloseRequest(event -> { if (!task.isDone()) task.cancel(true); });
     progress = dialog;
     task.setOnFailed(event -> {
@@ -104,15 +105,16 @@ final class FxUpdates {
 
   private void showReady() {
     ButtonType install = new ButtonType("Install and Restart", ButtonBar.ButtonData.OK_DONE);
-    Dialog<ButtonType> dialog = new Dialog<>(); dialog.initOwner(owner); dialog.initModality(Modality.NONE);
+    Dialog<ButtonType> dialog = new Dialog<>(); dialog.initModality(Modality.NONE);
     dialog.setTitle("Ready to update");
     Label description = new Label("Version " + prepared.version()
         + " is downloaded and verified. Your notes will be saved before the app restarts. "
         + "If a note has a save conflict, resolve it first and try again.");
     description.setWrapText(true);
-    VBox content = new VBox(description); content.setPadding(new Insets(18)); content.setPrefWidth(390);
+    VBox content = new VBox(description); content.setPrefWidth(390);
     dialog.getDialogPane().setContent(content);
     dialog.getDialogPane().getButtonTypes().setAll(ButtonType.CANCEL, install);
+    FxDialogs.style(dialog, owner);
     Button installButton = (Button) dialog.getDialogPane().lookupButton(install);
     installButton.addEventFilter(ActionEvent.ACTION, event -> {
       try {
@@ -148,6 +150,6 @@ final class FxUpdates {
 
   private void information(String title, String message) {
     Alert alert = new Alert(Alert.AlertType.INFORMATION, message, ButtonType.OK);
-    alert.initOwner(owner); alert.setTitle(title); alert.setHeaderText(null); alert.showAndWait();
+    alert.setTitle(title); alert.setHeaderText(null); FxDialogs.style(alert, owner); alert.showAndWait();
   }
 }

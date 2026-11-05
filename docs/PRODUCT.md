@@ -30,3 +30,11 @@ Do not advertise an installer before its artifact exists and opens. Label archit
 ## Size budget
 
 Owner direction: minimize footprint and set an ambitious target of under 5 MB installed. This is a target, not an achieved claim or a promised release date. The bundled Apple silicon build in release 1.0.1 is approximately 36.7 MB downloaded and 47 MiB installed; the runtime dominates that size. Record exact per-architecture release measurements. Evaluate runtime and packaging changes against launch reliability and the no-separate-runtime installation experience. Never market the target as a measured current size.
+
+## Connected writing and focus tools
+
+Wiki links use `[[Note name]]` and remain in the saved Markdown. The right panel places a directed SmartGraph visualization above Incoming and Outgoing lists for the active note. Indexing is read-only and runs off the UI thread. It excludes web, hidden, and outside-folder paths; partial indexing is identified when limits are reached.
+
+Zen mode hides workspace chrome while preserving the editor and split arrangement. Accents transition between six muted choices. Dialogs use the same AtlantaFX component styling. A foreground Pomodoro provides 25-minute focus sessions and 5-minute breaks, started explicitly; it stops when the app quits.
+
+Tab transfers retain their existing editor, selection and history. Folder moves preserve file bytes and reject collisions; moving a file does not rewrite folder-qualified links in other notes. Use stable note names or update explicit paths after reorganizing folders.

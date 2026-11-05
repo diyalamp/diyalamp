@@ -49,3 +49,7 @@ OpenJFX-javafx.graphics-mesa3d.md
 OpenJFX-javafx.graphics-pipewire.md
   https://github.com/openjdk/jfx/blob/27-ga/modules/javafx.graphics/src/main/legal/pipewire.md
   upstream Git blob: 8275928e2715016441ba70cb276e566c880cf764
+
+SmartGraph-LICENSE.txt
+  https://github.com/brunomnsilva/JavaFXSmartGraph
+  Exact source: Maven Central com.brunomnsilva:smartgraph:2.6.1 sources JAR, SmartGraphClickEvent.java license header

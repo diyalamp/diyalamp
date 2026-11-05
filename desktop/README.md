@@ -57,3 +57,9 @@ Common Markdown is supported; this first release does not implement the full Com
 ## Icon assets
 
 `src/main/resources/app-icon.png` preserves the approved profile artwork's lamp size and position, with a rounded white backplate, subtle edge shading, and a soft shadow. Both the packaged ICNS and application-window icon use it. `icon-source/` contains the unchanged composition source and a reproducible macOS renderer; it is not bundled into the app. `lamp.png` remains the separate, compact inline brand mark.
+
+## Connected notes and focus
+
+Type `[[Reference]]` or `[[Folder/Reference|label]]` for local links. The graph uses SmartGraph 2.6.1; the read-only index includes saved local wiki and Markdown links. The right-hand diagram is limited to 60 visible nodes, while the Incoming/Outgoing lists show every indexed connection. Index limits are 5,000 notes, 1 MB per note, and 32 MB per scan; incomplete scans are identified.
+
+Use the Zen toolbar control or Shift-Command-F to hide or restore workspace chrome. The Pomodoro is available in the status bar and View menu. Its 25-minute focus and 5-minute break phases start manually, and the timer stops when the app exits.

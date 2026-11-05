@@ -21,12 +21,14 @@ import org.w3c.dom.Element;
 /** AtlantaFX light controls and the existing Lucide SVG assets. No bundled text fonts. */
 public final class FxTheme {
   public static final Color DEFAULT_ACCENT = Color.web("#7B8FB7");
+  static final String DISPLAYED_ACCENT = "diyalamp.displayedAccent";
 
   public static void setup() {
     Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
   }
 
   public static void accent(Parent root, Color color) {
+    root.getProperties().put(DISPLAYED_ACCENT, color);
     Color readable = color;
     // Preserve the chosen hue while ensuring controls remain visible on the light surface.
     for (int i = 1; contrastOnWhite(readable) < 4.5 && i <= 100; i++)
@@ -36,6 +38,11 @@ public final class FxTheme {
     root.setStyle("-color-accent-emphasis: " + hex + "; -color-accent-fg: " + hex
         + "; -color-accent-subtle: " + hex(subtle) + "; -diyalamp-accent: " + hex
         + "; -diyalamp-accent-subtle: " + hex(subtle) + ";");
+  }
+
+  public static Color accentOf(Parent root) {
+    Object color = root.getProperties().get(DISPLAYED_ACCENT);
+    return color instanceof Color value ? value : DEFAULT_ACCENT;
   }
 
   private static double contrastOnWhite(Color color) {

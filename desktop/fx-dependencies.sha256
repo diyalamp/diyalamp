@@ -1,5 +1,6 @@
 # platform sha256 Maven-Central-path
 common 6e14976a7ff86627c5ce8fc398443cceb0cf1683642ff59a0c8b77f7f56f904d io/github/mkpaz/atlantafx-base/3.0.0/atlantafx-base-3.0.0.jar
+common 93a9a73a4668bfdf2659812bd5d6b21fd728e634d40f0a9f5046927823d6993f com/brunomnsilva/smartgraph/2.6.1/smartgraph-2.6.1.jar
 common c2635586d4ba9a35a8bbf5fa37bf5a7da35fb10dd896aefc67ebbf84608b98cc org/fxmisc/richtext/richtextfx/0.11.7/richtextfx-0.11.7.jar
 common bb1fc209cd9c057b17a48033d3794f937ba7a566b3c08b2db8887772769fdd67 org/reactfx/reactfx/2.0-M5/reactfx-2.0-M5.jar
 common db9708c58a8e2db457fbd67f0515e4a95955ca0b0b8f4ea7a3dcbbfcbd19d2d7 org/fxmisc/undo/undofx/2.1.1/undofx-2.1.1.jar

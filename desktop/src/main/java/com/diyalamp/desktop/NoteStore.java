@@ -201,6 +201,24 @@ public final class NoteStore {
     return Files.move(from, to);
   }
 
+  /** Move an existing note without overwriting a file or leaving the selected workspace. */
+  public Path move(Path from, Path directory) throws IOException {
+    from = checkedNote(from);
+    directory = checkedDirectory(directory);
+    Path destination = checked(directory.resolve(from.getFileName()));
+    if (from.equals(destination)) return from;
+    return Files.move(from, destination);
+  }
+
+  public Path createFolder(Path directory, String name) throws IOException {
+    directory = checkedDirectory(directory);
+    name = name.strip();
+    if (name.isBlank() || name.startsWith(".") || name.length() > 120
+        || name.matches(".*[\\\\/:\\p{Cntrl}].*"))
+      throw new IOException("Use a folder name of 1–120 characters without slashes or a leading dot.");
+    return Files.createDirectory(checked(directory.resolve(name)));
+  }
+
   private static String cleanName(String name) throws IOException {
     name = name.strip().replaceFirst("(?i)\\.(md|markdown)$", "");
     if (name.isBlank()

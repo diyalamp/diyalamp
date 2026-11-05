@@ -147,9 +147,12 @@ public final class FxShellTests {
       Object host = field(view, "host");
       TabLine tabs = (TabLine) field(host, "tabs");
       HBox tools = (HBox) tabs.getRightNode();
-      check(tools.getChildren().size() == 3, "New-note and split controls must remain beside the accent control");
-      check(tools.getChildren().get(2) instanceof Button, "The toolbar accent control must be a standard accessible Button");
-      Button accent = (Button) tools.getChildren().get(2);
+      check(tools.getChildren().get(0).getAccessibleText().equals("New note")
+          && tools.getChildren().get(1).getAccessibleText().equals("Open note side by side"),
+          "New-note and split controls must remain adjacent beside the accent control");
+      Button accent = tools.getChildren().stream().filter(node -> node instanceof Button
+          && "Workspace accent color".equals(node.getAccessibleText())).map(node -> (Button) node).findFirst().orElseThrow();
+      check(accent.getAccessibleRole() == AccessibleRole.BUTTON, "The toolbar accent control must be a standard accessible Button");
       check(accent.getText().equals("Accent") && accent.getAccessibleText().equals("Workspace accent color")
           && accent.getAccessibleRole() == AccessibleRole.BUTTON,
           "The accent control must expose its visible name and a button role to accessibility");
@@ -178,7 +181,10 @@ public final class FxShellTests {
           "The toolbar color preview must render as a small circle");
       var cells = navigation.lookupAll(".sidebar-cell").stream()
           .filter(node -> node.isVisible()).sorted(java.util.Comparator.comparingDouble(node -> node.getBoundsInParent().getMinY())).toList();
-      check(cells.size() == 2, "Both existing navigation destinations must remain available");
+      check(cells.size() == 3 && navigation.getItems().get(0).getValue().equals("files")
+          && navigation.getItems().get(1).getValue().equals("search")
+          && navigation.getItems().get(2).getValue().equals("connections"),
+          "Files and search must remain in order, with connections available as a separate navigation action");
       check(cells.stream().allMatch(cell -> cell.getLayoutBounds().getHeight() >= 40),
           "Navigation icons need comfortably sized click targets");
       var first = cells.get(0).localToScene(cells.get(0).getBoundsInLocal());
@@ -228,7 +234,7 @@ public final class FxShellTests {
       check(dialog.getDialogPane().getContent().lookupAll(".accent-value").stream()
           .anyMatch(node -> ((Label) node).getText().contains("#7A9A85")),
           "The selected color value must remain visible to keyboard and screen-reader users");
-      var value = (javafx.beans.property.ObjectProperty<Color>) field(fixture.app, "accent");
+      var value = (javafx.beans.property.ObjectProperty<Color>) field(fixture.app, "displayedAccent");
       value.set(Color.web("#BA929B"));
       check(swatch.getStyle().contains("#BA929B"), "Both toolbar previews must track workspace accent changes");
       stage.close();
