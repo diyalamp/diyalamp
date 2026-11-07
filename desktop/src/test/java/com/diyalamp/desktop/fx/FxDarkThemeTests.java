@@ -44,7 +44,7 @@ public final class FxDarkThemeTests {
     BorderPane root = new BorderPane(); root.getStyleClass().add("workspace-root");
     root.getStylesheets().add(FxTheme.class.getResource("/fx-workspace.css").toExternalForm());
     FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
-    Label brand = new Label("Fictional workspace"); brand.getStyleClass().add("workspace-brand-name");
+    Label brand = new Label("Fictional workspace"); brand.getStyleClass().add("workspace-brand");
     Button tools = FxTheme.iconButton("folder-open", "Open fictional folder", () -> {});
     HBox toolbar = new HBox(brand, tools); toolbar.getStyleClass().add("workspace-toolbar"); root.setTop(toolbar);
     TextField input = new TextField(); input.setPromptText("Find a note…"); input.getStyleClass().add("note-search-field");

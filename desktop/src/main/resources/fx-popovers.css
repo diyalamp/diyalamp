@@ -26,27 +26,17 @@
 .diyalamp-popover .pomodoro-phase,
 .diyalamp-popover .popover-action {
   -fx-font-family: "Inter";
-  -fx-font-size: 16px;
   -fx-font-weight: normal;
-  -fx-min-height: 36;
-  -fx-padding: 8 12;
+  -fx-padding: 0 8;
   -fx-graphic-text-gap: 8;
-  -fx-background-insets: 0;
-  -fx-background-radius: 8;
   -fx-background-color: -color-bg-subtle;
   -fx-border-insets: 0;
-  -fx-border-radius: 8;
   -fx-border-width: 1;
   -fx-border-color: -color-border-default;
   -fx-text-fill: -color-fg-default;
-  -fx-effect: null;
-  transition-property: -fx-background-color, -fx-border-color;
-  transition-duration: 160ms;
-  transition-timing-function: ease-out;
 }
 .diyalamp-popover .accent-choice {
   -fx-alignment: center-left;
-  -fx-padding: 8;
   -fx-background-color: transparent;
   -fx-border-color: transparent;
 }
@@ -68,17 +58,14 @@
 .diyalamp-popover .popover-action:focused,
 .diyalamp-popover .popover-action.accent:hover,
 .diyalamp-popover .popover-action.accent:pressed { -fx-border-color: -diyalamp-focus; }
-.diyalamp-popover:reduced-motion .accent-choice,
-.diyalamp-popover:reduced-motion .pomodoro-phase,
-.diyalamp-popover:reduced-motion .popover-action { transition-duration: 0s; }
 
 .workspace-root .pomodoro-control:timer-active {
   -fx-min-width: 160; -fx-pref-width: 160; -fx-max-width: 160;
-  -fx-padding: 0 8; -fx-background-color: -color-bg-subtle;
-  -fx-border-color: -color-border-default; -fx-border-radius: 8; -fx-border-width: 1;
+  -fx-background-color: -color-border-default, -color-bg-subtle;
+  -fx-background-insets: 0, 1; -fx-background-radius: 8, 7;
 }
 .workspace-root .pomodoro-control:timer-active:hover,
-.workspace-root .pomodoro-control:timer-active:focused { -fx-border-color: -diyalamp-focus; }
+.workspace-root .pomodoro-control:timer-active:focused { -fx-background-color: -diyalamp-focus, -color-bg-subtle; }
 .pomodoro-control .pomodoro-toolbar-phase {
   -fx-min-width: 48; -fx-pref-width: 48; -fx-max-width: 48;
   -fx-text-fill: -color-fg-default;

@@ -75,6 +75,7 @@ public final class FxDiyalamp extends Application {
   private static final double CONNECTIONS_WIDTH = 304;
   private static final double MIN_WRITING_WIDTH = 240;
   private static final double SIDEBAR_DIVIDER_WIDTH = 6;
+  private static final double TOOLBAR_GAP = 8;
   private static final String[][] ACCENT_CHOICES = {
       {"Sage", "#7A9A85"}, {"Blue", "#297AA0"}, {"Lavender", "#A497BD"},
       {"Rose", "#BA929B"}, {"Amber", "#B5A073"}, {"Slate", "#8A929F"}
@@ -305,10 +306,7 @@ public final class FxDiyalamp extends Application {
 
   private ToolBar buildToolbar() {
     toolbar.getStyleClass().add("workspace-toolbar");
-    Label name = new Label("diyalamp"); name.getStyleClass().add("workspace-brand-name");
-    var lamp = FxTheme.lamp(22);
-    lamp.setTranslateY(2);
-    HBox brand = new HBox(8, lamp, name);
+    Label brand = new Label("diyalamp", FxTheme.lamp(16));
     brand.setMinWidth(Region.USE_PREF_SIZE);
     brand.setAlignment(Pos.CENTER_LEFT); brand.getStyleClass().add("workspace-brand");
     ToggleButton files = new ToggleButton(null, FxTheme.icon("panel-left", 16));
@@ -323,8 +321,6 @@ public final class FxDiyalamp extends Application {
     files.setOnAction(event -> toggleSidebar());
     folderControl.getStyleClass().addAll("flat", "workspace-tool", "workspace-folder");
     folderControl.setAlignment(Pos.CENTER_LEFT);
-    folderControl.setMinWidth(36);
-    folderControl.setPrefWidth(Region.USE_COMPUTED_SIZE);
     folderControl.setMaxWidth(Region.USE_PREF_SIZE);
     folderControl.setTextOverrun(OverrunStyle.LEADING_ELLIPSIS);
     folderControl.setAccessibleText("Open folder");
@@ -346,8 +342,8 @@ public final class FxDiyalamp extends Application {
         .then("Hide right sidebar").otherwise("Show right sidebar"));
     connections.setTooltip(connectionHelp);
     if (noteGraph != null) connections.selectedProperty().bindBidirectional(noteGraph.showingProperty());
-    ToggleButton zen = new ToggleButton(null, FxTheme.icon("moon", 18));
-    zen.getStyleClass().addAll("flat", "button-icon", "workspace-tool", "zen-toggle");
+    ToggleButton zen = new ToggleButton(null, FxTheme.icon("moon", 16));
+    zen.getStyleClass().addAll("flat", "button-icon", "workspace-tool");
     Tooltip zenHelp = new Tooltip();
     zenHelp.textProperty().bind(Bindings.when(zenMode).then("Exit line focus · ⇧⌘F").otherwise("Enter line focus · ⇧⌘F"));
     zen.setTooltip(zenHelp); zen.setAccessibleText("Zen mode");
@@ -369,8 +365,8 @@ public final class FxDiyalamp extends Application {
     var timerWidth = pomodoro == null ? toolbar.widthProperty() : pomodoro.button().prefWidthProperty();
     folderControl.prefWidthProperty().bind(Bindings.createDoubleBinding(() -> {
       Insets insets = toolbar.getInsets();
-      // Match the toolbar's 4px item gaps and leave room for pixel rounding.
-      double reserved = insets.getLeft() + insets.getRight() + 4 * toolbar.getItems().size() + 8;
+      // Leave one extra gap for pixel rounding in the toolbar skin.
+      double reserved = insets.getLeft() + insets.getRight() + TOOLBAR_GAP * toolbar.getItems().size();
       for (Node item : toolbar.getItems()) if (item != folderControl) reserved += item.prefWidth(-1);
       double natural = path.getLayoutBounds().getWidth() + 40;
       return Math.max(36, Math.min(natural, toolbar.getWidth() - reserved));
