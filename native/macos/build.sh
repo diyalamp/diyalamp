@@ -10,7 +10,7 @@ mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/Fonts"
 for architecture in arm64 x86_64; do
   xcrun swiftc -parse-as-library -Osize -whole-module-optimization \
     -target "$architecture-apple-macos15.0" -I "$upstream/include-full" \
-    main.swift CmarkPatch.swift RenderedStyle.swift FolderWorkspace.swift \
+    main.swift CmarkPatch.swift RenderedStyle.swift FolderWorkspace.swift RecoveryStore.swift \
     "$upstream/$architecture/libcmark-gfm-extensions.a" "$upstream/$architecture/libcmark-gfm.a" \
     -o "$output/probe-$architecture"
 done

@@ -16,3 +16,7 @@ xcrun swiftc -parse-as-library -Osize -whole-module-optimization \
 xcrun swiftc -parse-as-library -target "$architecture-apple-macos15.0" \
   FolderWorkspace.swift FolderWorkspaceTests.swift -o "$scratch/folders"
 "$scratch/folders"
+
+xcrun swiftc -parse-as-library -target "$architecture-apple-macos15.0" \
+  RecoveryStore.swift RecoveryStoreTests.swift -o "$scratch/recovery"
+"$scratch/recovery"

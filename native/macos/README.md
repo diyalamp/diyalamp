@@ -4,6 +4,8 @@ This preview uses AppKit for the window, editor and file list. It links a pinned
 
 Open a folder to list Markdown files, including notes in subfolders. Select a note to edit it. If the current note has unsaved changes, choose Save, Discard or Cancel before switching. A file that changed on disk blocks the save and leaves the editor text open. The file list skips hidden files and symbolic links. Supported rich-text edits map back to Markdown, with the source pane available for structural changes.
 
+The editor keeps a local recovery copy of unsaved changes to the active note, checkpointed at 250 ms intervals while editing. On restart, an unchanged original reopens with the recovered edits still unsaved. If the file changed or disappeared, save the recovered text to a separate Markdown file. Changes made since the last checkpoint can be lost in a crash.
+
 ## Build and verify
 
 From the repository root on a Mac with Xcode command-line tools and Python 3 installed:
@@ -25,6 +27,6 @@ sh "$preview/verify.sh" /absolute/path/to/DiyaLamp-Native-Preview.dmg \
   "$cmark/cmark-gfm-0.29.0.gfm.13/COPYING"
 ```
 
-Verification checks the mounted package, signature, executable slices, bundled parser license, and editing and folder operations in disposable test files. It runs on Apple silicon and, where available, Intel through Rosetta.
+Verification checks the mounted package, signature, executable slices, bundled parser license, and editing and folder operations in disposable test files. It kills the running app after a recovery checkpoint, then checks recovery after restart with unchanged, externally changed, missing, or substituted files. It runs on Apple silicon and, where available, Intel through Rosetta.
 
-The preview has a separate bundle identifier. It is ad hoc signed for local testing. Autosave and crash recovery, workspace search, linked-note navigation, and migration from the current desktop app still need release work.
+The preview has a separate bundle identifier. It is ad hoc signed for local testing. Autosave to the original Markdown file, workspace search, linked-note navigation, and migration from the current desktop app still need release work.

@@ -58,6 +58,8 @@ for architecture in $architectures; do
   mkdir "$fixture"
   python3 - "$architecture" "$binary" "$fixture" <<'PY'
 from pathlib import Path
+import select
+import signal
 import subprocess
 import sys
 
@@ -93,5 +95,70 @@ if not any(line.startswith('PASS Native editor') for line in stdout.splitlines()
 if not any(line.startswith('PASS Native folder') for line in stdout.splitlines()):
     raise SystemExit(f'{architecture}: native folder success marker missing')
 print(f'{architecture}: exited normally')
+
+def recovery_command(phase, note, store):
+    return ['/usr/bin/arch', '-' + architecture, binary,
+            '--recovery-smoke', phase, str(note), str(store)]
+
+for scenario in ('restore', 'conflict', 'missing', 'symlink', 'saved'):
+    case = folder / scenario
+    case.mkdir(mode=0o700)
+    note = case / 'Note.md'
+    store = case / 'recovery.plist'
+    note.write_bytes(original)
+    with (case / 'edit.stderr.log').open('wb') as errors:
+        with subprocess.Popen(recovery_command('edit', note, store), cwd=case,
+                              stdout=subprocess.PIPE, stderr=errors) as writer:
+            try:
+                ready, _, _ = select.select([writer.stdout], [], [], 30)
+                if not ready or writer.stdout.readline() != b'READY Native recovery checkpoint\n':
+                    raise SystemExit(f'{architecture}: {scenario}: no recovery checkpoint')
+                if scenario == 'restore':
+                    second = subprocess.run(recovery_command('saved', note, store), cwd=case,
+                                            capture_output=True, timeout=30)
+                    if second.returncode == 0 or b'FAIL recovery setup' not in second.stderr:
+                        raise SystemExit(f'{architecture}: second writer was allowed to start')
+            finally:
+                if writer.poll() is None:
+                    writer.send_signal(signal.SIGKILL)
+                writer.wait(timeout=10)
+            if writer.returncode != -signal.SIGKILL or note.read_bytes() != original:
+                raise SystemExit(f'{architecture}: crash test changed the original')
+
+    edited = original + '\r\nRecovered Cafe\u0301 日本語 🪔.\r\n'.encode('utf-8')
+    phase = scenario
+    if scenario == 'conflict':
+        note.write_bytes(b'External edit\n')
+    if scenario == 'missing':
+        note.unlink()
+        phase = 'conflict'
+    if scenario == 'symlink':
+        outside = folder / 'Outside.md'
+        outside.write_bytes(original)
+        note.unlink()
+        note.symlink_to(outside)
+        phase = 'conflict'
+    if scenario == 'saved':
+        note.write_bytes(edited)
+    result = subprocess.run(recovery_command(phase, note, store), cwd=case,
+                            capture_output=True, timeout=30)
+    (case / 'restart.stdout.log').write_bytes(result.stdout)
+    (case / 'restart.stderr.log').write_bytes(result.stderr)
+    if result.returncode or f'PASS Native recovery {phase}\n'.encode() not in result.stdout:
+        print(result.stderr.decode(errors='replace'), file=sys.stderr)
+        raise SystemExit(f'{architecture}: {scenario}: recovery restart failed')
+    if scenario == 'conflict' and note.read_bytes() != b'External edit\n':
+        raise SystemExit(f'{architecture}: recovery overwrote the external edit')
+    if scenario == 'missing' and note.exists():
+        raise SystemExit(f'{architecture}: recovery recreated the original')
+    if scenario == 'symlink' and (not note.is_symlink() or outside.read_bytes() != original):
+        raise SystemExit(f'{architecture}: recovery wrote through a symlink')
+    if scenario in ('restore', 'saved') and note.read_bytes() != edited:
+        raise SystemExit(f'{architecture}: recovered Markdown bytes changed')
+    if phase == 'conflict' and (case / 'Recovered.md').read_bytes() != edited:
+        raise SystemExit(f'{architecture}: recovered copy bytes changed')
+    if store.exists():
+        raise SystemExit(f'{architecture}: recovery snapshot was not cleared')
+    print(f'{architecture}: passed crash recovery after {scenario}')
 PY
 done

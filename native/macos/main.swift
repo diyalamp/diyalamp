@@ -3,12 +3,13 @@ import CoreText
 import UniformTypeIdentifiers
 
 enum NoteError: LocalizedError {
-    case invalidUTF8, externalChange
+    case invalidUTF8, externalChange, recoveryNeedsNewFile
 
     var errorDescription: String? {
         switch self {
         case .invalidUTF8: "This note is not valid UTF-8 Markdown."
         case .externalChange: "The file changed on disk. Your editor text is still open."
+        case .recoveryNeedsNewFile: "Choose a different file for the recovered changes."
         }
     }
 }
@@ -46,6 +47,17 @@ final class NoteFile {
         original = bytes
         text = edited
     }
+
+    static func recoveredBytes(_ draft: RecoverySnapshot) -> Data {
+        let bom = draft.original.starts(with: utf8BOM) ? utf8BOM : Data()
+        return bom + Data(draft.edited.utf8)
+    }
+}
+
+struct RecoverySmoke {
+    enum Phase: String { case edit, restore, conflict, saved }
+    let phase: Phase
+    let noteURL: URL
 }
 
 let foreground = NSColor(srgbRed: 0.82, green: 0.82, blue: 0.82, alpha: 1)
@@ -83,10 +95,17 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
     private var updatingFolderSelection = false
     private var windowIsClosing = false
     private let fixture: URL?
+    private let recoveryStore: RecoveryStore?
+    private let recoverySmoke: RecoverySmoke?
+    private var recoveryLease: RecoveryLease?
+    private var recoveryCopy: RecoverySnapshot?
+    private var recoveryScheduled = false
     private enum EditDecision { case save, discard, cancel }
 
-    init(fixture: URL?) {
+    init(fixture: URL?, recoveryStore: RecoveryStore?, recoverySmoke: RecoverySmoke?) {
         self.fixture = fixture
+        self.recoveryStore = recoveryStore
+        self.recoverySmoke = recoverySmoke
         super.init()
         history.groupsByEvent = false
         history.levelsOfUndo = 64
@@ -101,7 +120,17 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         window.makeKeyAndOrderFront(nil)
         window.makeFirstResponder(preview)
         NSApp.activate()
-        if let fixture {
+        do {
+            recoveryLease = try recoveryStore?.lock()
+            try restoreRecovery()
+        } catch {
+            if recoverySmoke == nil { present(error) }
+            else { fputs("FAIL recovery setup: \(error)\n", stderr) }
+            exit(EXIT_FAILURE)
+        }
+        if let recoverySmoke {
+            DispatchQueue.main.async { self.runRecoverySmoke(recoverySmoke) }
+        } else if let fixture {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.runSmoke(fixture) }
         }
     }
@@ -219,6 +248,7 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
 
     private func install(_ file: NoteFile) {
         note = file
+        recoveryCopy = nil
         editor.isEditable = true
         replaceDocument(with: file.text)
         history.removeAllActions()
@@ -239,7 +269,7 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
                 try activateFolderNote(row, in: folder)
             } else if url != note?.url {
                 let file = try NoteFile(url)
-                if try resolvePendingEdits() { install(file) }
+                if try resolvePendingEdits() { try finishSwitch(to: file) }
             }
         } catch { present(error) }
     }
@@ -318,6 +348,11 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         guard url != note?.url else { return }
         let file = try NoteFile(url, checkedAccess: checkedAccess)
         guard try resolvePendingEdits(deciding: deciding) else { return }
+        try finishSwitch(to: file)
+    }
+
+    private func finishSwitch(to file: NoteFile) throws {
+        if hasUnsavedChanges { try recoveryStore?.clear() }
         install(file)
     }
 
@@ -336,19 +371,48 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
                 showFolder(refreshed)
                 try activateFolderNote(row, in: refreshed, deciding: { .discard })
             } else {
-                try load(url)
+                try finishSwitch(to: NoteFile(url))
             }
             window.makeFirstResponder(preview)
         } catch { present(error) }
     }
 
     @objc private func saveNote() {
-        guard let note else { return }
-        do {
+        do { _ = try saveCurrentNote() }
+        catch { present(error) }
+    }
+
+    private func saveCurrentNote(selectingCopy: (() -> URL?)? = nil) throws -> Bool {
+        if let note {
             try note.save(source)
-            status.stringValue = "Saved \(note.url.lastPathComponent)"
-            window.isDocumentEdited = false
-        } catch { present(error) }
+        } else if let draft = recoveryCopy {
+            let selection: URL?
+            if let selectingCopy { selection = selectingCopy() }
+            else { selection = chooseRecoveryDestination(draft) }
+            guard let selection else { return false }
+            let path = selection.standardizedFileURL
+            let folder = path.deletingLastPathComponent().resolvingSymlinksInPath()
+            let url = folder.appendingPathComponent(path.lastPathComponent)
+            guard url.path != draft.noteURL.path else { throw NoteError.recoveryNeedsNewFile }
+            let edited = RecoverySnapshot(noteURL: draft.noteURL, original: draft.original, edited: source)
+            try NoteFile.recoveredBytes(edited).write(to: url, options: .withoutOverwriting)
+            install(try NoteFile(url))
+        } else {
+            return true
+        }
+        status.stringValue = "Saved \(note?.url.lastPathComponent ?? "note")"
+        window.isDocumentEdited = false
+        do { try recoveryStore?.clear() }
+        catch { status.stringValue = "Saved · recovery copy could not be cleared" }
+        return true
+    }
+
+    private func chooseRecoveryDestination(_ draft: RecoverySnapshot) -> URL? {
+        let panel = NSSavePanel()
+        panel.title = "Save Recovered Copy"
+        panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
+        panel.nameFieldStringValue = "\(draft.noteURL.deletingPathExtension().lastPathComponent) Recovered.md"
+        return panel.runModal() == .OK ? panel.url : nil
     }
 
     private func replaceDocument(with text: String) {
@@ -432,8 +496,62 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
     }
 
     private func showEditedStatus() {
-        status.stringValue = note?.url.lastPathComponent ?? "Markdown edited"
-        window.isDocumentEdited = hasUnsavedChanges
+        status.stringValue = recoveryCopy.map { "Recovered copy · \($0.noteURL.lastPathComponent)" }
+            ?? note?.url.lastPathComponent ?? "Markdown edited"
+        let dirty = hasUnsavedChanges
+        window.isDocumentEdited = dirty
+        if dirty { scheduleRecovery() }
+        else {
+            do { try recoveryStore?.clear() }
+            catch { status.stringValue = "Recovery copy could not be cleared" }
+        }
+    }
+
+    private func scheduleRecovery() {
+        guard recoveryStore != nil, !recoveryScheduled else { return }
+        recoveryScheduled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(250)) { [weak self] in
+            guard let self else { return }
+            self.recoveryScheduled = false
+            self.checkpointRecovery()
+        }
+    }
+
+    private func checkpointRecovery() {
+        guard hasUnsavedChanges, let url = note?.url ?? recoveryCopy?.noteURL,
+              let original = note?.original ?? recoveryCopy?.original else { return }
+        do { try recoveryStore?.save(RecoverySnapshot(noteURL: url, original: original, edited: source)) }
+        catch { status.stringValue = "Unsaved changes · recovery copy unavailable" }
+    }
+
+    private func restoreRecovery() throws {
+        guard let draft = try recoveryStore?.load() else { return }
+        let checkedAccess = {
+            let url = draft.noteURL
+            let attributes = try url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+            guard url.resolvingSymlinksInPath().path == url.path,
+                  attributes.isRegularFile == true, attributes.isSymbolicLink == false
+            else { throw NoteError.externalChange }
+            return url
+        }
+        if let url = try? checkedAccess(), let file = try? NoteFile(url, checkedAccess: checkedAccess) {
+            if file.original == NoteFile.recoveredBytes(draft) {
+                try recoveryStore?.clear()
+                return
+            }
+            if file.original == draft.original {
+                install(file)
+                replaceDocument(with: draft.edited)
+                window.isDocumentEdited = true
+                status.stringValue = "Recovered unsaved changes · \(file.url.lastPathComponent)"
+                return
+            }
+        }
+        recoveryCopy = draft
+        editor.isEditable = true
+        replaceDocument(with: draft.edited)
+        window.isDocumentEdited = true
+        status.stringValue = "Recovered copy · \(draft.noteURL.lastPathComponent)"
     }
 
     @objc private func undoEdit() { if history.canUndo { history.undo() } }
@@ -448,14 +566,20 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
     }
 
     private var hasUnsavedChanges: Bool {
+        if recoveryCopy != nil { return true }
         guard let note else { return false }
         return !source.utf8.elementsEqual(note.text.utf8)
     }
 
     private func promptForPendingEdits() -> EditDecision {
         let alert = NSAlert()
-        alert.messageText = "Save changes to \(note?.url.lastPathComponent ?? "this note")?"
-        alert.addButton(withTitle: "Save")
+        if let draft = recoveryCopy {
+            alert.messageText = "Save a recovered copy of \(draft.noteURL.lastPathComponent)?"
+            alert.informativeText = "The original file changed or is unavailable."
+        } else {
+            alert.messageText = "Save changes to \(note?.url.lastPathComponent ?? "this note")?"
+        }
+        alert.addButton(withTitle: recoveryCopy == nil ? "Save" : "Save a Copy…")
         alert.addButton(withTitle: "Cancel")
         let discard = alert.addButton(withTitle: "Discard Changes")
         discard.hasDestructiveAction = true
@@ -467,19 +591,20 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
     }
 
     private func resolvePendingEdits(deciding: (() -> EditDecision)? = nil) throws -> Bool {
-        guard hasUnsavedChanges, let note else { return true }
+        guard hasUnsavedChanges else { return true }
         switch deciding?() ?? promptForPendingEdits() {
-        case .save:
-            try note.save(source)
-            window.isDocumentEdited = false
-            return true
+        case .save: return try saveCurrentNote()
         case .discard: return true
         case .cancel: return false
         }
     }
 
     private func canCloseNote() -> Bool {
-        do { return try resolvePendingEdits() }
+        do {
+            guard try resolvePendingEdits() else { return false }
+            if hasUnsavedChanges { try recoveryStore?.clear() }
+            return true
+        }
         catch { present(error); return false }
     }
 
@@ -490,6 +615,72 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         windowIsClosing || canCloseNote() ? .terminateNow : .terminateCancel
+    }
+
+    private func runRecoverySmoke(_ test: RecoverySmoke) {
+        do {
+            guard let recoveryStore else { throw CocoaError(.fileReadUnknown) }
+            let addition = "\r\nRecovered Cafe\u{301} 日本語 🪔.\r\n"
+            switch test.phase {
+            case .edit:
+                expect(note == nil && recoveryCopy == nil, "A new test must start without a recovered note")
+                try load(test.noteURL.resolvingSymlinksInPath())
+                guard let note else { throw CocoaError(.fileReadUnknown) }
+                window.makeFirstResponder(editor)
+                let end = NSRange(location: editor.string.utf16.count, length: 0)
+                editor.insertText(addition, replacementRange: end)
+                verifyEditorBytes(note.text + addition)
+                expect(window.isDocumentEdited)
+                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(400)) {
+                    let saved = try? recoveryStore.load()
+                    self.expect(saved?.original == note.original && saved?.edited.utf8.elementsEqual(self.source.utf8) == true,
+                                "The editor did not checkpoint the latest Markdown")
+                    print("READY Native recovery checkpoint")
+                    fflush(stdout)
+                }
+                return
+            case .restore:
+                guard let draft = try recoveryStore.load() else { throw CocoaError(.fileReadUnknown) }
+                expect(note?.url == draft.noteURL && recoveryCopy == nil && window.isDocumentEdited)
+                verifyEditorBytes(draft.edited)
+                expect(tryBytes(test.noteURL) == draft.original, "Recovery wrote to the original on launch")
+                let saved = try saveCurrentNote()
+                expect(saved && tryBytes(test.noteURL) == NoteFile.recoveredBytes(draft))
+            case .conflict:
+                guard let draft = try recoveryStore.load() else { throw CocoaError(.fileReadUnknown) }
+                expect(note == nil && recoveryCopy?.noteURL == draft.noteURL && window.isDocumentEdited)
+                verifyEditorBytes(draft.edited)
+                let originalOnDisk = tryBytes(test.noteURL)
+                let cancelled = try saveCurrentNote(selectingCopy: { nil })
+                expect(!cancelled && window.isDocumentEdited)
+                do {
+                    _ = try saveCurrentNote(selectingCopy: { draft.noteURL })
+                    preconditionFailure("Recovery overwrote the source")
+                } catch NoteError.recoveryNeedsNewFile { }
+                let copy = test.noteURL.deletingLastPathComponent().appendingPathComponent("Recovered.md")
+                let existing = Data("An existing copy".utf8)
+                try existing.write(to: copy, options: .withoutOverwriting)
+                do {
+                    _ = try saveCurrentNote(selectingCopy: { copy })
+                    preconditionFailure("Recovery replaced an existing copy")
+                } catch CocoaError.fileWriteFileExists {
+                    expect(tryBytes(copy) == existing && window.isDocumentEdited)
+                }
+                try FileManager.default.removeItem(at: copy)
+                let saved = try saveCurrentNote(selectingCopy: { copy })
+                expect(saved && tryBytes(copy) == NoteFile.recoveredBytes(draft))
+                expect(tryBytes(test.noteURL) == originalOnDisk, "Save a Copy changed the original")
+            case .saved:
+                expect(note == nil && recoveryCopy == nil && !window.isDocumentEdited)
+            }
+            let pending = try recoveryStore.load()
+            expect(pending == nil, "Completed recovery left a stale snapshot")
+            print("PASS Native recovery \(test.phase.rawValue)")
+            window.performClose(nil)
+        } catch {
+            fputs("FAIL recovery: \(error)\n", stderr)
+            exit(EXIT_FAILURE)
+        }
     }
 
     private func runSmoke(_ url: URL) {
@@ -795,9 +986,26 @@ enum ProbeMain {
         let args = CommandLine.arguments
         let fixture = args.count == 3 && args[1] == "--smoke" ? URL(fileURLWithPath: args[2]) : nil
         let app = NSApplication.shared
-        let workspace = Workspace(fixture: fixture)
-        app.setActivationPolicy(.regular)
-        app.delegate = workspace
-        withExtendedLifetime(workspace) { app.run() }
+        do {
+            let smoke: RecoverySmoke?
+            let store: RecoveryStore?
+            if args.dropFirst().first == "--recovery-smoke" {
+                guard args.count == 5, let phase = RecoverySmoke.Phase(rawValue: args[2]) else {
+                    fputs("Invalid recovery smoke arguments.\n", stderr)
+                    exit(EXIT_FAILURE)
+                }
+                smoke = RecoverySmoke(phase: phase, noteURL: URL(fileURLWithPath: args[3]))
+                store = RecoveryStore(fileURL: URL(fileURLWithPath: args[4]))
+            } else {
+                smoke = nil
+                store = fixture == nil ? try RecoveryStore.applicationSupport() : nil
+            }
+            let workspace = Workspace(fixture: fixture, recoveryStore: store, recoverySmoke: smoke)
+            app.setActivationPolicy(.regular)
+            app.delegate = workspace
+            withExtendedLifetime(workspace) { app.run() }
+        } catch {
+            NSAlert(error: error).runModal()
+        }
     }
 }
