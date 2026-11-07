@@ -41,13 +41,13 @@ public final class FxSidebarSearch extends VBox {
   private static final PseudoClass OPTIONS_ACTIVE = PseudoClass.getPseudoClass("options-active");
   private final TextField query = new TextField(), include = new TextField(), exclude = new TextField();
   private final StackPane queryControl = new StackPane(query);
-  private final ToggleButton searchOptions = new ToggleButton(null, FxTheme.icon("settings-2", 16));
+  private final ToggleButton searchOptions = new ToggleButton(null, FxTheme.icon("settings-2"));
   private final RadioButton files = new RadioButton(), contents = new RadioButton();
   private final ToggleGroup mode = new ToggleGroup();
-  private final ToggleButton matchCase = new ToggleButton(null, FxTheme.icon("case-sensitive", 16)),
-      wholeWord = new ToggleButton(null, FxTheme.icon("whole-word", 16)),
-      regex = new ToggleButton(null, FxTheme.icon("regex", 16)),
-      filters = new ToggleButton(null, FxTheme.icon("list-filter", 16));
+  private final ToggleButton matchCase = new ToggleButton(null, FxTheme.icon("case-sensitive")),
+      wholeWord = new ToggleButton(null, FxTheme.icon("whole-word")),
+      regex = new ToggleButton(null, FxTheme.icon("regex")),
+      filters = new ToggleButton(null, FxTheme.icon("list-filter"));
   private final TreeView<OpenResult> results = new TreeView<>();
   private final Label status = new Label();
   private final BooleanBinding hasQuery = query.textProperty().isNotEmpty();
@@ -191,7 +191,7 @@ public final class FxSidebarSearch extends VBox {
       }
     });
 
-    Node searchIcon = FxTheme.icon("search", 16);
+    Node searchIcon = FxTheme.icon("search");
     searchIcon.setMouseTransparent(true);
     searchIcon.visibleProperty().bind(queryControl.widthProperty().greaterThanOrEqualTo(96)
         .and(hasQuery.not().or(queryControl.widthProperty().greaterThanOrEqualTo(152))));
@@ -218,10 +218,10 @@ public final class FxSidebarSearch extends VBox {
       button.getStyleClass().add("sidebar-search-mode");
       HBox.setHgrow(button, Priority.ALWAYS);
     }
-    files.setGraphic(FxTheme.icon("files", 16));
+    files.setGraphic(FxTheme.icon("files"));
     files.setAccessibleText("Search filenames");
     files.setTooltip(new Tooltip("Search filenames"));
-    contents.setGraphic(FxTheme.icon("text-search", 16));
+    contents.setGraphic(FxTheme.icon("text-search"));
     contents.setAccessibleText("Search note contents");
     contents.setTooltip(new Tooltip("Search note contents"));
     files.setSelected(true);
@@ -233,6 +233,7 @@ public final class FxSidebarSearch extends VBox {
     styleToggle(regex, "Use regular expression");
     styleToggle(filters, "Include and exclude files");
     HBox flags = new HBox(8, matchCase, wholeWord, regex, filters);
+    flags.setAlignment(Pos.CENTER_LEFT);
     flags.getStyleClass().add("sidebar-search-flags");
 
     VBox globs = new VBox(8, filterField("Include files", "e.g. notes/**", include),
@@ -247,7 +248,7 @@ public final class FxSidebarSearch extends VBox {
   }
 
   private static void styleToggle(ToggleButton toggle, String description) {
-    toggle.getStyleClass().addAll("flat", "sidebar-search-option");
+    toggle.getStyleClass().addAll("flat", "file-row-action", "sidebar-search-option");
     toggle.setAccessibleText(description);
     toggle.setTooltip(new Tooltip(description));
   }

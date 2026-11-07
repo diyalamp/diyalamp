@@ -421,6 +421,7 @@ public final class FxDiyalamp extends Application {
     options.disableProperty().bind(noFolder);
     HBox.setHgrow(query, Priority.ALWAYS);
     HBox actionStrip = new HBox(options, createFolder, create);
+    actionStrip.setAlignment(Pos.CENTER_LEFT);
     HBox.setMargin(actionStrip, new Insets(0, 4, 0, 0)); // Match the file cell's inner right inset.
     HBox actions = new HBox(8, query, actionStrip);
     actions.setAlignment(Pos.CENTER_LEFT);

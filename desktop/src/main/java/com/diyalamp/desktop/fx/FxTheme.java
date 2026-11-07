@@ -15,7 +15,7 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.*;
 import javafx.scene.transform.Scale;
@@ -161,7 +161,7 @@ public final class FxTheme {
   }
 
   public static Button iconButton(String icon, String description, Runnable action) {
-    Button button = new Button(null, icon(icon, 16));
+    Button button = new Button(null, icon(icon));
     button.getStyleClass().addAll("flat", "button-icon", "workspace-tool");
     button.setAccessibleText(description);
     button.setTooltip(new Tooltip(description));
@@ -185,9 +185,11 @@ public final class FxTheme {
     return view;
   }
 
+  static Node icon(String name) { return icon(name, 16); }
+
   /** Reuses the repository's upstream Lucide geometry without an icon font or WebView. */
   public static Node icon(String name, double size) {
-    Pane pane = new Pane();
+    StackPane pane = new StackPane();
     pane.setMinSize(size, size);
     pane.setPrefSize(size, size);
     pane.setMaxSize(size, size);
@@ -240,7 +242,9 @@ public final class FxTheme {
     } catch (Exception e) {
       System.err.println("Could not load bundled icon: " + name);
     }
-    pane.getChildren().add(group);
+    // A wrapping group includes the scaled artwork in its layout bounds, so the
+    // icon slot centers the painted strokes even when the SVG has uneven margins.
+    pane.getChildren().add(new Group(group));
     return pane;
   }
 

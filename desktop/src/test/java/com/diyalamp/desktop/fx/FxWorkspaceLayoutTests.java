@@ -20,6 +20,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.IndexedCell;
 import javafx.scene.control.Label;
+import javafx.scene.control.Labeled;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
@@ -32,6 +33,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
@@ -201,6 +203,26 @@ public final class FxWorkspaceLayoutTests {
             node.getLayoutBounds().getWidth() == 28 && node.getLayoutBounds().getHeight() == 28)
             && headerCenters.equals(rowCenters),
         "Search options and creation actions must share file-row dimensions and alignment: " + headerCenters + " / " + rowCenters);
+    double searchCenter = centerY(search);
+    Node magnifier = ((StackPane) sidebarSearch.queryControl()).getChildren().get(1);
+    check(Math.abs(inkCenterY(magnifier) - searchCenter) <= 1
+        && headerActions.stream().allMatch(node -> Math.abs(centerY(node) - searchCenter) <= 1
+            && Math.abs(inkCenterY(((Labeled) node).getGraphic()) - searchCenter) <= 1),
+        "The magnifier, options, new-folder and new-note icons must share the search field's centerline");
+    sidebarSearch.optionsButton().fire();
+    fixture.layout();
+    var searchOptions = sidebarSearch.lookupAll(".sidebar-search-option");
+    var searchModes = sidebarSearch.lookupAll(".sidebar-search-mode");
+    check(searchOptions.size() == 4 && searchModes.size() == 2
+        && searchOptions.stream().allMatch(node -> node.getLayoutBounds().getWidth() == 28
+            && node.getLayoutBounds().getHeight() == 28)
+        && java.util.stream.Stream.concat(searchOptions.stream(), searchModes.stream()).allMatch(node -> {
+          Node graphic = ((Labeled) node).getGraphic();
+          return graphic.getLayoutBounds().getWidth() == 16 && graphic.getLayoutBounds().getHeight() == 16
+              && Math.abs(inkCenterY(graphic) - centerY(node)) <= 1;
+        }), "Advanced search shares the workspace icon size, centered artwork, and compact action targets");
+    sidebarSearch.optionsButton().fire();
+    fixture.layout();
     check(rowActions.stream().filter(Node::isVisible).count() == 6,
         "Both notes expose split, rename and delete without hovering");
     Button split = action(tree, "Open Draft.md side by side");
@@ -290,6 +312,18 @@ public final class FxWorkspaceLayoutTests {
   private static Button action(TreeView<?> tree, String name) {
     return (Button) tree.lookupAll(".file-row-action").stream()
         .filter(node -> name.equals(node.getAccessibleText())).findFirst().orElseThrow();
+  }
+
+  private static double centerY(Node node) {
+    return node.localToScene(node.getLayoutBounds()).getCenterY();
+  }
+
+  private static double inkCenterY(Node icon) {
+    var ink = icon.lookupAll(".icon-stroke").stream()
+        .map(shape -> shape.localToScene(shape.getBoundsInLocal())).toList();
+    double top = ink.stream().mapToDouble(bounds -> bounds.getMinY()).min().orElseThrow();
+    double bottom = ink.stream().mapToDouble(bounds -> bounds.getMaxY()).max().orElseThrow();
+    return (top + bottom) / 2;
   }
 
   @SuppressWarnings("unchecked")
