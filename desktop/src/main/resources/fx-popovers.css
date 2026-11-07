@@ -92,8 +92,9 @@
   -fx-min-height: 8; -fx-pref-height: 8; -fx-max-height: 8;
   -fx-background-color: -color-accent-fg; -fx-background-radius: 99;
 }
-.pomodoro-bubble .pomodoro-phase {
-  -fx-alignment: center-left; -fx-padding: 0 16; -fx-graphic-text-gap: 8;
+.pomodoro-bubble .popover-action, .pomodoro-bubble .pomodoro-phase {
+  -fx-alignment: center;
+  -fx-label-padding: 0;
 }
 .pomodoro-bubble .pomodoro-phase > .radio, .pomodoro-bubble .pomodoro-phase > .radio > .dot {
   -fx-min-width: 0; -fx-pref-width: 0; -fx-max-width: 0;

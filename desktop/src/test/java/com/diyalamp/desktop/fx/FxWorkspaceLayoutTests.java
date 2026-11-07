@@ -20,6 +20,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.IndexedCell;
 import javafx.scene.control.Label;
+import javafx.scene.control.Labeled;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
@@ -32,6 +33,7 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
@@ -105,16 +107,29 @@ public final class FxWorkspaceLayoutTests {
         "Search and both creation actions live in the files sidebar");
     check(toolbar.getItems().stream().noneMatch(node -> java.util.List.of("New folder", "New note", "Search notes", "Open note side by side")
         .contains(String.valueOf(node.getAccessibleText()))), "Sidebar controls, including Split View, are not repeated on the top bar");
-    Region graphHeader = (Region) ((FxNoteGraph) field(fixture.app, "noteGraph")).node().lookup(".graph-heading-row");
+    Node graphPanel = ((FxNoteGraph) field(fixture.app, "noteGraph")).node();
+    Region graphHeader = (Region) graphPanel.lookup(".graph-heading-row");
     check(filesHeader.getHeight() == 52 && tabs.getHeight() == 52 && graphHeader.getHeight() == 52
         && filesHeader.localToScene(0, 0).getY() == tabs.localToScene(0, 0).getY()
         && filesHeader.localToScene(0, 0).getY() == graphHeader.localToScene(0, 0).getY(),
         "Files, tabs and Connections start on one 52 px band");
-    var bandDivider = (javafx.scene.shape.Line) fixture.stage.getScene().lookup(".workspace-band-divider");
+    var bandDivider = (javafx.scene.shape.Line) fixture.stage.getScene().lookup("#workspace-top-divider");
     check(bandDivider.isMouseTransparent() && bandDivider.getStrokeWidth() == 1
         && bandDivider.getEndX() == fixture.stage.getScene().getWidth()
         && Math.abs(bandDivider.localToScene(0, 0).getY() - tabs.localToScene(0, 51.5).getY()) < .01,
         "A single one-pixel rule spans the workspace without intercepting the sidebar dividers");
+    Region filesContext = (Region) explorerList.lookup(".files-context-row");
+    Region documentLocation = (Region) tabs.getParent().lookup(".document-location");
+    Region graphSummary = (Region) graphPanel.lookup(".graph-summary");
+    double contextY = filesContext.localToScene(0, 0).getY();
+    check(filesContext.getHeight() == 52 && documentLocation.getHeight() == 52 && graphSummary.getHeight() == 52
+        && contextY == documentLocation.localToScene(0, 0).getY() && contextY == graphSummary.localToScene(0, 0).getY(),
+        "Files, document breadcrumb, and current note share the second 52 px band");
+    check(((Label) filesContext.lookup(".label")).getText().equals("Files"), "The files context band is labeled");
+    var contextDivider = (javafx.scene.shape.Line) fixture.stage.getScene().lookup("#workspace-context-divider");
+    check(contextDivider.isMouseTransparent() && contextDivider.getEndX() == fixture.stage.getScene().getWidth()
+        && Math.abs(contextDivider.localToScene(0, 0).getY() - contextY - 51.5) < .01,
+        "A single shared divider underlines all three context headers");
     paintedRows(tree, ".tree-cell", 4);
     graphRows(fixture);
     HBox metrics = (HBox) field(fixture.app, "metrics");
@@ -201,6 +216,26 @@ public final class FxWorkspaceLayoutTests {
             node.getLayoutBounds().getWidth() == 28 && node.getLayoutBounds().getHeight() == 28)
             && headerCenters.equals(rowCenters),
         "Search options and creation actions must share file-row dimensions and alignment: " + headerCenters + " / " + rowCenters);
+    double searchCenter = centerY(search);
+    Node magnifier = ((StackPane) sidebarSearch.queryControl()).getChildren().get(1);
+    check(Math.abs(inkCenterY(magnifier) - searchCenter) <= 1
+        && headerActions.stream().allMatch(node -> Math.abs(centerY(node) - searchCenter) <= 1
+            && Math.abs(inkCenterY(((Labeled) node).getGraphic()) - searchCenter) <= 1),
+        "The magnifier, options, new-folder and new-note icons must share the search field's centerline");
+    sidebarSearch.optionsButton().fire();
+    fixture.layout();
+    var searchOptions = sidebarSearch.lookupAll(".sidebar-search-option");
+    var searchModes = sidebarSearch.lookupAll(".sidebar-search-mode");
+    check(searchOptions.size() == 4 && searchModes.size() == 2
+        && searchOptions.stream().allMatch(node -> node.getLayoutBounds().getWidth() == 28
+            && node.getLayoutBounds().getHeight() == 28)
+        && java.util.stream.Stream.concat(searchOptions.stream(), searchModes.stream()).allMatch(node -> {
+          Node graphic = ((Labeled) node).getGraphic();
+          return graphic.getLayoutBounds().getWidth() == 16 && graphic.getLayoutBounds().getHeight() == 16
+              && Math.abs(inkCenterY(graphic) - centerY(node)) <= 1;
+        }), "Advanced search shares the workspace icon size, centered artwork, and compact action targets");
+    sidebarSearch.optionsButton().fire();
+    fixture.layout();
     check(rowActions.stream().filter(Node::isVisible).count() == 6,
         "Both notes expose split, rename and delete without hovering");
     Button split = action(tree, "Open Draft.md side by side");
@@ -292,6 +327,18 @@ public final class FxWorkspaceLayoutTests {
         .filter(node -> name.equals(node.getAccessibleText())).findFirst().orElseThrow();
   }
 
+  private static double centerY(Node node) {
+    return node.localToScene(node.getLayoutBounds()).getCenterY();
+  }
+
+  private static double inkCenterY(Node icon) {
+    var ink = icon.lookupAll(".icon-stroke").stream()
+        .map(shape -> shape.localToScene(shape.getBoundsInLocal())).toList();
+    double top = ink.stream().mapToDouble(bounds -> bounds.getMinY()).min().orElseThrow();
+    double bottom = ink.stream().mapToDouble(bounds -> bounds.getMaxY()).max().orElseThrow();
+    return (top + bottom) / 2;
+  }
+
   @SuppressWarnings("unchecked")
   private static void graphRows(Fixture fixture) throws Exception {
     FxNoteGraph graph = (FxNoteGraph) field(fixture.app, "noteGraph");
@@ -301,8 +348,8 @@ public final class FxWorkspaceLayoutTests {
       list.getItems().setAll(fixture.directory.resolve("Draft.md"), fixture.directory.resolve("Reference.md"));
       fixture.layout();
       paintedRows(list, ".list-cell", 0);
-      check(((Region) list.getParent()).getPadding().equals(new Insets(8)),
-          "Connection lists retain their section's existing 8 px inset");
+      check(list.getPadding().equals(new Insets(0, 8, 0, 8)),
+          "Connection lists retain their 8 px side insets below full-width headings");
     } finally { list.getItems().setAll(original); }
   }
 

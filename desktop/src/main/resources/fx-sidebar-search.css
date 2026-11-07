@@ -54,15 +54,6 @@
   -fx-background-color: transparent;
   -fx-opacity: 0;
 }
-.sidebar-search .sidebar-search-option {
-  -fx-min-width: 36;
-  -fx-pref-width: 36;
-  -fx-max-width: 36;
-  -fx-min-height: 36;
-  -fx-pref-height: 36;
-  -fx-max-height: 36;
-  -fx-padding: 8;
-}
 .sidebar-search .sidebar-search-mode:hover, .sidebar-search .sidebar-search-option:hover {
   -fx-border-color: -color-border-default;
   -fx-text-fill: -color-fg-default;

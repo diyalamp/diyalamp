@@ -212,7 +212,7 @@ public final class FxDiyalamp extends Application {
       tabs.setAnimated(true);
       HBox location = new HBox(breadcrumb);
       location.setAlignment(Pos.CENTER_LEFT);
-      location.getStyleClass().add("document-location");
+      location.getStyleClass().addAll("workspace-band", "document-location");
       breadcrumb.getStyleClass().add("document-breadcrumb");
       chrome.getChildren().setAll(tabs, location);
       container.setTop(chromeClip);
@@ -257,13 +257,9 @@ public final class FxDiyalamp extends Application {
     primary = new PaneHost(); secondary = new PaneHost();
     split.getItems().add(primary.container);
     split.getStyleClass().add("writing-split");
-    Line bandDivider = new Line();
-    bandDivider.getStyleClass().add("workspace-band-divider");
-    bandDivider.endXProperty().bind(workspaceLayer.widthProperty());
-    bandDivider.translateYProperty().bind(primary.tabs.heightProperty().subtract(.5));
-    bandDivider.setManaged(false);
-    bandDivider.setMouseTransparent(true);
-    workspaceLayer.getChildren().add(bandDivider);
+    Line bandDivider = workspaceDivider("workspace-top-divider", primary.tabs.heightProperty());
+    Line contextDivider = workspaceDivider("workspace-context-divider", primary.chrome.heightProperty());
+    workspaceLayer.getChildren().addAll(bandDivider, contextDivider);
     buildExplorer();
     configureSidebars();
     root.getStyleClass().add("workspace-root");
@@ -276,7 +272,7 @@ public final class FxDiyalamp extends Application {
     footer.getChildren().setAll(status, spacer(), metrics);
     footer.getStyleClass().add("workspace-status");
     footer.setAlignment(Pos.CENTER_LEFT); root.setBottom(footerClip);
-    FxZenChrome.apply(zenProgressProperty(), toolbarClip, footerClip, bandDivider, explorer,
+    FxZenChrome.apply(zenProgressProperty(), toolbarClip, footerClip, bandDivider, contextDivider, explorer,
         noteGraph.node(), primary.chromeClip, secondary.chromeClip);
     Scene scene = new Scene(root, 1180, 800);
     scene.getPreferences().setColorScheme(ColorScheme.DARK);
@@ -421,6 +417,7 @@ public final class FxDiyalamp extends Application {
     options.disableProperty().bind(noFolder);
     HBox.setHgrow(query, Priority.ALWAYS);
     HBox actionStrip = new HBox(options, createFolder, create);
+    actionStrip.setAlignment(Pos.CENTER_LEFT);
     HBox.setMargin(actionStrip, new Insets(0, 4, 0, 0)); // Match the file cell's inner right inset.
     HBox actions = new HBox(8, query, actionStrip);
     actions.setAlignment(Pos.CENTER_LEFT);
@@ -435,7 +432,21 @@ public final class FxDiyalamp extends Application {
     tree.managedProperty().bind(tree.visibleProperty());
     VBox.setVgrow(tree, Priority.ALWAYS);
     VBox.setVgrow(sidebarSearch, Priority.ALWAYS);
-    explorer.getChildren().setAll(actions, sidebarSearch, tree);
+    HBox files = new HBox(new Label("Files"));
+    files.setAlignment(Pos.CENTER_LEFT);
+    files.getStyleClass().addAll("workspace-band", "files-context-row");
+    explorer.getChildren().setAll(actions, files, sidebarSearch, tree);
+  }
+
+  private Line workspaceDivider(String id, ReadOnlyDoubleProperty boundary) {
+    Line divider = new Line();
+    divider.setId(id);
+    divider.getStyleClass().add("workspace-band-divider");
+    divider.endXProperty().bind(workspaceLayer.widthProperty());
+    divider.translateYProperty().bind(boundary.subtract(.5));
+    divider.setManaged(false);
+    divider.setMouseTransparent(true);
+    return divider;
   }
 
   private HBox fileActions(Path path) {
