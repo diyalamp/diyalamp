@@ -1,6 +1,6 @@
-## diyalamp 1.2.0 · development
+## diyalamp 1.2.1 · development
 
-The dark-only macOS workspace combines maintained AtlantaFX CupertinoDark controls with the official VS Code 2026 Dark palette, RichTextFX editing, and SmartGraph note navigation. These notes describe the 1.2.0 development version; the README keeps verified 1.1.3 download links and measurements until new public assets are confirmed.
+The dark-only macOS workspace combines AtlantaFX CupertinoDark controls with the official VS Code 2026 Dark palette, RichTextFX editing, and SmartGraph note navigation. These notes describe the 1.2.1 development build. See the README for the published downloads and measurements.
 
 ### Connected notes
 
@@ -15,12 +15,12 @@ The dark-only macOS workspace combines maintained AtlantaFX CupertinoDark contro
 - Six accent choices with a blue default transition smoothly, including when a new choice interrupts a transition. Accessibility attachment no longer disables animations; the explicit reduced-motion option remains.
 - All text is 16 px, including headings, graph labels, dialog headers, tooltips, menus, popovers, and timer digits. Static Inter Regular is used for ordinary text; exact Inter SemiBold changes heading weight without enlarging it, and Menlo 16 is used for code. Static italic faces preserve emphasis. Font files add about 1.6 MiB, measured separately from the runtime.
 - The global toolbar, sidebar, tabs, graph, dialogs, and popovers use a shared 8/16/24 spacing scale and CupertinoDark controls. Editor `#121314`/`#BBBEBF`, chrome `#191A1B`, border `#2A2B2C`, text `#BFBFBF`, and muted text `#8C8C8C` follow 2026 Dark. Inputs use `#191A1B` with `#333536` borders and `#555555` placeholders; default action/link blues are `#297AA0` and `#48A0C7`.
-- Top-toolbar Pomodoro and accent controls are icon-only/color-circle controls. New-note and split controls stay in the toolbar/sidebar rather than inside the writing surface.
+- The dark toolbar shares a row with the native macOS window buttons. The aligned lamp and app name precede the files toggle, full workspace path, search, new-note, new-folder, and split controls. The left sidebar displays the note and folder tree. Pomodoro and accent controls use an icon and a color circle.
 - The bottom status bar shows rendered character/word/logical-line counts and the current Markdown's UTF-8 byte size. Both sidebars have native draggable dividers and remember their pixel widths and visibility independently. The reset icon restores 272/304 px widths within window bounds without changing open notes, selection, visibility, or Zen.
 - Hover paint transitions do not lift, scale, or move controls. The explicit reduced-motion option removes those transitions.
 - A compact toolbar Pomodoro opens an animated bubble for 25-minute focus and 5-minute breaks with Start, Stop, and Reset. Each next session starts explicitly; completion uses an in-app notice. The timer stops when the app quits.
 - Move tabs between split panes and move notes into workspace folders by dragging. Folder moves preserve note bytes and reject overwrites or destinations outside the workspace.
-- The lamp and product name appear together on one line. The dark icon keeps the approved lamp geometry. Packaged macOS launches retain the bundled ICNS rather than replacing it with a separate runtime image; this is not a guarantee about operating-system Dock zoom. Global Dock settings are unchanged.
+- The dark icon keeps the approved lamp geometry. At launch, the app clears the JavaFX icon override so AppKit renders the bundled icon in the Dock for both running and closed states.
 
 ### Files and updates
 

@@ -1,6 +1,6 @@
 # diyalamp desktop
 
-A focused, local Markdown writing app for macOS. The 1.2.0 development interface uses JavaFX 27, maintained AtlantaFX CupertinoDark controls, RichTextFX rendered editing, bundled static Inter text, and installed Menlo for code. No backend, model provider, database, or account is required.
+A focused, local Markdown writing app for macOS. The 1.2.1 development interface uses JavaFX 27, maintained AtlantaFX CupertinoDark controls, RichTextFX rendered editing, bundled static Inter text, and installed Menlo for code. No backend, model provider, database, or account is required.
 
 ## Build and run
 
@@ -45,10 +45,10 @@ The interface is dark-only, with no theme switch. Its colors follow the official
 
 ## Writing and storage
 
-- Open a folder of `.md` or `.markdown` notes. The sidebar searches note names.
+- Open a folder of `.md` or `.markdown` notes. The toolbar displays the full folder path. Click the search icon or press Command-P to filter the note tree by name or relative path. Enter opens the first result and Escape restores the folder path.
 - Use rendered text, headings, emphasis, simple lists, checklists, quotes, and fenced code blocks.
 - Type `/` on an empty line for blocks, or use formatting controls and keyboard shortcuts.
-- Use New note and Split from the top toolbar, or file actions in the sidebar; editor content does not carry duplicate new/split buttons.
+- Use New note, New folder, and Split from the toolbar alongside the native macOS window buttons. For individual file operations, use the note and folder tree's context menus.
 - Drag a sidebar note to a tab area; dropping near its right edge opens a second pane. Drag tabs between panes or onto a workspace folder to move the local file without overwriting a collision.
 - The bottom status bar reports characters, words, and logical lines from rendered text, plus the UTF-8 size of the current Markdown, including current unsaved edits. Wrapped display lines do not inflate the logical-line count.
 - Autosave writes local files. A changed disk fingerprint stops an overwrite and keeps edits open for export. Use File → Reload note from disk… to reload after exporting a recovery copy; unsaved edits require confirmation before replacement.

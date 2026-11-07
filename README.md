@@ -13,9 +13,9 @@ diyalamp is a desktop Markdown editor with rendered formatting and local file st
 
 The application opens a folder of `.md` or `.markdown` files. Editing does not require an account, subscription, server, database, or internet connection. Notes remain readable by other Markdown tools.
 
-## Development features · 1.2.0
+## Development features · 1.2.1
 
-This describes the 1.2.0 development workspace. The verified downloads below remain at 1.1.3 until new installers are published.
+This describes the 1.2.1 development workspace. See macOS downloads below for the published release.
 
 - Dark-only macOS workspace using maintained AtlantaFX CupertinoDark controls and the official VS Code 2026 Dark palette, with a file explorer, note tabs, and flat Lucide icons.
 - One 16 px text size throughout: static Inter for interface/prose and headings, with weight indicating headings or emphasis; installed Menlo for code.
@@ -30,7 +30,7 @@ This describes the 1.2.0 development workspace. The verified downloads below rem
 - Smooth accent transitions, matching dark dialogs, and restrained hover paint transitions without moving controls.
 - Icon-only top-toolbar Pomodoro and a color-circle accent control. Pomodoro opens an animated popover for Start, Stop, and Reset; its tooltip and accessibility help show the phase and remaining time.
 - Drag tabs between panes or move notes into workspace folders without overwrites.
-- New-note and split actions in the top toolbar and file controls in the sidebar, leaving the writing surface clear.
+- A unified macOS toolbar with native window buttons, the full workspace path, and controls for search, new notes, new folders, and split view. The files sidebar shows the note and folder tree.
 - Character, word, and logical-line counts for rendered text, plus the current Markdown's UTF-8 byte size in the status bar.
 - Native draggable dividers for both sidebars, with saved pixel widths and independent open/closed states. An icon-only reset restores the default widths without closing notes or changing Zen.
 - Six accent choices with a blue default and explicit in-app update checks.

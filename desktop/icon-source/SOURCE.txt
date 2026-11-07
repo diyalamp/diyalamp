@@ -29,17 +29,19 @@ representations from the same PNG, preserving their scale and composition.
 
 Launch-icon audit
 
-The packaged macOS app uses CFBundleIconFile=diyalamp.icns. Its JavaFX entry
-point intentionally does not add a PNG to Stage.getIcons() when the jpackage
-app-path property identifies a packaged Mac app. Preserve that guard: JavaFX's
-Mac WindowStage otherwise scales a supplied window icon to 128 x 128 and sends
-it to the native icon setter, which can replace the Dock image.
+The packaged macOS app uses CFBundleIconFile=diyalamp.icns. OpenJFX Glass loads
+that file into NSImage and assigns it to NSApplication.applicationIconImage
+during launch. AppKit treats the assignment as a runtime override, which can
+render at a different size from the system-managed bundled icon in the Dock.
+After Glass startup, MacDockIcon clears the override on the Cocoa main thread
+using the AppKit setter with nil. The original ICNS supplies the icon for both
+running and closed app states. The Stage.getIcons() guard keeps JavaFX from
+adding a second override when it shows the window.
 
-There is no application code requesting Dock attention, bouncing, magnification,
-or a launch zoom. No global Dock preference has been changed. An operating-
-system launch animation cannot be attributed to the icon source alone; this
-asset change does not claim to disable a macOS-controlled animation. The app
-keeps its visible Dock icon and its packaged multi-resolution ICNS.
+OpenJFX Glass startup implementation:
+https://github.com/openjdk/jfx/blob/master/modules/javafx.graphics/src/main/native-glass/mac/GlassApplication.m
+AppKit icon restoration contract:
+https://developer.apple.com/documentation/appkit/nsapplication/applicationiconimage
 
 No new third-party artwork, generated replacement logo, or typography is used.
 The approved lamp remains a project brand asset under its existing provenance.

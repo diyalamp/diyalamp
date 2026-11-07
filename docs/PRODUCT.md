@@ -6,7 +6,7 @@
 
 The public story leads with writing and ownership. Java is an implementation detail for contributors.
 
-## Desktop scope · 1.2.0 development
+## Desktop scope · 1.2.1 development
 
 - No account or service connection required.
 - A folder of `.md` notes with create, rename, search, open, and recoverable delete.
@@ -37,7 +37,7 @@ Wiki links use `[[Note name]]` and remain in the saved Markdown. The right panel
 
 Zen is a visual current-line focus fade: text away from the caret line is subdued while all workspace chrome remains visible. Keep its toggle in the same position and let input pass through the visual overlay. Both sidebars use maintained JavaFX SplitPane dividers. Remember their pixel widths and visibility independently, clamp them to sensible bounds, and leave a usable writing pane. A top-toolbar reset restores the 272/304 px defaults without changing visibility, document state, or Zen.
 
-The top toolbar uses icon-only Pomodoro and color-circle accent controls. New-note and split actions belong in the top toolbar or sidebar controls, not duplicated in the editor. The bottom bar shows character/word/logical-line counts of rendered text and the current Markdown's UTF-8 byte size.
+The dark toolbar shares a row with the native macOS window buttons. It shows the full workspace path and provides folder opening, search, note creation, folder creation, and split view. The files sidebar contains the note and folder tree. Pomodoro and accent use an icon and a color circle. The bottom bar shows character, word, and logical-line counts for rendered text and the current Markdown's UTF-8 byte size.
 
 Accents transition between six choices with readable dark-surface foregrounds. Dialogs use the same AtlantaFX component styling. Pomodoro provides 25-minute focus sessions and 5-minute breaks through an animated popover with Start, Stop, and Reset. It starts explicitly and stops when the app quits; the icon tooltip and accessibility help expose changing time while its accessible name stays stable. Hover animation changes paint only, with no layout shift, lift, or zoom.
 

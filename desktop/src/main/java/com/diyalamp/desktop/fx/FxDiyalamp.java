@@ -255,6 +255,7 @@ public final class FxDiyalamp extends Application {
     serialization.setOnFinished(event -> {
       for (Session session : new ArrayList<>(sessions.values())) flush(session);
     });
+    MacDockIcon.restoreBundledIcon();
     stage.show();
     queueSidebarLayout();
     String requested = null;
