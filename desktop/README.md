@@ -41,9 +41,13 @@ This produces a self-contained `.app`, a compressed DMG for the current processo
 
 The manual GitHub packaging workflow builds separate Apple silicon and Intel artifacts and tests each bundled runtime from its mounted DMG. Select **Build and test installers without staging a release** to validate a branch. A release dispatch stages both verified installers in a draft using the version declared in `DesktopLauncher.VERSION`.
 
-This community release is unsigned and not Apple-notarized. Do not describe it as notarized or suppress macOS security checks. Signing requires the owner's Apple Developer identity and a separate notarization setup.
+The community installers are ad hoc signed. Developer ID signing and Apple notarization require a separate release setup. See the [install guide](../docs/install.md) for the current first-launch process.
 
-The interface is dark-only, with no theme switch. Its colors follow the official [VS Code 2026 Dark theme](https://github.com/microsoft/vscode/blob/main/extensions/theme-defaults/themes/2026-dark.json): editor `#121314` with `#BBBEBF` text, sidebar/top/status chrome `#191A1B`, separators `#2A2B2C`, text `#BFBFBF`, muted text `#8C8C8C`, inputs `#191A1B` with `#333536` borders and `#555555` placeholders, default action blue `#297AA0`, and link blue `#48A0C7`. The interface and prose use 16 px. Markdown H1, H2, and H3 use Inter SemiBold at 28, 23, and 19 px. H4–H6 use the 16 px body size. Quotes use a rounded inset with an accent rule. Code uses installed Menlo, and real italic faces preserve emphasis. Alternate accents receive dark-aware foreground contrast and transition smoothly.
+## Interface design
+
+Use lowercase **diyalamp** and the fixed lamp asset. The dark workspace uses one charcoal surface (`#111213`) and black (`#000000`) in Focus mode. Dividers, foreground text, and control states use the shared tokens in `fx-workspace.css`. The default accent is red (`#EE0000`). Preset and custom accents keep readable foreground contrast and transition smoothly.
+
+The interface and prose use 16 px Inter. Markdown H1, H2, and H3 use Inter SemiBold at 28, 23, and 19 px. H4–H6 use the 16 px body size. Quotes use a rounded inset with an accent rule. Code uses installed Menlo, and static italic faces preserve emphasis. Use AtlantaFX CupertinoDark controls and Popover, RichTextFX for editing, and SmartGraph for the Connections panel.
 
 Workspace spacing uses an 8 px grid. The wordmark, toolbar controls, search fields, dialog actions, and popover actions share a 36 px control height and 8 px corners. The toolbar and pane header rows are 52 px tall. Tabs fill the editor header row and keep their labels and close targets centered. Use the shared 140 ms control transition for hover and focus. Dialogs use 24 px inner padding and 12 px surface corners. Entrance motion leaves adjacent controls in place and honors reduced motion.
 

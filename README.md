@@ -43,7 +43,7 @@ Version **1.3.4** is available from [GitHub Releases](https://github.com/diyalam
 
 Drag diyalamp to Applications. See the [installation guide](docs/install.md) for choosing Apple silicon or Intel, verifying the SHA-256 checksum, first-launch approval, and current macOS compatibility limits.
 
-**Size target: under 5 MB installed. This target has not been achieved.** Footprint reduction is tracked as an engineering objective, not a current product claim.
+The [installed size target](https://github.com/diyalamp/diyalamp/issues/2) is under 5 MB. See the measured release sizes below.
 
 The package includes a runtime; users do not need to install Java separately. The apps from the verified release DMGs occupy approximately **64.9 MiB** (Apple silicon) and **67.4 MiB** (Intel). Release downloads are **48,239,105 bytes** (Apple silicon) and **49,634,711 bytes** (Intel). Architecture and runtime builds can differ; release assets provide SHA-256 checksums.
 
@@ -86,7 +86,7 @@ Previous AI-agent, browser-automation, and writing-review experiments remain in 
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) and [product scope](docs/PRODUCT.md). Use [Issues](https://github.com/diyalamp/diyalamp/issues) for reproducible bugs, Markdown compatibility cases, accessibility checks, and proposed improvements. Do not attach private notes or credentials.
+You can help by testing one writing task with the keyboard or VoiceOver. For code contributions, the [contribution guide](CONTRIBUTING.md) includes a local test workspace and build steps. [VoiceOver review](https://github.com/diyalamp/diyalamp/issues/1) · [Product scope](docs/PRODUCT.md)
 
 ## License
 
