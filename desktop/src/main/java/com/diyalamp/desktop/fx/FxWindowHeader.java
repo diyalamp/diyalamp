@@ -5,6 +5,7 @@ import javafx.application.ConditionalFeature;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.MenuBar;
 import javafx.scene.layout.HeaderBar;
 import javafx.scene.layout.HeaderDragType;
 import javafx.scene.layout.Region;
@@ -15,7 +16,7 @@ import javafx.stage.StageStyle;
 final class FxWindowHeader {
   private FxWindowHeader() {}
 
-  static Region create(Stage stage, Region toolbar, Node dragHandle) {
+  static Region create(Stage stage, MenuBar menu, Region toolbar, Node dragHandle) {
     if (!System.getProperty("os.name", "").startsWith("Mac")
         || !Platform.isSupported(ConditionalFeature.EXTENDED_WINDOW)) {
       return toolbar;
@@ -25,6 +26,10 @@ final class FxWindowHeader {
     HeaderBar.setSystemColorScheme(stage, ColorScheme.DARK);
     // Use macOS's large native toolbar style to center its buttons in the workspace row.
     HeaderBar.setSystemButtonHeight(stage, 52);
+    // Keep the system menu registered without the empty JavaFX menu strip above the toolbar.
+    menu.setMinHeight(0);
+    menu.setPrefHeight(0);
+    menu.setMaxHeight(0);
 
     HeaderBar header = new HeaderBar(null, toolbar, null);
     header.getStyleClass().add("workspace-window-header");

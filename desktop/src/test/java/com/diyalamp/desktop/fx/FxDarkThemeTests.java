@@ -62,10 +62,10 @@ public final class FxDarkThemeTests {
       color(background(root), "#121314", "Workspace");
       color(background(toolbar), "#191A1B", "Toolbar"); color(background(sidebar), "#191A1B", "Sidebar");
       color(background(writing), "#121314", "Editor"); color(background(footer), "#191A1B", "Status bar");
-      color(background(input), "#191A1B", "Input"); color((Color) css(input, "-fx-text-fill"), "#BFBFBF", "Input text");
-      color((Color) css(input, "-fx-prompt-text-fill"), "#555555", "Placeholder");
+      color(background(input), "#242526", "Search field"); color((Color) css(input, "-fx-text-fill"), "#BFBFBF", "Input text");
+      color((Color) css(input, "-fx-prompt-text-fill"), "#8C8C8C", "Placeholder");
       color((Color) paragraph.getTextFill(), "#BFBFBF", "UI text");
-      color((Color) input.getBorder().getStrokes().getFirst().getTopStroke(), "#333536", "Input border");
+      color((Color) input.getBorder().getStrokes().getFirst().getTopStroke(), "#2A2B2C", "Input border");
       input.requestFocus(); layout(root);
       color((Color) input.getBorder().getStrokes().getFirst().getTopStroke(), "#3994BCB3", "Input focus ring");
       tools.requestFocus(); layout(root);

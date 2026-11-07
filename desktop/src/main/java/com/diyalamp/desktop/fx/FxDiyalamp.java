@@ -75,6 +75,8 @@ public final class FxDiyalamp extends Application {
   private final TreeView<Path> tree = new TreeView<>();
   private final TextField search = new TextField();
   private final BooleanProperty searching = new SimpleBooleanProperty(false);
+  private final DoubleProperty searchProgress = new SimpleDoubleProperty(0);
+  private Timeline searchAnimation;
   private final Label folderLabel = new Label("No folder open"), status = new Label("Local Markdown files");
   private final Label characters = metricLabel("type", "Characters in the note text (Unicode code points)"),
       words = metricLabel("square-pen", "Words in the note text"),
@@ -236,7 +238,8 @@ public final class FxDiyalamp extends Application {
     root.setCenter(workspaceLayer);
     pomodoro = new FxPomodoro(stage, status::setText);
     buildToolbar();
-    root.setTop(new VBox(buildMenu(), FxWindowHeader.create(stage, toolbarClip, toolbarDragHandle)));
+    MenuBar menu = buildMenu();
+    root.setTop(new VBox(menu, FxWindowHeader.create(stage, menu, toolbarClip, toolbarDragHandle)));
     metrics.getStyleClass().add("note-metrics"); metrics.setAlignment(Pos.CENTER_RIGHT);
     footer.getChildren().setAll(status, spacer(), metrics);
     footer.getStyleClass().add("workspace-status");
@@ -304,26 +307,33 @@ public final class FxDiyalamp extends Application {
     find.disableProperty().bind(noWorkspace);
     search.setPromptText("Find a note…");
     search.setAccessibleText("Find a note by name");
-    search.getStyleClass().addAll(Styles.ROUNDED, "note-search-field");
+    search.getStyleClass().add("note-search-field");
     search.setMinWidth(0);
-    search.visibleProperty().bind(searching);
-    search.managedProperty().bind(searching);
-    folderLabel.visibleProperty().bind(searching.not());
-    folderLabel.managedProperty().bind(searching.not());
+    search.setMaxWidth(320);
+    search.visibleProperty().bind(searching.or(searchProgress.greaterThan(0)));
+    search.mouseTransparentProperty().bind(searching.not());
+    search.focusTraversableProperty().bind(searching);
+    search.opacityProperty().bind(searchProgress);
+    search.translateYProperty().bind(searchProgress.multiply(4).subtract(4));
+    folderLabel.visibleProperty().bind(searchProgress.lessThan(1));
+    folderLabel.mouseTransparentProperty().bind(searching);
+    folderLabel.opacityProperty().bind(searchProgress.negate().add(1));
     StackPane location = new StackPane(folderLabel, search);
+    StackPane.setAlignment(search, Pos.CENTER_LEFT);
     location.setMinWidth(32);
-    location.setPrefWidth(32);
+    location.setPrefWidth(320);
     location.maxWidthProperty().bind(Bindings.createDoubleBinding(
-        () -> searching.get() ? 320 : Math.max(32, folderLabel.prefWidth(-1)),
-        searching, folderLabel.textProperty(), folderLabel.fontProperty()));
+        () -> Math.max(320, folderLabel.prefWidth(-1)),
+        folderLabel.textProperty(), folderLabel.fontProperty()));
     HBox.setHgrow(location, Priority.ALWAYS);
     toolbarDragHandle.setMinWidth(24);
     HBox.setHgrow(toolbarDragHandle, Priority.SOMETIMES);
     search.textProperty().addListener((observable, previous, query) -> refreshTree());
     searching.addListener((observable, previous, enabled) -> {
+      animateSearch(enabled);
       if (enabled) {
         if (!sidebarOpen) toggleSidebar();
-        Platform.runLater(search::requestFocus);
+        Platform.runLater(() -> { if (searching.get()) search.requestFocus(); });
       } else search.clear();
     });
     search.setOnKeyPressed(event -> {
@@ -363,6 +373,19 @@ public final class FxDiyalamp extends Application {
     return toolbar;
   }
 
+  private void animateSearch(boolean enabled) {
+    if (searchAnimation != null) searchAnimation.stop();
+    double current = searchProgress.get(), target = enabled ? 1 : 0;
+    if (Boolean.getBoolean("diyalamp.reduceMotion") || current == target) {
+      searchProgress.set(target); searchAnimation = null; return;
+    }
+    searchAnimation = new Timeline(
+        new KeyFrame(Duration.ZERO, new KeyValue(searchProgress, current)),
+        new KeyFrame(Duration.millis(180 * Math.max(.2, Math.abs(target - current))),
+            new KeyValue(searchProgress, target, Interpolator.EASE_OUT)));
+    searchAnimation.play();
+  }
+
   private void buildExplorer() {
     explorer.getStyleClass().add("file-explorer");
     explorer.setMinWidth(0); explorer.setPrefWidth(filesWidth); explorer.setMaxWidth(Double.MAX_VALUE);
@@ -400,8 +423,18 @@ public final class FxDiyalamp extends Application {
       boolean directory = store.isDirectory(path);
       Label title = new Label(path.getFileName().toString());
       title.setMinWidth(0); title.setMaxWidth(Double.MAX_VALUE); HBox.setHgrow(title, Priority.ALWAYS);
-      HBox row = new HBox(7, FxTheme.icon(directory ? "folder-open" : "file-text", 15), title);
+      HBox row = new HBox(8, FxTheme.icon(directory ? "folder-open" : "file-text", 15), title);
       row.setAlignment(Pos.CENTER_LEFT); row.setMaxWidth(Double.MAX_VALUE);
+      if (!directory) {
+        Button trash = FxTheme.iconButton("trash-2", "Move " + path.getFileName() + " to deleted notes",
+            () -> delete(path));
+        trash.getStyleClass().add("file-row-action");
+        trash.visibleProperty().bind(hoverProperty().or(selectedProperty())
+            .or(focusedProperty().and(tree.focusedProperty())).or(trash.focusedProperty()));
+        trash.setOnMouseClicked(MouseEvent::consume);
+        trash.setOnDragDetected(MouseEvent::consume);
+        row.getChildren().add(trash);
+      }
       setGraphic(row); setAccessibleText(path.getFileName() + (directory ? ", folder" : ", Markdown note"));
       ContextMenu menu = new ContextMenu();
       if (directory) menu.getItems().addAll(item("New note", () -> newNote(path)), item("New folder…", () -> newFolder(path)));
@@ -1409,6 +1442,7 @@ public final class FxDiyalamp extends Application {
   @Override public void stop() {
     sidebarLayoutReady = false;
     if (sidebarAnimation != null) sidebarAnimation.stop();
+    if (searchAnimation != null) searchAnimation.stop();
     sidebarSave.stop(); persistSidebarWidths();
     if (accentAnimation != null) accentAnimation.stop();
     if (pomodoro != null) pomodoro.close();
