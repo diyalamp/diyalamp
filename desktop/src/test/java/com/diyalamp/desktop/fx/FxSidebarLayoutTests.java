@@ -50,7 +50,7 @@ public final class FxSidebarLayoutTests {
         near(preferences.getDouble("filesWidth", 0), current.left.getWidth(), "Persisted native left pixel width");
         near(preferences.getDouble("connectionsWidth", 0), current.right.getWidth(), "Persisted native right pixel width");
         current.body.setDividerPositions(.01, .99); current.layout();
-        check(current.left.getWidth() >= 159 && current.right.getWidth() >= 199,
+        check(current.left.getWidth() >= 199 && current.right.getWidth() >= 199,
             "Native dividers enforce usable sidebar minimums");
         current.body.setDividerPositions(.80, .85); current.layout();
         check(current.left.getWidth() <= 600 && current.right.getWidth() <= 600,

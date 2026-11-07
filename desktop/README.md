@@ -1,6 +1,6 @@
 # diyalamp desktop
 
-A focused, local Markdown writing app for macOS. The 1.2.2 development interface uses JavaFX 27, maintained AtlantaFX CupertinoDark controls, RichTextFX rendered editing, bundled static Inter text, and installed Menlo for code. No backend, model provider, database, or account is required.
+A focused, local Markdown writing app for macOS. The 1.3.0 development interface uses JavaFX 27, maintained AtlantaFX CupertinoDark controls, RichTextFX rendered editing, bundled static Inter text, and installed Menlo for code. No backend, model provider, database, or account is required.
 
 ## Build and run
 
@@ -47,10 +47,11 @@ Workspace spacing uses an 8 px grid. Toolbar controls are 36 px tall inside a 52
 
 ## Writing and storage
 
-- Open a folder of `.md` or `.markdown` notes. The toolbar displays the full folder path. Click the search icon or press Command-P to filter the note tree by name or relative path. Enter opens the first result and Escape restores the folder path.
+- Click the workspace path in the toolbar to open a folder of `.md` or `.markdown` notes.
+- Search filenames with Command-P or note contents with Option-Command-F. Match case, whole words, or regular expressions, and use include/exclude globs to narrow the workspace. Open a text match to reveal its location in the note. Escape returns to the file tree.
 - Use rendered text, headings, emphasis, simple lists, checklists, quotes, and fenced code blocks.
 - Type `/` on an empty line for blocks, or use formatting controls and keyboard shortcuts.
-- Use New note, New folder, and Split from the toolbar alongside the native macOS window buttons. For individual file operations, use the note and folder tree's context menus.
+- Use New note and New folder from the sidebar. Every note row has split, rename, and recoverable delete actions. For rename, type in the row and press Enter to save. Escape or a click outside cancels.
 - Drag a sidebar note to a tab area; dropping near its right edge opens a second pane. Drag tabs between panes or onto a workspace folder to move the local file without overwriting a collision.
 - The bottom status bar reports characters, words, and logical lines from rendered text, plus the UTF-8 size of the current Markdown, including current unsaved edits. Wrapped display lines do not inflate the logical-line count.
 - Autosave writes local files. A changed disk fingerprint stops an overwrite and keeps edits open for export. Use File → Reload note from disk… to reload after exporting a recovery copy; unsaved edits require confirmation before replacement.

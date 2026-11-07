@@ -38,7 +38,8 @@ public final class FxWritingPaneTests {
     Platform.startup(() -> {
       try {
         FxTheme.setup();
-        roundTrips(); editingAndUndo(); blocksAndTasks(); shortcuts(); keyboardModifiers(); linksAndLifecycle(); pasteAndDivider(); incrementalSaving(); actualComponent(); focusLine();
+        roundTrips(); editingAndUndo(); blocksAndTasks(); shortcuts(); keyboardModifiers(); linksAndLifecycle();
+        searchMatches(); pasteAndDivider(); incrementalSaving(); actualComponent(); focusLine();
         focusScrolling(finished, failure);
       } catch (Throwable error) { failure.set(error); }
       if (failure.get() != null) finished.countDown();
@@ -169,6 +170,57 @@ public final class FxWritingPaneTests {
           "The ordinary formatting shortcut must still work for " + code);
       editor.dispose();
     }
+  }
+
+  private static void searchMatches() {
+    String source = "# 🪔 hit **hit** [hit](https://hit.example)\r\n"
+        + "~~~java\r\nfirst hit\r\nsecond hit hit\r\n~~~\r\n"
+        + "> &amp; hit [[hit target|hit]] `` hit ``\r\n"
+        + "~~~\r\n~~~\r\n"
+        + "- [x] final hit\r\n";
+    FxWritingPane editor = new FxWritingPane(source);
+    int hit = source.indexOf("**hit**") + 2;
+    editor.revealSearchMatch(source, 1, hit, hit + 3);
+    check(editor.area().getAnchor() == 7 && editor.area().getSelectedText().equals("hit"),
+        "Search must select the second hit in a formatted heading and count UTF-16 columns");
+    hit = source.indexOf("[hit]") + 1;
+    editor.revealSearchMatch(source, 1, hit, hit + 3);
+    check(editor.area().getAnchor() == 11 && editor.area().getSelectedText().equals("hit"),
+        "Search must select a visible Markdown link label");
+    hit = source.indexOf("hit.example");
+    editor.revealSearchMatch(source, 1, hit, hit + 3);
+    check(editor.area().getCurrentParagraph() == 0 && editor.area().getCaretColumn() == 0
+        && editor.area().getSelectedText().isEmpty(),
+        "A hidden Markdown link destination must reveal the paragraph without selecting a different hit");
+    hit = source.indexOf("java");
+    editor.revealSearchMatch(source, 2, hit, hit + 4);
+    check(editor.area().getCurrentParagraph() == 1 && editor.area().getSelectedText().isEmpty(),
+        "A code fence header must reveal the first code paragraph");
+    hit = source.indexOf("hit hit") + 4;
+    editor.revealSearchMatch(source, 4, hit, hit + 3);
+    check(editor.area().getCurrentParagraph() == 2 && editor.area().getCaretColumn() == 14
+        && editor.area().getSelectedText().equals("hit"),
+        "Repeated hits on a literal code line must resolve past hidden fence markers");
+    hit = source.indexOf("&amp; hit") + 6;
+    editor.revealSearchMatch(source, 6, hit, hit + 3);
+    check(editor.area().getCurrentParagraph() == 3 && editor.area().getCaretColumn() == 5
+        && editor.area().getSelectedText().equals("hit"),
+        "Decoded text before a hit must shift its rendered position");
+    hit = source.indexOf("|hit") + 1;
+    editor.revealSearchMatch(source, 6, hit, hit + 3);
+    check(editor.area().getCaretColumn() == 9 && editor.area().getSelectedText().equals("hit"),
+        "A wiki alias match must select the visible alias");
+    hit = source.indexOf("`` hit") + 3;
+    editor.revealSearchMatch(source, 6, hit, hit + 3);
+    check(editor.area().getCaretColumn() == 13 && editor.area().getSelectedText().equals("hit"),
+        "Inline code matches must account for the stripped delimiters and padding");
+    hit = source.lastIndexOf("hit");
+    editor.revealSearchMatch(source, 9, hit, hit + 3);
+    check(editor.area().getCurrentParagraph() == 5 && editor.area().getCaretColumn() == 9
+        && editor.area().getSelectedText().equals("hit"),
+        "Empty fences must occupy their one rendered paragraph before the next note hit");
+    check(editor.markdown().equals(source) && !editor.canUndo(), "Revealing a search hit must not edit the note");
+    editor.dispose();
   }
 
   private static void pasteAndDivider() {

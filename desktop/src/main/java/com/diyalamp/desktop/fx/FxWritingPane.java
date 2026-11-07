@@ -296,6 +296,24 @@ public final class FxWritingPane {
     return true;
   }
 
+  public void revealSearchMatch(String markdown, int line, int start, int end) {
+    if (markdown == null) return;
+    Markdown.SearchLocation location = Markdown.locateSearchMatch(markdown, line, start, end);
+    if (location == null) return;
+    int row = Math.min(location.paragraph(), area.getParagraphs().size() - 1);
+    int paragraphStart = area.getAbsolutePosition(row, 0);
+    String text = area.getParagraph(row).getText();
+    if (row == location.paragraph() && location.end() > location.start()
+        && location.end() <= text.length()
+        && text.regionMatches(location.start(), markdown, start, end - start)) {
+      area.selectRange(paragraphStart + location.start(), paragraphStart + location.end());
+    } else {
+      area.moveTo(paragraphStart);
+    }
+    focus();
+    area.requestFollowCaret();
+  }
+
   public void paste() {
     Clipboard clipboard = Clipboard.getSystemClipboard();
     if (!clipboard.hasString()) return;

@@ -171,7 +171,7 @@ public final class FxShellTests {
           && swatch.getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius() >= 6,
           "The current accent preview must render as a small circle");
       var uiFonts = new java.util.ArrayList<Font>();
-      uiFonts.add(((Label) field(fixture.app, "folderLabel")).getFont());
+      uiFonts.add(((Button) field(fixture.app, "folderControl")).getFont());
       uiFonts.add(((Label) field(host, "breadcrumb")).getFont()); uiFonts.add(status.getFont()); uiFonts.add(accent.getFont());
       var fileLabels = root.lookupAll(".file-tree .tree-cell .label").stream()
           .filter(node -> node instanceof Label label && label.getText().equals(fixture.path.getFileName().toString()))
@@ -192,8 +192,8 @@ public final class FxShellTests {
       var popup = (atlantafx.base.controls.Popover) field(fixture.app, "accentMenu");
       check(popup.isShowing() && popup.isAutoHide() && popup.isHideOnEscape() && !popup.isDetachable(),
           "Accent choices must use the real anchored AtlantaFX Popover, dismissible without a modal window");
-      check(popup.isAnimated() && popup.getFadeInDuration().toMillis() > 0 && popup.getFadeOutDuration().toMillis() > 0,
-          "The maintained popover must provide its animated bubble transition");
+      check(popup.getRoot().getOpacity() < 1 && popup.getRoot().getTranslateY() < 0,
+          "The shared motion visibly fades and slides the anchored popup into place");
       popup.getRoot().applyCss(); popup.getRoot().layout();
       var choices = popup.getContentNode().lookupAll(".accent-choice").stream().map(node -> (Button) node).toList();
       check(choices.size() == 6 && popup.getContentNode().lookupAll(".color-picker").isEmpty(),

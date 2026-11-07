@@ -1,10 +1,12 @@
 package com.diyalamp.desktop;
 
 import java.util.*;
+import java.util.function.UnaryOperator;
 import java.util.regex.*;
 import javax.swing.text.*;
 import org.commonmark.ext.gfm.strikethrough.Strikethrough;
 import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
+import org.commonmark.internal.util.Escaping;
 import org.commonmark.node.Node;
 import org.commonmark.parser.IncludeSourceSpans;
 import org.commonmark.parser.Parser;
@@ -34,7 +36,7 @@ public final class Markdown {
           .extensions(List.of(StrikethroughExtension.create()))
           .build();
 
-  private record WikiToken(int end, String target, String label) {}
+  private record WikiToken(int end, String target, String label, int labelStart) {}
 
   /** Wiki syntax is recognized only inside CommonMark text nodes, never code or HTML. */
   private static WikiToken wikiAt(String source, int opening) {
@@ -45,7 +47,8 @@ public final class Markdown {
       if (next == ']' && i + 1 < source.length() && source.charAt(i + 1) == ']') {
         String target = wikiUnescape(separator < 0 ? inside.toString() : inside.substring(0, separator)).strip();
         String label = separator < 0 ? target : wikiUnescape(inside.substring(separator + 1));
-        return target.isEmpty() || label.isEmpty() ? null : new WikiToken(i + 2, target, label);
+        return target.isEmpty() || label.isEmpty() ? null
+            : new WikiToken(i + 2, target, label, opening + 2 + (separator < 0 ? 0 : separator + 1));
       }
       if (next == '[' || next == ']' || next == '\n' || next == '\r') return null;
       inside.append(next);
@@ -55,10 +58,13 @@ public final class Markdown {
     return null;
   }
 
-  private static void appendText(DefaultStyledDocument document, String literal, String raw, AttributeSet inherited)
+  private static void appendText(DefaultStyledDocument document, String literal, String raw,
+      AttributeSet inherited, SearchPosition search, int column)
       throws BadLocationException {
-    if (inherited.getAttribute(LINK) != null || !org.commonmark.internal.util.Escaping.unescapeString(raw).equals(literal)) {
-      document.insertString(document.getLength(), literal, inherited); return;
+    if (inherited.getAttribute(LINK) != null || !Escaping.unescapeString(raw).equals(literal)) {
+      if (search != null) search.record(column, document.getLength(), raw, literal, Escaping::unescapeString);
+      document.insertString(document.getLength(), literal, inherited);
+      return;
     }
     int plain = 0;
     for (int i = 0; i + 1 < raw.length(); i++) {
@@ -66,15 +72,32 @@ public final class Markdown {
       if (!raw.startsWith("[[", i)) continue;
       WikiToken wiki = wikiAt(raw, i);
       if (wiki == null) continue;
-      document.insertString(document.getLength(), org.commonmark.internal.util.Escaping.unescapeString(raw.substring(plain, i)), inherited);
+      appendPlainText(document, raw.substring(plain, i), inherited, search, column + plain);
       SimpleAttributeSet attributes = new SimpleAttributeSet(inherited);
       attributes.addAttribute(WIKI_TARGET, wiki.target());
       attributes.addAttribute(WIKI_ID, UUID.randomUUID().toString());
       StyleConstants.setUnderline(attributes, true);
+      if (search != null) {
+        String rawLabel = raw.substring(wiki.labelStart(), wiki.end() - 2);
+        int labelColumn = column + wiki.labelStart();
+        if (wiki.labelStart() == i + 2) {
+          String stripped = rawLabel.stripLeading();
+          labelColumn += rawLabel.length() - stripped.length();
+          rawLabel = stripped.stripTrailing();
+        }
+        search.record(labelColumn, document.getLength(), rawLabel, wiki.label(), Markdown::wikiUnescape);
+      }
       document.insertString(document.getLength(), wiki.label(), attributes);
       i = wiki.end() - 1; plain = wiki.end();
     }
-    document.insertString(document.getLength(), org.commonmark.internal.util.Escaping.unescapeString(raw.substring(plain)), inherited);
+    appendPlainText(document, raw.substring(plain), inherited, search, column + plain);
+  }
+
+  private static void appendPlainText(DefaultStyledDocument document, String raw,
+      AttributeSet inherited, SearchPosition search, int column) throws BadLocationException {
+    String literal = Escaping.unescapeString(raw);
+    if (search != null) search.record(column, document.getLength(), raw, literal, Escaping::unescapeString);
+    document.insertString(document.getLength(), literal, inherited);
   }
 
   private static String wikiUnescape(String text) {
@@ -87,11 +110,71 @@ public final class Markdown {
   private static final Pattern FENCE = Pattern.compile("^( {0,3})(`{3,}|~{3,})(.*)$");
   private static final Pattern BLOCK =
       Pattern.compile("^(#{1,6}) (.*)$|^([-+*]) (\\[[ xX]\\] )?(.*)$|^(\\d+)\\. (.*)$|^> ?(.*)$");
+  private static final Pattern LINE_BREAK = Pattern.compile("\\r\\n|\\r|\\n");
+
+  /** Editor paragraph and UTF-16 columns, or zero columns for Markdown that isn't displayed. */
+  public record SearchLocation(int paragraph, int start, int end) {}
+
+  /** Maps a one-based source line and absolute UTF-16 range with an exclusive end. */
+  public static SearchLocation locateSearchMatch(String source, int line, int start, int end) {
+    if (line < 1 || start < 0 || end < start || end > source.length()) return null;
+    Matcher breaks = LINE_BREAK.matcher(source);
+    int lineStart = 0;
+    for (int i = 1; i < line; i++) {
+      if (!breaks.find()) return null;
+      lineStart = breaks.end();
+    }
+    if (start < lineStart || (breaks.find() && start > breaks.start())) return null;
+    SearchPosition search = new SearchPosition(line - 1, start - lineStart, end - lineStart);
+    read(source, search);
+    if (search.next == search.end && search.renderedStart >= 0)
+      return new SearchLocation(search.paragraph, search.renderedStart, search.renderedEnd);
+    return new SearchLocation(search.paragraph, 0, 0);
+  }
+
+  private static final class SearchPosition {
+    final int line, start, end;
+    int paragraph, next, renderedEnd;
+    int renderedStart = -1;
+
+    SearchPosition(int line, int start, int end) {
+      this.line = line;
+      this.start = start;
+      this.end = end;
+      next = start;
+    }
+
+    void recordLiteral(int column, int renderedOffset, String text) {
+      record(column, renderedOffset, text, text, UnaryOperator.identity());
+    }
+
+    void record(int column, int renderedOffset, String raw, String visible, UnaryOperator<String> decode) {
+      int from = Math.max(0, start - column), to = Math.min(raw.length(), end - column);
+      if (from >= to || column + from != next) return;
+      int visibleFrom = from;
+      if (!raw.equals(visible)) {
+        String before = decode.apply(raw.substring(0, from));
+        String after = decode.apply(raw.substring(to));
+        visibleFrom = before.length();
+        if (visible.length() != visibleFrom + to - from + after.length() || !visible.startsWith(before)
+            || !visible.regionMatches(visibleFrom, raw, from, to - from) || !visible.endsWith(after)) return;
+      }
+      int visibleStart = renderedOffset + visibleFrom;
+      if (next == start) renderedStart = visibleStart;
+      else if (visibleStart != renderedEnd) return;
+      renderedEnd = visibleStart + to - from;
+      next = column + to;
+    }
+  }
 
   public static DefaultStyledDocument read(String source) {
+    return read(source, null);
+  }
+
+  private static DefaultStyledDocument read(String source, SearchPosition search) {
     DefaultStyledDocument d = new WritingDocument();
     String[] lines = source.replace("\r\n", "\n").replace('\r', '\n').split("\n", -1);
-    int fenceId = 0;
+    int fenceId = 0, row = 0;
     try {
       for (int i = 0; i < lines.length; i++) {
         String line = lines[i];
@@ -108,6 +191,19 @@ public final class Markdown {
           boolean closed = last < lines.length;
           int contentEnd = last;
           if (!closed && contentEnd > i + 1 && lines[contentEnd - 1].isEmpty()) contentEnd--;
+          if (search != null) {
+            // Fence markers are hidden. An empty fence still has an editable paragraph.
+            int count = Math.max(1, contentEnd - i - 1);
+            if (search.line <= last) {
+              search.paragraph = row + Math.clamp(search.line - i - 1, 0, count - 1);
+              if (search.line > i && search.line < contentEnd)
+                search.recordLiteral(0, 0, lines[search.line]);
+              return d;
+            }
+            row += count;
+            i = closed ? last : lines.length;
+            continue;
+          }
           int id = ++fenceId;
           for (int k = i + 1; k < Math.max(i + 2, contentEnd); k++) {
             boolean empty = contentEnd == i + 1;
@@ -120,6 +216,10 @@ public final class Markdown {
             append(d, empty ? "" : lines[k], a, true);
           }
           i = closed ? last : lines.length;
+          continue;
+        }
+        if (search != null && i < search.line) {
+          row++;
           continue;
         }
         String kind = "paragraph", text = line;
@@ -152,6 +252,11 @@ public final class Markdown {
             }
           }
         }
+        if (search != null) {
+          search.paragraph = row;
+          if (!kind.equals("divider")) inline(d, text, SimpleAttributeSet.EMPTY, search, line.length() - text.length());
+          return d;
+        }
         SimpleAttributeSet a = paragraph(kind, level);
         a.addAttribute(CHECKED, checked);
         a.addAttribute(NUMBER, number);
@@ -166,6 +271,7 @@ public final class Markdown {
     } catch (BadLocationException e) {
       throw new IllegalStateException(e);
     }
+    if (search != null) search.paragraph = Math.max(0, row - 1);
     return d;
   }
 
@@ -174,16 +280,18 @@ public final class Markdown {
       throws BadLocationException {
     int start = d.getLength();
     if (literal) d.insertString(start, text, null);
-    else inline(d, text, new SimpleAttributeSet());
+    else inline(d, text, new SimpleAttributeSet(), null, 0);
     d.insertString(d.getLength(), "\n", null);
     d.setParagraphAttributes(start, Math.max(1, d.getLength() - start), paragraph, true);
   }
 
-  private static void inline(DefaultStyledDocument d, String text, AttributeSet inherited)
+  private static void inline(DefaultStyledDocument d, String text, AttributeSet inherited,
+      SearchPosition search, int column)
       throws BadLocationException {
     int tail = text.length();
     while (tail > 0 && (text.charAt(tail - 1) == ' ' || text.charAt(tail - 1) == '\t')) tail--;
     if (tail == 0) {
+      if (search != null) search.recordLiteral(column, d.getLength(), text);
       d.insertString(d.getLength(), text, inherited);
       return;
     }
@@ -194,30 +302,41 @@ public final class Markdown {
     for (Node n = paragraph.getFirstChild(); n != null; n = n.getNext()) {
       if (prefix && n instanceof org.commonmark.node.Text t) {
         String raw = source(t, input);
-        appendText(d, t.getLiteral().substring(2), raw.startsWith("x ") ? raw.substring(2) : "", inherited);
+        appendText(d, t.getLiteral().substring(2), raw.startsWith("x ") ? raw.substring(2) : "",
+            inherited, search, column);
         prefix = false;
       } else {
-        appendInline(d, n, inherited, input);
+        appendInline(d, n, inherited, input, search, column - 2);
       }
     }
-    if (tail < text.length()) d.insertString(d.getLength(), text.substring(tail), inherited);
+    if (tail < text.length()) {
+      String trailing = text.substring(tail);
+      if (search != null) search.recordLiteral(column + tail, d.getLength(), trailing);
+      d.insertString(d.getLength(), trailing, inherited);
+    }
   }
 
   private static void appendInline(
-      DefaultStyledDocument d, Node node, AttributeSet inherited, String input)
+      DefaultStyledDocument d, Node node, AttributeSet inherited, String input,
+      SearchPosition search, int column)
       throws BadLocationException {
     SimpleAttributeSet a = new SimpleAttributeSet(inherited);
+    int nodeColumn = column;
+    if (search != null && !node.getSourceSpans().isEmpty())
+      nodeColumn += node.getSourceSpans().getFirst().getInputIndex();
     if (node instanceof org.commonmark.node.Text t) {
-      appendText(d, t.getLiteral(), source(t, input), a);
+      appendText(d, t.getLiteral(), source(t, input), a, search, nodeColumn);
       return;
     }
     if (node instanceof org.commonmark.node.HtmlInline html) {
+      if (search != null) search.recordLiteral(nodeColumn, d.getLength(), html.getLiteral());
       d.insertString(d.getLength(), html.getLiteral(), a);
       return;
     }
     if (node instanceof org.commonmark.node.Image) {
       String raw = source(node, input);
       a.addAttribute(RAW_INLINE, raw);
+      if (search != null) search.recordLiteral(nodeColumn, d.getLength(), raw);
       d.insertString(d.getLength(), raw, a);
       return;
     }
@@ -225,6 +344,14 @@ public final class Markdown {
       a.addAttribute(INLINE_CODE, true);
       StyleConstants.setFontFamily(a, Theme.codeFont(16).getFamily());
       StyleConstants.setBackground(a, Theme.CODE);
+      if (search != null) {
+        String raw = source(node, input);
+        int delimiter = 0;
+        while (delimiter < raw.length() && raw.charAt(delimiter) == '`') delimiter++;
+        int content = raw.indexOf(c.getLiteral(), delimiter);
+        if (content >= 0 && content + c.getLiteral().length() <= raw.length() - delimiter)
+          search.recordLiteral(nodeColumn + content, d.getLength(), c.getLiteral());
+      }
       d.insertString(d.getLength(), c.getLiteral(), a);
       return;
     }
@@ -238,11 +365,13 @@ public final class Markdown {
       StyleConstants.setForeground(a, Theme.RED);
     }
     if (node.getFirstChild() == null) {
-      d.insertString(d.getLength(), source(node, input), a);
+      String raw = source(node, input);
+      if (search != null) search.recordLiteral(nodeColumn, d.getLength(), raw);
+      d.insertString(d.getLength(), raw, a);
       return;
     }
     for (Node child = node.getFirstChild(); child != null; child = child.getNext())
-      appendInline(d, child, a, input);
+      appendInline(d, child, a, input, search, column);
   }
 
   private static String source(Node node, String input) {
