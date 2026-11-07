@@ -52,7 +52,7 @@ public final class FxWritingPaneTests {
       try {
         FxTheme.setup();
         roundTrips(); editingAndUndo(); blocksAndTasks(); shortcuts(); slashCommands(); keyboardModifiers(); linksAndLifecycle();
-        searchMatches(); pasteAndDivider(); incrementalSaving(); actualComponent(); checklistAppearance(); focusLine();
+        searchMatches(); pasteAndDivider(); incrementalSaving(); actualComponent(); checklistAppearance(); quoteAlignment(); focusLine();
         focusScrolling(finished, failure);
       } catch (Throwable error) { failure.set(error); }
       if (failure.get() != null) finished.countDown();
@@ -562,6 +562,33 @@ public final class FxWritingPaneTests {
   private static Bounds firstCharacter(FxWritingPane editor, int row) {
     int start = editor.area().getAbsolutePosition(row, 0);
     return editor.area().getCharacterBoundsOnScreen(start, start + 1).orElseThrow();
+  }
+
+  private static void quoteAlignment() {
+    var editor = new FxWritingPane("> A short quotation.\n\n"
+        + "> Your words stay in ordinary Markdown files, in a folder you control. "
+        + "The quote should stay centered when it wraps.\n");
+    var root = new StackPane(editor.node());
+    root.getStyleClass().add("workspace-root");
+    FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
+    root.getStylesheets().add(FxWritingPane.class.getResource("/fx-workspace.css").toExternalForm());
+    var stage = new Stage();
+    stage.setScene(new Scene(root, 430, 320));
+    stage.show();
+    root.applyCss(); root.layout();
+    try {
+      var quotes = editor.area().lookupAll(".md-quote").stream().map(Region.class::cast).toList();
+      check(quotes.size() == 2, "The quote fixture must show both quote frames");
+      check(Math.abs(quotes.getFirst().getHeight() - quotes.getLast().getHeight()) > 24,
+          "The quote fixture must include a genuinely wrapped quote");
+      for (Region quote : quotes) {
+        var border = quote.getBorder().getStrokes().getFirst();
+        double frameCenter = (quote.getHeight() + border.getInsets().getTop() - border.getInsets().getBottom()) / 2;
+        var text = quote.getChildrenUnmodifiable().stream().filter(TextExt.class::isInstance).findFirst().orElseThrow();
+        check(Math.abs(text.getBoundsInParent().getCenterY() - frameCenter) <= 1,
+            "Quote text must be vertically centered in its visible frame");
+      }
+    } finally { editor.dispose(); stage.close(); }
   }
 
   private static int brightMarkerPixels(StackPane root, javafx.scene.image.WritableImage image, Node box) {
