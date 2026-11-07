@@ -9,13 +9,11 @@
 
 ## Overview
 
-diyalamp is a desktop Markdown editor with rendered formatting and local file storage. It is an open-source alternative to Typora and a no-sign-up option for personal writing in a Notion-like interface.
+diyalamp is a desktop Markdown editor with rendered formatting and local file storage. It is a free, open-source option for local Markdown writing as an alternative to Obsidian, Notion, and Typora.
 
 The application opens a folder of `.md` or `.markdown` files. Editing does not require an account, subscription, server, database, or internet connection. Notes remain readable by other Markdown tools.
 
-## Development features · 1.3.4
-
-This describes the 1.3.4 development workspace. See macOS downloads below for the published release.
+## Desktop features · 1.3.4
 
 - Dark-only macOS workspace using AtlantaFX CupertinoDark controls, aligned dividers, and flat Lucide icons. Normal mode uses one charcoal background and Focus uses black.
 - 16 px Inter for the interface and prose, with distinct sizes for the first three headings inside notes. Code uses installed Menlo.
@@ -38,18 +36,18 @@ This describes the 1.3.4 development workspace. See macOS downloads below for th
 
 ## macOS downloads
 
-Version **1.1.3** is available from [GitHub Releases](https://github.com/diyalamp/diyalamp/releases/tag/v1.1.3) and [diyalamp.com](https://diyalamp.com).
+Version **1.3.4** is available from [GitHub Releases](https://github.com/diyalamp/diyalamp/releases/tag/v1.3.4) and [diyalamp.com](https://diyalamp.com).
 
-- [Apple silicon DMG · 48.0 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.1.3/diyalamp-1.1.3-macos-arm64.dmg)
-- [Intel DMG · 49.5 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.1.3/diyalamp-1.1.3-macos-x86_64.dmg)
+- [Apple silicon DMG · 48.2 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.3.4/diyalamp-1.3.4-macos-arm64.dmg)
+- [Intel DMG · 49.6 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.3.4/diyalamp-1.3.4-macos-x86_64.dmg)
 
 Drag diyalamp to Applications. See the [installation guide](docs/install.md) for choosing Apple silicon or Intel, verifying the SHA-256 checksum, first-launch approval, and current macOS compatibility limits.
 
 **Size target: under 5 MB installed. This target has not been achieved.** Footprint reduction is tracked as an engineering objective, not a current product claim.
 
-The package includes a runtime; users do not need to install Java separately. The apps from the verified release DMGs occupy approximately **64.8 MiB** (Apple silicon) and **67.3 MiB** (Intel). Release downloads are **48,033,713 bytes** (Apple silicon) and **49,514,944 bytes** (Intel). Architecture and runtime builds can differ; release assets provide SHA-256 checksums.
+The package includes a runtime; users do not need to install Java separately. The apps from the verified release DMGs occupy approximately **64.9 MiB** (Apple silicon) and **67.4 MiB** (Intel). Release downloads are **48,239,105 bytes** (Apple silicon) and **49,634,711 bytes** (Intel). Architecture and runtime builds can differ; release assets provide SHA-256 checksums.
 
-This community release is **unsigned and not Apple-notarized**. macOS may display a security warning. Signing and notarization are not configured yet.
+This release is **ad hoc signed**, without Developer ID or Apple notarization. macOS may require approval on first launch.
 
 ## Build and test
 
@@ -82,7 +80,7 @@ See [`desktop/README.md`](desktop/README.md) for dependency checksums, architect
 
 This release supports common Markdown editing. It does not implement the complete CommonMark specification, rich table rendering, remote-image previews, plugins, sync, team databases, or publication integrations. Unsupported text is retained rather than executed.
 
-The dark [website and browser notebook](https://diyalamp.com/#workspace) retain their separately approved presentation. The notebook is a separate demonstration, not a screenshot of the desktop app; its browser storage is not automatically synced with desktop files. Website source is in [diyalamp.github.io](https://github.com/diyalamp/diyalamp.github.io).
+See [macOS screenshots and comparisons](https://diyalamp.com/) on the product website. Website source is in [diyalamp.github.io](https://github.com/diyalamp/diyalamp.github.io).
 
 Previous AI-agent, browser-automation, and writing-review experiments remain in the repository history and existing folders. They are not dependencies of the desktop editor. Current application development belongs in `desktop/`.
 
