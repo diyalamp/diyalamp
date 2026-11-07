@@ -15,6 +15,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
+import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -76,9 +77,11 @@ public final class FxSidebarSearchTests {
     header.setAlignment(Pos.CENTER_LEFT);
     HBox.setHgrow(panel.queryControl(), Priority.ALWAYS);
     VBox.setVgrow(panel, Priority.ALWAYS);
-    Label files = new Label("Fictional file tree");
+    TreeView<String> files = new TreeView<>(new TreeItem<>("Fictional file tree"));
+    files.setPrefHeight(480);
     files.visibleProperty().bind(panel.hasQueryProperty().not());
     files.managedProperty().bind(files.visibleProperty());
+    VBox.setVgrow(files, Priority.ALWAYS);
     VBox workspace = new VBox(header, panel, files);
     workspace.getStyleClass().add("workspace-root");
     workspace.getStylesheets().add(FxSidebarSearchTests.class.getResource("/fx-workspace.css").toExternalForm());
@@ -93,6 +96,14 @@ public final class FxSidebarSearchTests {
       check(header.getHeight() == 52 && input.getHeight() == 36,
           "The query must fit alongside creation controls in the shared 52-pixel header");
       check(!panel.hasQuery() && files.isVisible(), "The empty query must leave the files view visible");
+      panel.focusQuery();
+      double compactTreeY = treeBelowOptions(workspace, panel, files);
+      toggle(panel, "Include and exclude files").fire();
+      check(treeBelowOptions(workspace, panel, files) > compactTreeY + 36,
+          "Expanding the include and exclude fields must make room above the files view");
+      toggle(panel, "Include and exclude files").fire();
+      check(Math.abs(treeBelowOptions(workspace, panel, files) - compactTreeY) <= 1,
+          "Collapsing filters must return their space to the files view");
 
       input.setText("Original");
       check(request.get().scope() == FxWorkspaceSearch.Scope.FILENAMES,
@@ -148,12 +159,26 @@ public final class FxSidebarSearchTests {
       press(input, KeyCode.ESCAPE);
       check(dismissals.get() == 1 && !panel.hasQuery() && files.isVisible(),
           "Escape must clear search and restore the files view");
+      workspace.applyCss(); workspace.layout();
+      check(Math.abs(files.localToScene(files.getLayoutBounds()).getMinY()
+              - header.localToScene(header.getLayoutBounds()).getMaxY()) <= 1,
+          "Dismissing search must return the full sidebar below the header to the files view");
       input.setText(" ");
       check(panel.hasQuery() && request.get().text().equals(" "),
           "Literal spaces must remain searchable");
     } finally {
       stage.close();
     }
+  }
+
+  private static double treeBelowOptions(VBox workspace, FxSidebarSearch panel, TreeView<?> files) {
+    workspace.applyCss(); workspace.layout();
+    var options = panel.lookup(".sidebar-search-options");
+    double treeY = files.localToScene(files.getLayoutBounds()).getMinY();
+    check(options.isVisible() && files.isVisible()
+            && options.localToScene(options.getLayoutBounds()).getMaxY() <= treeY + 1,
+        "An empty focused query must reserve all visible option height before the first file");
+    return treeY;
   }
 
   private static ToggleButton toggle(FxSidebarSearch panel, String name) {

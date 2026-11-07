@@ -309,6 +309,7 @@ public final class FxDiyalamp extends Application {
     var lamp = FxTheme.lamp(22);
     lamp.setTranslateY(2);
     HBox brand = new HBox(8, lamp, name);
+    brand.setMinWidth(Region.USE_PREF_SIZE);
     brand.setAlignment(Pos.CENTER_LEFT); brand.getStyleClass().add("workspace-brand");
     ToggleButton files = new ToggleButton(null, FxTheme.icon("panel-left", 16));
     filesControl = files;
@@ -369,7 +370,7 @@ public final class FxDiyalamp extends Application {
     folderControl.prefWidthProperty().bind(Bindings.createDoubleBinding(() -> {
       Insets insets = toolbar.getInsets();
       // Match the toolbar's 4px item gaps and leave room for pixel rounding.
-      double reserved = insets.getLeft() + insets.getRight() + 4 * toolbar.getItems().size();
+      double reserved = insets.getLeft() + insets.getRight() + 4 * toolbar.getItems().size() + 8;
       for (Node item : toolbar.getItems()) if (item != folderControl) reserved += item.prefWidth(-1);
       double natural = path.getLayoutBounds().getWidth() + 40;
       return Math.max(36, Math.min(natural, toolbar.getWidth() - reserved));
@@ -450,12 +451,14 @@ public final class FxDiyalamp extends Application {
       if (renameInput != null && event.getTarget() instanceof Node target && !within(target, renameInput)) cancelEdit();
     };
 
+    FileCell() { setPrefWidth(0); }
+
     @Override protected void updateItem(Path path, boolean empty) {
       if (renameInput != null && (empty || !java.util.Objects.equals(getItem(), path))) cancelEdit();
       super.updateItem(path, empty);
       if (renameInput != null) return;
       row = null; title = null;
-      setText(null); setGraphic(null); setContextMenu(null);
+      setText(null); setGraphic(null); setContextMenu(null); setTooltip(null);
       setOnDragDetected(null); setOnMouseClicked(null);
       setOnDragOver(null); setOnDragExited(null); setOnDragDropped(null);
       pseudoClassStateChanged(DROP_TARGET, false);
@@ -467,8 +470,13 @@ public final class FxDiyalamp extends Application {
       Node kind = FxTheme.icon(directory ? "folder-open" : "file-text", 15);
       kind.getStyleClass().add("file-kind");
       row = new HBox(8, kind, title);
+      int depth = Math.max(0, tree.getTreeItemLevel(getTreeItem()) - 1);
+      // Leave the native disclosure gutter and keep the actions within the viewport.
+      row.setMinWidth(0);
+      row.prefWidthProperty().bind(Bindings.max(0, widthProperty().subtract(24 + 16 * depth)));
       row.setAlignment(Pos.CENTER_LEFT); row.setMaxWidth(Double.MAX_VALUE);
       if (!directory) row.getChildren().add(fileActions(path));
+      setTooltip(new Tooltip(path.getFileName().toString()));
       setGraphic(row); setAccessibleText(path.getFileName() + (directory ? ", folder" : ", Markdown note"));
       ContextMenu menu = new ContextMenu();
       if (directory) menu.getItems().addAll(item("New note", () -> newNote(path)), item("New folder…", () -> newFolder(path)));

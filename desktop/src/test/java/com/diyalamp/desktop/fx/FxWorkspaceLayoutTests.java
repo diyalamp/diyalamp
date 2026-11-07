@@ -223,6 +223,13 @@ public final class FxWorkspaceLayoutTests {
         "The right-sidebar toggle stays on the bar at minimum width with a long folder and running timer");
     check(folder.getTooltip().getText().equals(longPath),
         "A shortened folder button still exposes the complete path");
+    String longFilename = "Long fictional name ".repeat(5).strip() + ".md";
+    Files.writeString(fixture.directory.resolve(longFilename), "Test note.");
+    call(fixture.app, "refreshTree", new Class<?>[0]); fixture.layout();
+    TreeView<?> tree = (TreeView<?>) field(fixture.app, "tree");
+    Button trash = action(tree, "Move " + longFilename + " to deleted notes");
+    check(trash.localToScene(trash.getWidth(), 0).getX() <= tree.localToScene(tree.getWidth(), 0).getX(),
+        "Long filenames must leave the rightmost row action in view");
     HBox metrics = (HBox) field(fixture.app, "metrics");
     var stats = metrics.localToScene(metrics.getBoundsInLocal());
     check(stats.getMinX() >= 0 && stats.getMaxX() <= fixture.stage.getScene().getWidth(),

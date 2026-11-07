@@ -135,7 +135,7 @@
 .file-tree .virtual-flow { -fx-background-color: transparent; }
 .file-tree .tree-cell {
   -fx-background-color: transparent; -fx-background-radius: 8; -fx-background-insets: 4 0;
-  -fx-padding: 0 4 0 0;
+  -fx-padding: 0 4 0 0; -fx-indent: 16;
 }
 .file-tree .tree-cell .label { -fx-text-fill: #BFBFBF; }
 .file-tree .tree-cell:filled:hover { -fx-background-color: #FFFFFF14; }
