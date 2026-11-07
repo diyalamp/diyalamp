@@ -40,7 +40,7 @@
   -fx-font-weight: normal;
 }
 .diyalamp-dialog .dialog-action:hover, .diyalamp-dialog .dialog-action:pressed {
-  -fx-background-color: -color-border-default;
+  -fx-border-color: -diyalamp-focus;
 }
 .diyalamp-dialog .dialog-action.accent {
   -fx-background-color: -diyalamp-accent;

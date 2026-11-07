@@ -93,14 +93,12 @@ public final class FxTheme {
     Color foreground = contrast(Color.WHITE, color) >= 4.5 ? Color.WHITE : Color.BLACK;
     Color focus = accentTone(color, DEFAULT_FOCUS);
     Color subtle = new Color(focus.getRed(), focus.getGreen(), focus.getBlue(), 0x26 / 255.0);
-    Color drop = new Color(focus.getRed(), focus.getGreen(), focus.getBlue(), 0x1A / 255.0);
     root.setStyle("-diyalamp-surface: " + hex(surface) + "; -color-accent-emphasis: " + hex(color)
         + "; -color-accent-fg: " + hex(readable)
         + "; -color-accent-subtle: " + cssColor(subtle) + "; -diyalamp-accent: " + hex(color)
         + "; -diyalamp-link: " + hex(readable) + "; -diyalamp-accent-contrast: " + hex(foreground)
         + "; -diyalamp-accent-subtle: " + cssColor(subtle) + "; -diyalamp-focus: " + cssColor(focus)
-        + "; -diyalamp-selection: " + cssColor(accentTone(color, DEFAULT_SELECTION))
-        + "; -diyalamp-drop: " + cssColor(drop) + ";");
+        + "; -diyalamp-selection: " + cssColor(accentTone(color, DEFAULT_SELECTION)) + ";");
   }
 
   private static Color accentTone(Color color, Color target) {

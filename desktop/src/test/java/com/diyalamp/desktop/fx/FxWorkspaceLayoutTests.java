@@ -33,6 +33,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import javax.imageio.ImageIO;
@@ -180,6 +181,15 @@ public final class FxWorkspaceLayoutTests {
     sidebarSearch.reset();
     check(tree.isVisible() && tree.getExpandedItemCount() == 2, "Clearing search restores the note tree");
     tree.getSelectionModel().select(0);
+    fixture.layout();
+    Region selectedRow = (Region) tree.lookup(".tree-cell:filled:selected");
+    check(selectedRow.getBackground().getFills().getLast().getFill().equals(FxTheme.EDITOR_BACKGROUND),
+        "Selected file outlines must preserve the Normal surface inside the row");
+    FxTheme.focusSurface(fixture.stage.getScene().getRoot(), 1);
+    fixture.layout();
+    check(selectedRow.getBackground().getFills().getLast().getFill().equals(Color.BLACK),
+        "Selected file outlines must preserve the Focus surface inside the row");
+    FxTheme.focusSurface(fixture.stage.getScene().getRoot(), 0);
     fixture.layout();
     var rowActions = tree.lookupAll(".file-row-action");
     var headerActions = filesHeader.lookupAll(".file-row-action");
