@@ -14,12 +14,18 @@ import java.util.prefs.Preferences;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.animation.PauseTransition;
+import javafx.event.ActionEvent;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToolBar;
+import javafx.scene.control.TreeView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import javax.imageio.ImageIO;
@@ -66,7 +72,7 @@ public final class FxWorkspaceLayoutTests {
         "The workspace must use the maintained Cupertino Dark control theme");
     ToolBar toolbar = (ToolBar) field(fixture.app, "toolbar");
     check(toolbar.getHeight() >= 52 && toolbar.getHeight() <= 64, "The shared toolbar must have a single comfortable control row");
-    for (String name : new String[] {"Workspace accent color", "Pomodoro focus timer", "Zen mode", "Toggle right sidebar", "New note", "Open note side by side"}) {
+    for (String name : new String[] {"Workspace accent color", "Pomodoro focus timer", "Zen mode", "Toggle right sidebar", "New note", "New folder", "Open note side by side", "Search notes"}) {
       check(toolbar.getItems().stream().filter(node -> name.equals(node.getAccessibleText())).count() == 1,
           "The shared toolbar must expose one accessible " + name + " control");
     }
@@ -76,10 +82,10 @@ public final class FxWorkspaceLayoutTests {
     Object primary = field(fixture.app, "primary");
     TabLine tabs = (TabLine) field(primary, "tabs");
     check(tabs.getRightNode() == null, "Note panes must not duplicate the workspace New/Split controls");
-    Node explorerNode = (Node) field(fixture.app, "explorer");
-    for (String name : new String[] {"New note", "Open note side by side"})
-      check(explorerNode.lookupAll(".button").stream().anyMatch(node -> name.equals(node.getAccessibleText())),
-          "The files sidebar must expose " + name);
+    VBox explorerList = (VBox) field(fixture.app, "explorer");
+    TreeView<?> tree = (TreeView<?>) field(fixture.app, "tree");
+    check(explorerList.getChildren().size() == 1 && explorerList.getChildren().getFirst() == tree
+        && explorerList.lookupAll(".button").isEmpty(), "The files sidebar contains only the note tree");
     HBox metrics = (HBox) field(fixture.app, "metrics");
     check(metrics.getChildren().size() == 4 && metrics.isVisible(), "An open note must expose all four live statistics");
     check(((javafx.scene.control.Label) field(fixture.app, "characters")).getText().endsWith(" chars")
@@ -105,8 +111,24 @@ public final class FxWorkspaceLayoutTests {
     var brand = toolbar.lookupAll(".workspace-brand").stream().findFirst().orElseThrow();
     check(brand instanceof HBox && ((HBox) brand).getChildren().size() == 2,
         "The approved lamp and diyalamp name must share one horizontal brand row");
+    check(toolbar.getItems().getFirst() == brand && "Toggle files sidebar".equals(toolbar.getItems().get(1).getAccessibleText()),
+        "The sidebar toggle follows the lamp and diyalamp name");
+    Label path = (Label) field(fixture.app, "folderLabel");
+    check(path.isVisible() && path.getText().equals(fixture.directory.toString())
+        && path.getTooltip().getText().equals(path.getText()), "The toolbar exposes the full workspace path");
     String imagePath = System.getProperty("diyalamp.workspace.snapshot");
     if (imagePath != null && !imagePath.isBlank()) snapshot(fixture.stage, Path.of(imagePath));
+    ToggleButton find = (ToggleButton) toolbar.getItems().stream()
+        .filter(node -> "Search notes".equals(node.getAccessibleText())).findFirst().orElseThrow();
+    TextField search = (TextField) field(fixture.app, "search");
+    check(!search.isVisible(), "Search starts as an icon");
+    find.fire(); fixture.layout();
+    search.setText("Reference");
+    check(search.isVisible() && search.getFont().getSize() == 16 && tree.getExpandedItemCount() == 1,
+        "The toolbar search filters the note tree at the shared font size");
+    search.fireEvent(new ActionEvent());
+    check(!search.isVisible() && tree.getExpandedItemCount() == 2 && fixture.stage.getTitle().startsWith("Reference.md"),
+        "Enter opens the search result and restores the full note list and folder path");
   }
 
   private static void compactWidth(Fixture fixture) throws Exception {

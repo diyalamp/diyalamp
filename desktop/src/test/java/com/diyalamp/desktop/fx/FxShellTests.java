@@ -171,7 +171,7 @@ public final class FxShellTests {
           && swatch.getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius() >= 6,
           "The current accent preview must render as a small circle");
       var uiFonts = new java.util.ArrayList<Font>();
-      uiFonts.add(((javafx.scene.control.TextField) field(fixture.app, "search")).getFont());
+      uiFonts.add(((Label) field(fixture.app, "folderLabel")).getFont());
       uiFonts.add(((Label) field(host, "breadcrumb")).getFont()); uiFonts.add(status.getFont()); uiFonts.add(accent.getFont());
       var fileLabels = root.lookupAll(".file-tree .tree-cell .label").stream()
           .filter(node -> node instanceof Label label && label.getText().equals(fixture.path.getFileName().toString()))

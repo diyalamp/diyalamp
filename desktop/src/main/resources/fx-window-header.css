@@ -1,0 +1,5 @@
+.workspace-window-header {
+  -fx-background-color: -color-bg-inset;
+  -fx-border-color: transparent transparent -color-border-default transparent;
+  -fx-border-width: 0 0 1 0;
+}

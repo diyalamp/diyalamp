@@ -47,7 +47,7 @@ public final class FxDarkThemeTests {
     Label brand = new Label("Fictional workspace"); brand.getStyleClass().add("workspace-brand-name");
     Button tools = FxTheme.iconButton("folder-open", "Open fictional folder", () -> {});
     HBox toolbar = new HBox(brand, tools); toolbar.getStyleClass().add("workspace-toolbar"); root.setTop(toolbar);
-    TextField input = new TextField(); input.setPromptText("Find a note…"); input.getStyleClass().add("explorer-search");
+    TextField input = new TextField(); input.setPromptText("Find a note…"); input.getStyleClass().add("note-search-field");
     VBox sidebar = new VBox(input); sidebar.getStyleClass().add("file-explorer"); sidebar.setPrefWidth(240); root.setLeft(sidebar);
     Label heading = new Label("Fictional note"); heading.getStyleClass().add("workspace-empty-title");
     Label paragraph = new Label("Ordinary writing");

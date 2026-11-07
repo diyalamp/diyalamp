@@ -63,14 +63,15 @@
 .context-menu .menu-item:focused { -fx-background-color: -diyalamp-accent-subtle; }
 .context-menu .menu-item:focused .label { -fx-text-fill: #BFBFBF; }
 .workspace-toolbar {
-  -fx-background-color: #191A1B;
+  -fx-background-color: -color-bg-inset;
   -fx-border-width: 0 0 1 0;
   -fx-border-color: transparent transparent #2A2B2C transparent;
-  -fx-padding: 8 16;
-  -fx-spacing: 8;
-  -fx-min-height: 56;
+  -fx-padding: 0 12;
+  -fx-spacing: 4;
+  -fx-min-height: 52;
 }
-.workspace-brand { -fx-padding: 0 16 0 8; }
+.workspace-window-header .workspace-toolbar { -fx-border-width: 0; }
+.workspace-brand { -fx-padding: 0 6 0 2; }
 .workspace-brand-name { -fx-font-family: "Inter SemiBold"; -fx-font-weight: normal; -fx-text-fill: #BFBFBF; }
 .workspace-folder { -fx-text-fill: #8C8C8C; }
 .workspace-tool {
@@ -78,12 +79,12 @@
   -fx-padding: 8; -fx-background-radius: 8; -fx-border-width: 0; -fx-background-color: transparent;
 }
 .workspace-tool:hover, .workspace-accent-button:hover { -fx-background-color: #242526; }
-.workspace-tool, .workspace-accent-button, .file-row-action, .note-metric {
+.workspace-tool, .workspace-accent-button, .note-metric {
   transition-property: -fx-background-color, -fx-border-color, -fx-text-fill, -fx-opacity;
   transition-duration: 140ms;
   transition-timing-function: ease-out;
 }
-.workspace-tool .icon-stroke, .file-row-action .icon-stroke {
+.workspace-tool .icon-stroke {
   transition-property: -fx-stroke;
   transition-duration: 140ms;
   transition-timing-function: ease-out;
@@ -91,8 +92,8 @@
 .note-metric { -fx-padding: 4; -fx-background-color: transparent; -fx-background-radius: 8; -fx-text-fill: #8C8C8C; }
 .note-metric:hover { -fx-background-color: #242526; -fx-text-fill: #BFBFBF; }
 .workspace-root:reduced-motion .workspace-tool, .workspace-root:reduced-motion .workspace-accent-button,
-.workspace-root:reduced-motion .file-row-action, .workspace-root:reduced-motion .note-metric,
-.workspace-root:reduced-motion .workspace-tool .icon-stroke, .workspace-root:reduced-motion .file-row-action .icon-stroke {
+.workspace-root:reduced-motion .note-metric,
+.workspace-root:reduced-motion .workspace-tool .icon-stroke {
   transition-duration: 0s;
 }
 .workspace-tool:selected, .zen-toggle:selected { -fx-background-color: #313233; }
@@ -103,21 +104,18 @@
   -fx-border-color: transparent #2A2B2C transparent transparent;
   -fx-border-width: 0 1 0 0;
 }
-.explorer-heading { -fx-padding: 16 16 8 16; -fx-min-height: 60; }
-.explorer-title { -fx-text-fill: #8C8C8C; }
-.explorer-search-box { -fx-padding: 0 16 16 16; }
-.explorer-search {
+.note-search-field {
   -fx-background-color: #191A1B;
   -fx-background-insets: 0;
   -fx-border-width: 1;
   -fx-border-color: #333536;
   -fx-background-radius: 8;
-  -fx-padding: 8 12;
+  -fx-padding: 6 10;
   -fx-prompt-text-fill: #555555;
   -fx-text-fill: #BFBFBF;
 }
-.explorer-search:focused { -fx-background-color: #191A1B; -fx-border-color: -diyalamp-focus; -fx-effect: null; }
-.file-tree { -fx-background-color: transparent; -fx-background-insets: 0; -fx-padding: 0 8 16 8; -fx-border-width: 0; }
+.note-search-field:focused { -fx-background-color: #191A1B; -fx-border-color: -diyalamp-focus; -fx-effect: null; }
+.file-tree { -fx-background-color: transparent; -fx-background-insets: 0; -fx-padding: 8 8 16 8; -fx-border-width: 0; }
 .file-tree .virtual-flow { -fx-background-color: transparent; }
 .file-tree .tree-cell {
   -fx-background-color: transparent; -fx-background-radius: 8;
@@ -129,7 +127,6 @@
 .file-tree .tree-cell:filled:selected .label { -fx-text-fill: #EDEDED; }
 .file-tree .tree-cell:filled:selected .icon-stroke { -fx-stroke: -diyalamp-accent; }
 .file-tree .tree-cell:drop-target { -fx-background-color: -diyalamp-drop; -fx-border-color: -diyalamp-focus; -fx-border-radius: 8; }
-.file-row-action { -fx-min-width: 28; -fx-pref-width: 28; -fx-min-height: 28; -fx-pref-height: 28; -fx-padding: 6; }
 .writing-split { -fx-padding: 0; -fx-border-width: 0; -fx-background-color: #121314; }
 .writing-split > .split-pane-divider { -fx-padding: 0 .5 0 .5; -fx-background-color: #2A2B2C; }
 .document-pane { -fx-background-color: #121314; -fx-min-width: 200; }
@@ -168,8 +165,6 @@
 .workspace-empty { -fx-padding: 24; -fx-background-color: #121314; }
 .workspace-empty-title { -fx-font-family: "Inter SemiBold"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #BFBFBF; }
 .empty-detail { -fx-text-fill: #8C8C8C; }
-.empty-heading { -fx-text-fill: #8C8C8C; }
-.explorer-empty { -fx-padding: 16; -fx-alignment: top-left; }
 .save-warning { -fx-background-color: #352A05; -fx-padding: 8 16; -fx-background-radius: 8; -fx-border-width: 0; }
 .save-warning .label { -fx-text-fill: #E5BA7D; }
 .workspace-accent-button {
