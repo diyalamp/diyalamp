@@ -19,6 +19,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToolBar;
 import javafx.scene.control.TreeView;
 import javafx.scene.image.WritableImage;
@@ -136,6 +137,9 @@ public final class FxWorkspaceLayoutTests {
         "The approved lamp and diyalamp name must share one horizontal brand row");
     check(toolbar.getItems().getFirst() == brand && "Toggle files sidebar".equals(toolbar.getItems().get(1).getAccessibleText()),
         "The sidebar toggle follows the lamp and diyalamp name");
+    check(((ToggleButton) field(fixture.app, "filesControl")).isSelected()
+        && ((ToggleButton) field(fixture.app, "connectionsControl")).isSelected(),
+        "Both visible sidebars must have selected toolbar toggles");
     Button path = (Button) field(fixture.app, "folderControl");
     check(path.isVisible() && path.getText().equals(fixture.directory.toString())
         && path.getTooltip().getText().equals(path.getText()) && path.getGraphic() != null
@@ -272,7 +276,6 @@ public final class FxWorkspaceLayoutTests {
           + "## Local Markdown files\n\n- Keep the files on your Mac\n- Open two notes side by side\n- Start a focus session when you are ready\n\n"
           + "```java\nString idea = \"A small beginning\";\nSystem.out.println(idea);\n```\n");
       Files.writeString(directory.resolve("Reference.md"), "# Reference\n\nReturn to [[Draft]].\n");
-      preferences.putBoolean("connectionsVisible", true);
       app.start(stage);
       call(app, "setFolder", new Class<?>[] {Path.class}, directory);
       call(app, "open", new Class<?>[] {Path.class, boolean.class}, directory.resolve("Draft.md"), false);

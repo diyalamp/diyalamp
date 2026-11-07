@@ -13,7 +13,9 @@ import atlantafx.base.theme.PrimerLight;
 import javafx.scene.Scene;
 import javafx.scene.Node;
 import javafx.scene.layout.StackPane;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ScrollBar;
+import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.LinearGradient;
@@ -39,7 +41,7 @@ public final class FxWritingPaneTests {
       try {
         FxTheme.setup();
         roundTrips(); editingAndUndo(); blocksAndTasks(); shortcuts(); keyboardModifiers(); linksAndLifecycle();
-        searchMatches(); pasteAndDivider(); incrementalSaving(); actualComponent(); focusLine();
+        searchMatches(); pasteAndDivider(); incrementalSaving(); actualComponent(); checklistAppearance(); focusLine();
         focusScrolling(finished, failure);
       } catch (Throwable error) { failure.set(error); }
       if (failure.get() != null) finished.countDown();
@@ -384,6 +386,65 @@ public final class FxWritingPaneTests {
     check(editor.area().getPadding().getLeft() >= 24 && editor.area().getPadding().getRight() >= 24,
         "Readable text gutters belong inside the editing surface");
     editor.dispose(); stage.close();
+  }
+
+  private static void checklistAppearance() {
+    String source = "Body text\n- A bullet\n7. A numbered item\n- [ ] A pending task\n- [x] A finished task\n"
+        + "- [x] A longer task that wraps across several lines should keep its box beside the first line. "
+        + "The following lines continue beneath the task text.\n> A short quotation\n";
+    FxWritingPane editor = new FxWritingPane(source);
+    StackPane root = new StackPane(editor.node());
+    root.getStyleClass().add("workspace-root");
+    FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
+    root.getStylesheets().add(FxWritingPane.class.getResource("/fx-workspace.css").toExternalForm());
+    Stage stage = new Stage(); stage.setScene(new Scene(root, 420, 440)); stage.show();
+    root.applyCss(); root.layout();
+    try {
+      CheckBox pending = (CheckBox) editor.area().getParagraphGraphic(3);
+      CheckBox finished = (CheckBox) editor.area().getParagraphGraphic(4);
+      CheckBox wrapped = (CheckBox) editor.area().getParagraphGraphic(5);
+      Node pendingBox = pending.lookup(".box"), finishedBox = finished.lookup(".box"), wrappedBox = wrapped.lookup(".box");
+      Bounds wrappedFirstLine = firstCharacter(editor, 5);
+      Bounds wrappedOnScreen = wrappedBox.localToScreen(wrappedBox.getLayoutBounds());
+      check(editor.area().getParagraphBoundsOnScreen(5).orElseThrow().getHeight() > 65,
+          "The fixture must include a genuinely wrapped checklist row");
+      check(Math.abs(wrappedOnScreen.getWidth() - 16) <= 1 && Math.abs(wrappedOnScreen.getHeight() - 16) <= 1,
+          "The native checkbox must remain compact on a tall row");
+      check(Math.abs(wrappedFirstLine.getCenterY() - wrappedOnScreen.getCenterY()) <= 2,
+          "A wrapped checklist checkbox must align to the first line");
+      double bodyPitch = firstCharacter(editor, 1).getMinY() - firstCharacter(editor, 0).getMinY();
+      double taskPitch = firstCharacter(editor, 4).getMinY() - firstCharacter(editor, 3).getMinY();
+      check(Math.abs(bodyPitch - taskPitch) <= 1,
+          "Checklist lines must use the same pitch as prose after CSS is applied");
+      double listIndent = firstCharacter(editor, 1).getMinX();
+      check(List.of(2, 3, 4, 5, 6).stream().allMatch(row -> Math.abs(firstCharacter(editor, row).getMinX() - listIndent) <= 1),
+          "Bullets, numbers, checkboxes and quote text must share the marker gutter");
+      var image = root.snapshot(null, null);
+      check(brightMarkerPixels(root, image, pendingBox) == 0 && brightMarkerPixels(root, image, finishedBox) >= 3,
+          "Rendered pixels must show the check only on the selected item");
+      check(pending.getAccessibleText().equals("Checklist item unchecked") && finished.isSelected(),
+          "Checklist controls must retain a native, named selection state");
+      pending.fire();
+      check(editor.markdown().equals(source.replace("- [ ] A pending task", "- [x] A pending task")),
+          "The visible native control must still toggle the corresponding Markdown task");
+    } finally { editor.dispose(); stage.close(); }
+  }
+
+  private static Bounds firstCharacter(FxWritingPane editor, int row) {
+    int start = editor.area().getAbsolutePosition(row, 0);
+    return editor.area().getCharacterBoundsOnScreen(start, start + 1).orElseThrow();
+  }
+
+  private static int brightMarkerPixels(StackPane root, javafx.scene.image.WritableImage image, Node box) {
+    Bounds region = root.sceneToLocal(box.localToScene(box.getLayoutBounds()));
+    int pixels = 0;
+    for (int y = (int) Math.ceil(region.getMinY() + 2); y < region.getMaxY() - 2; y++) {
+      for (int x = (int) Math.ceil(region.getMinX() + 2); x < region.getMaxX() - 2; x++) {
+        Color color = image.getPixelReader().getColor(x, y);
+        if (color.getRed() > .85 && color.getGreen() > .85 && color.getBlue() > .85) pixels++;
+      }
+    }
+    return pixels;
   }
 
   private static void focusLine() {

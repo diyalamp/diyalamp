@@ -71,8 +71,8 @@ The existing SmartGraph and its zoom container stay in place as the active note 
 
 Drag the maintained JavaFX SplitPane dividers to resize the files and Connections sidebars independently. Their pixel widths and open/closed states are remembered. The top-bar Reset sidebar widths icon restores 272 px on the left and 304 px on the right, subject to window bounds, without changing visibility, notes, selection, or Zen. A narrow window clamps sidebar widths to leave room for writing.
 
-Use the Zen toolbar control or Shift-Command-F to apply a visual fade around the current caret line. The toolbar, sidebars, tabs, status, and Zen button remain visible and in place; the fade does not intercept input.
+Use the moon toolbar control or Shift-Command-F to focus on the active caret line. Surrounding text fades, and the workspace chrome and inactive split pane dim. The toolbar, sidebars, tabs, and status stay visible and usable.
 
-Pomodoro is an icon-only top-toolbar control, also available from the View menu. Its tooltip and accessibility help carry the phase, remaining time, and running/stopped state; its accessible name stays stable. The animated popover provides Start, Stop, and Reset. Its 25-minute focus and 5-minute break phases start manually, and the timer stops when the app exits. The accent control is a color circle opening the six-choice accent popover.
+Pomodoro shows the active phase and countdown in the toolbar. Open its popover to start, pause, reset, and set focus and break lengths. One cycle runs a focus session and its break before stopping. Repeat alternates focus and break until paused or reset. Duration and repeat settings persist across launches. The timer stops when the app exits.
 
 The website and browser notebook remain a separate dark presentation and do not sync with local folders. Full VoiceOver review and physical Intel GUI validation remain open; passing component tests and producing both architecture packages do not replace those checks.

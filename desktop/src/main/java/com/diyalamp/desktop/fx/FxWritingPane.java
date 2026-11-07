@@ -659,13 +659,19 @@ public final class FxWritingPane {
       check.setOnAction(event -> toggleChecklist(index));
       return check;
     }
-    String marker = switch (block.kind()) { case "bullet" -> "•"; case "ordered" -> block.number() + "."; case "quote" -> "│"; default -> ""; };
-    if (marker.isEmpty()) return null;
+    String marker = switch (block.kind()) {
+      case "bullet" -> "•";
+      case "ordered" -> block.number() + ".";
+      case "quote" -> "";
+      default -> null;
+    };
+    if (marker == null) return null;
     Label label = new Label(marker);
     label.setFont(FxTheme.textFont(FxTheme.TEXT_SIZE, false, false));
     label.getStyleClass().add("md-marker");
+    if (block.kind().equals("quote")) label.getStyleClass().add("md-quote-marker");
     label.setMinWidth(24);
-    label.setPadding(new Insets(0, 8, 0, 0));
+    label.setMaxWidth(Double.MAX_VALUE);
     return label;
   }
 
@@ -677,14 +683,13 @@ public final class FxWritingPane {
 
   private static void applyBlock(TextFlow flow, FxMarkdown.Block block) {
     flow.getStyleClass().removeIf(name -> name.startsWith("md-"));
-    flow.getStyleClass().addAll("md-paragraph", "md-" + block.kind());
-    flow.setLineSpacing(block.kind().equals("code") ? 1 : 3);
-    flow.setPadding(new Insets(block.kind().equals("heading") ? 16 : 0, 0,
-        block.kind().equals("code") ? 1 : 9, 0));
+    flow.getStyleClass().add("md-paragraph");
+    if (!block.kind().equals("paragraph")) flow.getStyleClass().add("md-" + block.kind());
   }
 
   private static void applySpan(TextExt text, FxMarkdown.Span span) {
-    boolean code = span.flag(Markdown.INLINE_CODE) || span.blockKind().equals("code");
+    boolean inlineCode = span.flag(Markdown.INLINE_CODE);
+    boolean code = inlineCode || span.blockKind().equals("code");
     boolean heading = span.blockKind().equals("heading");
     double size = FxTheme.TEXT_SIZE;
     boolean bold = heading || span.flag(StyleConstants.Bold), italic = span.flag(StyleConstants.Italic);
@@ -701,7 +706,7 @@ public final class FxWritingPane {
     boolean link = span.link() != null || (!code && span.noteLink() != null);
     text.setUnderline(link);
     text.getStyleClass().add("md-text");
-    if (code) text.getStyleClass().add("md-inline-code");
+    if (inlineCode) text.getStyleClass().add("md-inline-code");
     if (link) text.getStyleClass().add("md-link");
     if (!code && span.noteLink() != null) {
       text.setAccessibleRole(AccessibleRole.HYPERLINK);

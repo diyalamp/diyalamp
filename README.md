@@ -27,9 +27,9 @@ This describes the 1.3.1 development workspace. See macOS downloads below for th
 - Note creation, import, rename, export, recoverable deletion, and restore.
 - Undo/redo and macOS keyboard shortcuts.
 - `[[Note name]]` links with directed incoming/outgoing navigation and a SmartGraph panel that retains layout and zoom during note selection and safe saves.
-- Zen visually fades text away from the current caret line while keeping the toolbar, sidebars, tabs, and status visible. Its control stays in the same place.
+- Focus fades text away from the active caret line and dims the workspace chrome while keeping tabs, sidebars, and controls available.
 - Smooth accent transitions, matching dark dialogs, and restrained hover paint transitions without moving controls.
-- Icon-only top-toolbar Pomodoro and a color-circle accent control. Pomodoro opens an animated popover for Start, Stop, and Reset; its tooltip and accessibility help show the phase and remaining time.
+- A toolbar Pomodoro with a live Focus or Break countdown, editable durations, and a choice of one cycle or continuous repeat. The color-circle accent picker keeps its geometry stable when switching colors.
 - Drag tabs between panes or move notes into workspace folders without overwrites.
 - A unified macOS toolbar with centered native window buttons and one clickable workspace path. The files sidebar has search and creation controls, with split, inline rename, and recoverable delete on each note row.
 - Character, word, and logical-line counts for rendered text, plus the current Markdown's UTF-8 byte size in the status bar.
