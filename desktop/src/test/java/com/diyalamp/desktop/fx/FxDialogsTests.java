@@ -1,7 +1,9 @@
 package com.diyalamp.desktop.fx;
 
+import javafx.application.ConditionalFeature;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
+import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -10,11 +12,14 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -41,6 +46,7 @@ public final class FxDialogsTests {
   }
 
   private static void dialogs() {
+    System.setProperty("diyalamp.reduceMotion", "true");
     BorderPane ownerRoot = new BorderPane();
     Color accent = Color.web("#BA929B"); FxTheme.accent(ownerRoot, accent);
     Stage owner = new Stage(); owner.setScene(new Scene(ownerRoot, 600, 400)); owner.show();
@@ -51,22 +57,42 @@ public final class FxDialogsTests {
     check(input.getDialogPane().getStyleClass().stream().filter("diyalamp-dialog"::equals).count() == 1,
         "Styling must be idempotent");
     check(FxTheme.accentOf(input.getDialogPane()).equals(accent), "Dialog controls must use the owner's current displayed accent");
-    check(input.getEditor().getText().equals("Original note") && input.getHeaderText() == null,
-        "Styling must not rewrite input or add a decorative heading");
+    check(input.getEditor().getText().equals("Original note") && input.getHeaderText().equals("Rename note"),
+        "The window title moves into the surface while preserving the initial input");
     input.show(); input.getDialogPane().applyCss(); input.getDialogPane().layout();
     Button accept = (Button) input.getDialogPane().lookupButton(ButtonType.OK);
     Button cancel = (Button) input.getDialogPane().lookupButton(ButtonType.CANCEL);
     check(accept.isDefaultButton() && cancel.isCancelButton(), "Standard Enter and Escape roles must remain intact");
     check(accept.getStyleClass().contains("accent"), "Affirmative actions must use the maintained AtlantaFX accent style");
     check(accept.getFont().getName().equals("Inter Regular") && accept.getFont().getSize() == 16,
-        "Action text must resolve the native system family at the shared 16-point size");
+        "Action text must use the shared Inter font and 16-point size");
     check(input.getEditor().getFont().getSize() == 16 && input.getEditor().getHeight() >= 38,
         "Text fields must use the shared readable size and control height");
     check(input.getDialogPane().getGraphic() == null, "The dialog must not add an oversized icon above its content");
     check(input.getDialogPane().getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius() == 12,
         "Actual laid-out dialog surfaces must have the shared soft rounding");
-    input.getEditor().setText("Renamed note"); accept.fire();
+    Stage window = (Stage) input.getDialogPane().getScene().getWindow();
+    if (Platform.isSupported(ConditionalFeature.TRANSPARENT_WINDOW)) {
+      check(window.getStyle() == StageStyle.TRANSPARENT,
+          "The dialog must drop native window chrome when transparent windows are supported");
+      var rendered = window.getScene().snapshot(null).getPixelReader();
+      check(rendered.getColor(0, 0).getOpacity() == 0 && rendered.getColor(210, 12).isOpaque(),
+          "The scene must render transparent corners around its opaque dark surface");
+    } else check(window.getStyle() == StageStyle.UNDECORATED,
+        "Platforms without window transparency must still use an undecorated dark surface");
+    Label prompt = (Label) input.getDialogPane().getContent().lookup(".label");
+    check(prompt != null && prompt.getLabelFor() == input.getEditor()
+            && prompt.getBoundsInParent().getMaxY() < input.getEditor().getBoundsInParent().getMinY(),
+        "The visible name label must identify the field and sit above it");
+    check(input.getEditor().getBackground().getFills().size() == 1 && input.getEditor().getEffect() == null,
+        "The input must render one flat fill without an inset effect");
+    check(input.getDialogPane().getOpacity() == 1,
+        "The dialog must open fully visible when reduced motion is enabled");
+    input.getEditor().setText("Renamed note"); press(input, KeyCode.ENTER);
     check(input.getResult().equals("Renamed note"), "Standard input acceptance must still return the edited value");
+    input.setResult(null); input.show(); press(input, KeyCode.ESCAPE);
+    check(!input.isShowing() && input.getResult() == null,
+        "Escape must dismiss the styled input without accepting its text");
 
     Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "A fictional confirmation", ButtonType.CANCEL, ButtonType.OK);
     alert.setHeaderText(null); FxDialogs.style(alert, owner);
@@ -98,5 +124,9 @@ public final class FxDialogsTests {
     check(FxTheme.accentOf(guarded.getDialogPane()).equals(liveColor), "Visible modeless dialogs must follow live owner accent changes");
     ((Button) guarded.getDialogPane().lookupButton(ButtonType.CANCEL)).fire();
     owner.close();
+  }
+
+  private static void press(TextInputDialog input, KeyCode key) {
+    Event.fireEvent(input.getEditor(), new KeyEvent(KeyEvent.KEY_PRESSED, "", "", key, false, false, false, false));
   }
 }

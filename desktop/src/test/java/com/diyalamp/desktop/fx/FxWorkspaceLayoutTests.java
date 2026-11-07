@@ -14,6 +14,7 @@ import java.util.prefs.Preferences;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -85,7 +86,8 @@ public final class FxWorkspaceLayoutTests {
     VBox explorerList = (VBox) field(fixture.app, "explorer");
     TreeView<?> tree = (TreeView<?>) field(fixture.app, "tree");
     check(explorerList.getChildren().size() == 1 && explorerList.getChildren().getFirst() == tree
-        && explorerList.lookupAll(".button").isEmpty(), "The files sidebar contains only the note tree");
+        && explorerList.lookupAll(".button").stream().allMatch(node -> node.getStyleClass().contains("file-row-action")),
+        "The files sidebar contains the note tree and its per-note actions");
     HBox metrics = (HBox) field(fixture.app, "metrics");
     check(metrics.getChildren().size() == 4 && metrics.isVisible(), "An open note must expose all four live statistics");
     check(((javafx.scene.control.Label) field(fixture.app, "characters")).getText().endsWith(" chars")
@@ -99,6 +101,10 @@ public final class FxWorkspaceLayoutTests {
     check(!tabLabels.isEmpty() && tabLabels.stream().allMatch(node -> node.isVisible() && node.isManaged()
         && node.getLayoutBounds().getWidth() > 40),
         "The selected document filename must remain visible after the tab's reveal animation");
+    Node tab = tabs.lookup(".tab:selected");
+    var tabOrigin = tab.localToScene(0, 0).subtract(tabs.localToScene(0, 0));
+    check(Math.abs(tabOrigin.getX() - 8) <= 1 && Math.abs(tabOrigin.getY() - 8) <= 1,
+        "The first document tab uses the same 8 px top and left inset: " + tabOrigin);
     Region explorer = (Region) field(fixture.app, "explorerClip");
     Region pane = (Region) field(primary, "container");
     check(explorer.localToScene(0, 0).getX() == 0 && Math.abs(pane.localToScene(0, 0).getX() - explorer.getWidth()) <= 7,
@@ -122,13 +128,38 @@ public final class FxWorkspaceLayoutTests {
         .filter(node -> "Search notes".equals(node.getAccessibleText())).findFirst().orElseThrow();
     TextField search = (TextField) field(fixture.app, "search");
     check(!search.isVisible(), "Search starts as an icon");
+    double findX = find.localToScene(0, 0).getX();
     find.fire(); fixture.layout();
+    Timeline opening = (Timeline) field(fixture.app, "searchAnimation");
+    opening.jumpTo(opening.getTotalDuration().divide(2));
+    check(search.getOpacity() > 0 && search.getOpacity() < 1 && search.getTranslateY() < 0,
+        "Search fades and slides into the workspace");
+    opening.jumpTo(opening.getTotalDuration());
     search.setText("Reference");
-    check(search.isVisible() && search.getFont().getSize() == 16 && tree.getExpandedItemCount() == 1,
-        "The toolbar search filters the note tree at the shared font size");
+    check(search.isVisible() && search.getFont().getSize() == 16 && tree.getExpandedItemCount() == 1
+        && search.getBorder().getStrokes().getFirst().getRadii().getTopLeftHorizontalRadius() == 8,
+        "The rounded toolbar search filters the note tree at the shared font size");
+    check(Math.abs(find.localToScene(0, 0).getX() - findX) <= 1,
+        "Search appears without moving the surrounding toolbar controls");
     search.fireEvent(new ActionEvent());
-    check(!search.isVisible() && tree.getExpandedItemCount() == 2 && fixture.stage.getTitle().startsWith("Reference.md"),
+    Timeline closing = (Timeline) field(fixture.app, "searchAnimation");
+    closing.jumpTo(closing.getTotalDuration());
+    check(!search.isVisible() && path.isVisible() && tree.getExpandedItemCount() == 2
+        && fixture.stage.getTitle().startsWith("Reference.md"),
         "Enter opens the search result and restores the full note list and folder path");
+    tree.getSelectionModel().select(0);
+    fixture.layout();
+    Button trash = (Button) tree.lookupAll(".file-row-action").stream()
+        .filter(node -> "Move Draft.md to deleted notes".equals(node.getAccessibleText())).findFirst().orElseThrow();
+    var trashRight = trash.localToScene(trash.getWidth(), 0).getX();
+    check(trash.isVisible() && tree.localToScene(tree.getWidth(), 0).getX() - trashRight <= 18,
+        "The selected note has a right-aligned delete action");
+    Path draft = fixture.directory.resolve("Draft.md");
+    String original = Files.readString(draft);
+    trash.fire();
+    check(!Files.exists(draft) && tree.getExpandedItemCount() == 1, "The row action moves its note to deleted notes");
+    call(fixture.app, "restoreLast", new Class<?>[0]);
+    check(Files.readString(draft).equals(original), "The same note can be restored without changing its Markdown");
   }
 
   private static void compactWidth(Fixture fixture) throws Exception {

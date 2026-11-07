@@ -1,5 +1,5 @@
-/* AtlantaFX Cupertino Dark provides the controls. This sheet defines one workspace,
-   using an 8/16/24 spacing scale and shared editor, sidebar, and chrome surfaces. */
+/* Cupertino Dark controls share an 8/16/24 spacing scale, an 8 px control
+   radius, and quiet borders. Separate chrome and writing surfaces define the layout. */
 .workspace-root {
   -fx-font-family: "Inter";
   -fx-font-size: 16px;
@@ -104,22 +104,26 @@
   -fx-border-color: transparent #2A2B2C transparent transparent;
   -fx-border-width: 0 1 0 0;
 }
-.note-search-field {
-  -fx-background-color: #191A1B;
+.workspace-root .note-search-field {
+  -fx-background-color: -color-bg-subtle;
   -fx-background-insets: 0;
+  -fx-border-insets: 0;
   -fx-border-width: 1;
-  -fx-border-color: #333536;
+  -fx-border-color: -color-border-default;
+  -fx-border-radius: 8;
   -fx-background-radius: 8;
-  -fx-padding: 6 10;
-  -fx-prompt-text-fill: #555555;
-  -fx-text-fill: #BFBFBF;
+  -fx-min-height: 36;
+  -fx-max-height: 36;
+  -fx-padding: 0 8;
+  -fx-prompt-text-fill: -color-fg-muted;
+  -fx-effect: null;
 }
-.note-search-field:focused { -fx-background-color: #191A1B; -fx-border-color: -diyalamp-focus; -fx-effect: null; }
-.file-tree { -fx-background-color: transparent; -fx-background-insets: 0; -fx-padding: 8 8 16 8; -fx-border-width: 0; }
+.workspace-root .note-search-field:focused { -fx-border-color: -diyalamp-focus; }
+.file-tree { -fx-background-color: transparent; -fx-background-insets: 0; -fx-padding: 8; -fx-border-width: 0; }
 .file-tree .virtual-flow { -fx-background-color: transparent; }
 .file-tree .tree-cell {
   -fx-background-color: transparent; -fx-background-radius: 8;
-  -fx-padding: 4 8; -fx-cell-size: 40;
+  -fx-padding: 0 4 0 0; -fx-cell-size: 36;
 }
 .file-tree .tree-cell .label { -fx-text-fill: #BFBFBF; }
 .file-tree .tree-cell:filled:hover { -fx-background-color: #FFFFFF14; }
@@ -127,6 +131,12 @@
 .file-tree .tree-cell:filled:selected .label { -fx-text-fill: #EDEDED; }
 .file-tree .tree-cell:filled:selected .icon-stroke { -fx-stroke: -diyalamp-accent; }
 .file-tree .tree-cell:drop-target { -fx-background-color: -diyalamp-drop; -fx-border-color: -diyalamp-focus; -fx-border-radius: 8; }
+.file-tree .file-row-action {
+  -fx-min-width: 28; -fx-pref-width: 28; -fx-min-height: 28; -fx-pref-height: 28;
+  -fx-padding: 6;
+}
+.file-tree .tree-cell:filled .file-row-action .icon-stroke { -fx-stroke: -color-fg-muted; }
+.file-tree .tree-cell:filled .file-row-action:hover .icon-stroke { -fx-stroke: -color-fg-default; }
 .writing-split { -fx-padding: 0; -fx-border-width: 0; -fx-background-color: #121314; }
 .writing-split > .split-pane-divider { -fx-padding: 0 .5 0 .5; -fx-background-color: #2A2B2C; }
 .document-pane { -fx-background-color: #121314; -fx-min-width: 200; }
@@ -137,10 +147,13 @@
   -color-tab-border-selected: transparent;
   -fx-background-color: #191A1B;
   -fx-border-width: 0;
-  -fx-padding: 8 16 0 16;
-  -fx-min-height: 48;
+  -fx-padding: 8;
+  -fx-min-height: 52;
 }
-.document-tabs.floating.dense > .root-container > .tabs > .tab { -fx-padding: 8 12; -fx-background-radius: 8; -fx-border-width: 0; }
+.document-tabs.floating.dense > .root-container { -fx-padding: 0; }
+.document-tabs.floating.dense > .root-container > .tabs > .tab {
+  -fx-padding: 4 8; -fx-min-height: 36; -fx-background-radius: 8; -fx-border-width: 0;
+}
 .document-tabs .tab { -fx-font-size: 16px; -fx-background-color: #191A1B; }
 .document-tabs .tab:selected { -fx-background-color: #121314; }
 .document-tabs .tab > .tab-box { -fx-spacing: 8; }
@@ -148,7 +161,6 @@
 .document-tabs .tab:selected > .tab-box > .label { -fx-text-fill: #BFBFBF; }
 .document-tabs .tab > .tab-box > .close-button { -fx-padding: 6; -fx-background-radius: 6; }
 .document-tabs .tab > .tab-box > .close-button > .graphic { -fx-background-color: #8C8C8C; }
-.tab-tools { -fx-padding: 0 0 0 8; }
 .document-location { -fx-min-height: 32; -fx-padding: 8 24; -fx-spacing: 8; }
 .document-breadcrumb { -fx-text-fill: #8C8C8C; }
 .note-page { -fx-background-color: #121314; -fx-padding: 0; }

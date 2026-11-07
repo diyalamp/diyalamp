@@ -1,6 +1,6 @@
 # diyalamp desktop
 
-A focused, local Markdown writing app for macOS. The 1.2.1 development interface uses JavaFX 27, maintained AtlantaFX CupertinoDark controls, RichTextFX rendered editing, bundled static Inter text, and installed Menlo for code. No backend, model provider, database, or account is required.
+A focused, local Markdown writing app for macOS. The 1.2.2 development interface uses JavaFX 27, maintained AtlantaFX CupertinoDark controls, RichTextFX rendered editing, bundled static Inter text, and installed Menlo for code. No backend, model provider, database, or account is required.
 
 ## Build and run
 
@@ -42,6 +42,8 @@ This produces a self-contained `.app`, a compressed DMG for the current processo
 This community release is unsigned and not Apple-notarized. Do not describe it as notarized or suppress macOS security checks. Signing requires the owner's Apple Developer identity and a separate notarization setup.
 
 The interface is dark-only, with no theme switch. Its colors follow the official [VS Code 2026 Dark theme](https://github.com/microsoft/vscode/blob/main/extensions/theme-defaults/themes/2026-dark.json): editor `#121314` with `#BBBEBF` text, sidebar/top/status chrome `#191A1B`, separators `#2A2B2C`, text `#BFBFBF`, muted text `#8C8C8C`, inputs `#191A1B` with `#333536` borders and `#555555` placeholders, default action blue `#297AA0`, and link blue `#48A0C7`. Every text surface uses 16 px, including headings, graph labels, dialogs, tooltips, menus, popovers, and timer digits. Inter SemiBold changes weight without enlarging headings; real italic faces preserve emphasis. Code uses installed Menlo 16. Alternate accents receive dark-aware foreground contrast and transition smoothly.
+
+Workspace spacing uses an 8 px grid. Toolbar controls are 36 px tall inside a 52 px row, with 8 px control corners. Tabs and the file list use an 8 px outer inset. Dialogs use 24 px inner padding and 12 px surface corners. Brief entrance motion leaves adjacent controls in place and honors the reduced-motion setting.
 
 ## Writing and storage
 
