@@ -6,7 +6,7 @@ import javafx.scene.effect.ColorAdjust;
 
 /** Dims workspace chrome with the editor's focus transition, without changing its geometry. */
 final class FxZenChrome {
-  private static final double DIM = 0.28;
+  private static final double DIM = 0.36;
 
   static void apply(ReadOnlyDoubleProperty progress, Node... regions) {
     for (Node region : regions) {
@@ -17,7 +17,7 @@ final class FxZenChrome {
   }
 
   private static void paint(Node region, ColorAdjust dim, double progress) {
-    double brightness = Double.isFinite(progress) ? -DIM * Math.clamp(progress, 0, 1) : 0;
+    double brightness = -intensity(progress);
     if (brightness == 0) {
       if (region.getEffect() == dim) region.setEffect(dim.getInput());
       dim.setInput(null);
@@ -28,6 +28,10 @@ final class FxZenChrome {
       dim.setInput(region.getEffect());
       region.setEffect(dim);
     }
+  }
+
+  static double intensity(double progress) {
+    return Double.isFinite(progress) ? DIM * Math.clamp(progress, 0, 1) : 0;
   }
 
   private FxZenChrome() {}

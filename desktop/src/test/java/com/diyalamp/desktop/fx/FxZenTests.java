@@ -64,7 +64,7 @@ public final class FxZenTests {
       check(middle > 0 && middle < 1, "The focus fade must expose intermediate contrast");
       for (Node chrome : f.dimmedChrome())
         check(chrome.getEffect() instanceof ColorAdjust effect
-            && effect.getBrightness() < 0 && effect.getBrightness() > -.28,
+            && effect.getBrightness() < 0 && effect.getBrightness() > -FxZenChrome.intensity(1),
             "Each chrome region must dim through the same intermediate focus value");
       f.zenButton().fire();
       check(Math.abs(f.app.zenProgressProperty().get() - middle) < .0001,
@@ -95,7 +95,7 @@ public final class FxZenTests {
         check(region.isManaged() && region.isVisible() && !region.isMouseTransparent(),
             "Zen must keep the bars, sidebar, and note tabs visible and usable");
       check(f.dimmedChrome().stream().allMatch(node -> node.getEffect() instanceof ColorAdjust effect
-          && effect.getBrightness() == -.28), "All workspace chrome must use the same restrained dim");
+          && effect.getBrightness() == -FxZenChrome.intensity(1)), "All workspace chrome must use the same restrained dim");
       check(f.dimmedChrome().stream().map(Node::getOpacity).toList().equals(original[9]),
           "Chrome dimming must leave sidebar reveal opacity independent");
       Color rest = (Color) original[8], dimmed = chromePixel(f.footer);

@@ -10,20 +10,31 @@ import javafx.application.Application;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.stage.Stage;
 import atlantafx.base.theme.PrimerLight;
+import javafx.scene.AccessibleAttribute;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Scene;
 import javafx.scene.Node;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollBar;
 import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
+import javafx.geometry.Point2D;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.event.Event;
+import javafx.stage.Window;
 import org.fxmisc.richtext.TextExt;
 import javax.swing.text.StyleConstants;
 
@@ -40,7 +51,7 @@ public final class FxWritingPaneTests {
     Platform.startup(() -> {
       try {
         FxTheme.setup();
-        roundTrips(); editingAndUndo(); blocksAndTasks(); shortcuts(); keyboardModifiers(); linksAndLifecycle();
+        roundTrips(); editingAndUndo(); blocksAndTasks(); shortcuts(); slashCommands(); keyboardModifiers(); linksAndLifecycle();
         searchMatches(); pasteAndDivider(); incrementalSaving(); actualComponent(); checklistAppearance(); focusLine();
         focusScrolling(finished, failure);
       } catch (Throwable error) { failure.set(error); }
@@ -129,6 +140,113 @@ public final class FxWritingPaneTests {
     check(editor.area().getStyleOfChar(0).flag(StyleConstants.Bold), "Inline shortcut must retain bold metadata");
     check(editor.markdown().equals("**strong** \n"), "Inline shortcuts must round-trip through Markdown");
     editor.dispose();
+  }
+
+  private static void slashCommands() {
+    FxWritingPane editor = new FxWritingPane("Existing text at the far side of this writing pane\n");
+    Button outside = new Button("Outside control");
+    BorderPane root = new BorderPane(editor.node());
+    root.setBottom(outside);
+    root.getStyleClass().add("workspace-root");
+    FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
+    Scene scene = new Scene(root, 860, 540);
+    scene.getStylesheets().add(FxWritingPane.class.getResource("/fx-workspace.css").toExternalForm());
+    Stage stage = new Stage();
+    stage.setScene(scene);
+    stage.show();
+    try {
+      editor.focus();
+      editor.enter();
+      root.applyCss();
+      root.layout();
+      ContextMenu menu = openSlashMenu(editor, stage);
+      List<String> labels = List.of("Text", "Heading 1", "Heading 2", "Heading 3", "Bullet list",
+          "Numbered list", "Checklist", "Quote", "Code block", "Divider");
+      check(menu.getStyleClass().contains("slash-menu"), "The slash menu must have its workspace styling");
+      check(menu.getItems().stream().map(MenuItem::getText).toList().equals(labels),
+          "The slash menu must retain a named native menu item for each command");
+      menu.getScene().getRoot().applyCss();
+      Node surface = menu.getSkin().getNode();
+      check(surface instanceof Region panel && panel.getEffect() == null && panel.getBackground() != null
+              && !panel.getBackground().getFills().isEmpty()
+              && panel.getBackground().getFills().getFirst().getFill().equals(Color.web("#202122"))
+              && panel.getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius() == 12,
+          "The rendered menu must use the same rounded, shadow-free surface as the workspace");
+      var rows = menu.getScene().getRoot().lookupAll(".menu-item");
+      for (MenuItem item : menu.getItems()) {
+        check(item.getGraphic() != null && item.getGraphic().lookup(".icon-stroke") != null,
+            "Every slash command must display a real bundled icon: " + item.getText());
+        check(rows.stream().anyMatch(row -> row.getAccessibleRole() == AccessibleRole.MENU_ITEM
+                && item.getText().equals(row.queryAccessibleAttribute(AccessibleAttribute.TEXT))),
+            "Every rendered command must have its text label exposed to accessibility: " + item.getText());
+      }
+
+      int[] outsidePresses = {0};
+      outside.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+        outsidePresses[0]++;
+        outside.requestFocus();
+      });
+      press(outside, outside.localToScreen(outside.getBoundsInLocal()));
+      check(!menu.isShowing() && outsidePresses[0] == 1 && root.getScene().getFocusOwner() == outside,
+          "An outside click must close the menu and still reach the control and its focus action");
+      check(editor.recoveryText().startsWith("/\n"), "Dismissing must leave the typed slash as ordinary text");
+
+      menu = openSlashMenu(editor, stage);
+      int position = editor.area().getAbsolutePosition(1, 34);
+      Bounds character = editor.area().getCharacterBoundsOnScreen(position, position + 1).orElseThrow();
+      press(editor.area(), character);
+      check(!menu.isShowing() && editor.area().getCurrentParagraph() == 1,
+          "Clicking outside the menu within the same editor must dismiss it and place the caret");
+      check(editor.recoveryText().startsWith("/\n"), "An editor click must not apply a slash command");
+
+      menu = openSlashMenu(editor, stage);
+      pressKey(editor.area(), KeyCode.ESCAPE);
+      check(!menu.isShowing() && editor.recoveryText().startsWith("/\n"),
+          "Escape must dismiss the menu without applying a command");
+
+      menu = openSlashMenu(editor, stage);
+      Node selected = null;
+      for (int attempt = 0; attempt < labels.size(); attempt++) {
+        pressKey(editor.area(), KeyCode.DOWN);
+        selected = menu.getScene().getFocusOwner();
+        if (selected != null && "Heading 2".equals(selected.queryAccessibleAttribute(AccessibleAttribute.TEXT))) break;
+      }
+      check(selected != null && "Heading 2".equals(selected.queryAccessibleAttribute(AccessibleAttribute.TEXT)),
+          "Arrow keys must navigate the native slash menu");
+      pressKey(editor.area(), KeyCode.ENTER);
+      check(!menu.isShowing() && editor.area().getParagraph(0).getParagraphStyle().kind().equals("heading")
+              && editor.area().getParagraph(0).getParagraphStyle().level() == 2,
+          "Enter must apply the selected command and dismiss the menu");
+      check(editor.recoveryText().equals("\nExisting text at the far side of this writing pane"),
+          "Applying a command must remove only the active slash");
+      check(root.getScene().getFocusOwner() == editor.area(), "Applying a command must return focus to the editor");
+    } finally {
+      editor.dispose();
+      stage.close();
+    }
+  }
+
+  private static ContextMenu openSlashMenu(FxWritingPane editor, Stage stage) {
+    if (editor.recoveryText().startsWith("/\n")) editor.area().replaceText(0, 1, "");
+    editor.focus();
+    editor.area().selectRange(0, 0);
+    Event.fireEvent(editor.area(), new KeyEvent(KeyEvent.KEY_TYPED, "/", "", KeyCode.UNDEFINED,
+        false, false, false, false));
+    editor.convertShortcuts();
+    return Window.getWindows().stream().filter(ContextMenu.class::isInstance).map(ContextMenu.class::cast)
+        .filter(menu -> menu.isShowing() && menu.getOwnerWindow() == stage).findFirst()
+        .orElseThrow(() -> new AssertionError("Typing slash at the caret must open the command menu"));
+  }
+
+  private static void press(Node target, Bounds screen) {
+    Point2D point = target.screenToLocal(screen.getCenterX(), screen.getCenterY());
+    Event.fireEvent(target, new MouseEvent(MouseEvent.MOUSE_PRESSED, point.getX(), point.getY(),
+        screen.getCenterX(), screen.getCenterY(), MouseButton.PRIMARY, 1,
+        false, false, false, false, true, false, false, false, false, true, null));
+  }
+
+  private static void pressKey(Node target, KeyCode code) {
+    Event.fireEvent(target, new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, false, false, false, false));
   }
 
   private static void linksAndLifecycle() {
@@ -315,11 +433,11 @@ public final class FxWritingPaneTests {
     var checklist = (javafx.scene.control.CheckBox) editor.area().getParagraphGraphic(5);
     check(checklist.getFont().getName().equals("Inter Regular") && checklist.getFont().getSize() == 16,
         "Checklist controls must retain the same 16-point text font");
-    for (int row : List.of(6, 7, 8)) {
+    for (int row : List.of(6, 7)) {
       var marker = (javafx.scene.control.Label) editor.area().getParagraphGraphic(row);
       check(marker.getFont().getName().equals("Inter Regular") && marker.getFont().getSize() == 16
           && marker.getTextFill().equals(Color.web("#8C8C8C")),
-          "Bullet, ordered-list and quote markers must use the same size and readable dark-theme muted ink");
+          "Bullet and ordered-list markers must use the same size and readable dark-theme muted ink");
     }
     editor.area().selectRange(editor.area().getAbsolutePosition(4, 0), editor.area().getAbsolutePosition(4, 0));
     root.layout();
@@ -327,26 +445,27 @@ public final class FxWritingPaneTests {
     check(caret.isPresent(), "The maintained editor must expose an actual laid-out caret");
     check(caret.get().getHeight() >= 16 && caret.get().getHeight() <= 27,
         "Body caret geometry must match the 16-point text, rather than inflated paragraph spacing");
+    var headingSizes = java.util.Map.of("Title", 28.0, "Subheading", 23.0, "Detail", 19.0, "Sixth", 16.0);
     java.util.Set<String> headings = new java.util.HashSet<>();
     java.util.Set<String> codeRuns = new java.util.HashSet<>();
     for (var node : editor.area().lookupAll(".md-text")) if (node instanceof TextExt text) {
-      check(text.getFont().getSize() == 16, "Every rendered body, heading, emphasis, link and code run must have exactly one font size");
+      check(text.getFont().getSize() == headingSizes.getOrDefault(text.getText(), 16.0),
+          "Only H1–H3 may exceed the 16-point body size: " + text.getText());
       if (text.getText().equals("Body")) {
         check(text.getFont().getName().equals("Inter Regular") && text.getFont().getSize() == 16,
             "Full application CSS must preserve static Inter Regular at the intended body size");
         check(!text.getFont().getStyle().contains("Bold") && !text.getFont().getStyle().contains("Thin"),
             "Body copy must resolve a true regular face rather than a heavy or thin substitution");
-        check(text.getFill().equals(Color.web("#BBBEBF")), "Prose must use the VS Code dark foreground");
-      } else if (List.of("Title", "Subheading", "Detail", "Sixth").contains(text.getText())) {
+        check(text.getFill().equals(Color.web("#BFBFBF")), "Prose must use the shared readable foreground");
+      } else if (headingSizes.containsKey(text.getText())) {
         headings.add(text.getText());
-        check(text.getFont().getName().equals("Inter SemiBold") && text.getFont().getSize() == 16
-            && text.getFill().equals(Color.web("#BBBEBF")),
-            "All heading levels must preserve semantic emphasis through weight while sharing the body size and dark ink");
+        check(text.getFont().getName().equals("Inter SemiBold") && text.getFill().equals(Color.web("#BFBFBF")),
+            "All heading levels must preserve the semibold face and dark-theme text color");
       } else if (List.of("value", "fenced()").contains(text.getText())) {
         codeRuns.add(text.getText());
         if (System.getProperty("os.name").startsWith("Mac"))
           check(text.getFont().getFamily().equals("Menlo"), "Only code should switch to installed Menlo");
-        check(text.getFill().equals(Color.web("#8C8C8C")) && text.getBackgroundColor().equals(Color.web("#242526")),
+        check(text.getFill().equals(Color.web("#8C8C8C")) && text.getBackgroundColor().equals(Color.web("#202122")),
             "Inline and fenced code must use readable dark-theme foreground and background colors");
       }
       else if (text.getText().equals("strong"))
@@ -356,13 +475,13 @@ public final class FxWritingPaneTests {
       else if (text.getText().equals("both"))
         check(text.getFont().getName().equals("Inter SemiBold Italic"), "Bold italic text must retain its own real static face");
       else if (text.getText().equals("link"))
-        check(text.getFill().equals(Color.web("#48A0C7")), "Links must use the readable VS Code foreground accent");
+        check(text.getFill().equals(Color.web("#FF6B6B")), "Links must use the readable foreground accent");
     }
     check(headings.size() == 4 && codeRuns.size() == 2, "The actual typography check must include all representative heading levels and both code widgets");
     int bodyStart = editor.area().getAbsolutePosition(4, 0);
     editor.area().selectRange(bodyStart, bodyStart + 4); root.applyCss(); root.layout();
     check(editor.area().lookupAll(".selection").stream().anyMatch(node -> node instanceof javafx.scene.shape.Shape shape
-        && Color.web("#276782DD").equals(shape.getFill())),
+        && Color.web("#AB2828DD").equals(shape.getFill())),
         "The native text selection must use Dark 2026's exact translucent selection color: "
             + editor.area().lookupAll(".selection").stream().map(node -> ((javafx.scene.shape.Shape) node).getFill()).toList());
     System.out.println("RichTextFX body caret height: " + caret.get().getHeight());
@@ -417,8 +536,15 @@ public final class FxWritingPaneTests {
       check(Math.abs(bodyPitch - taskPitch) <= 1,
           "Checklist lines must use the same pitch as prose after CSS is applied");
       double listIndent = firstCharacter(editor, 1).getMinX();
-      check(List.of(2, 3, 4, 5, 6).stream().allMatch(row -> Math.abs(firstCharacter(editor, row).getMinX() - listIndent) <= 1),
-          "Bullets, numbers, checkboxes and quote text must share the marker gutter");
+      check(List.of(2, 3, 4, 5).stream().allMatch(row -> Math.abs(firstCharacter(editor, row).getMinX() - listIndent) <= 1),
+          "Bullets, numbers and checkboxes must share the marker gutter");
+      var quote = (javafx.scene.layout.Region) editor.area().lookup(".md-quote");
+      var border = quote.getBorder().getStrokes().getFirst();
+      check(quote.getBackground().getFills().getFirst().getFill().equals(Color.web("#202122"))
+          && border.getLeftStroke().equals(Color.web("#FF6B6B")) && border.getWidths().getLeft() == 3,
+          "The quote must have a tinted surface and an accent rule");
+      check(editor.area().getParagraphGraphic(6) == null && quote.getPadding().getLeft() == 16,
+          "Quote spacing belongs inside the styled paragraph");
       var image = root.snapshot(null, null);
       check(brightMarkerPixels(root, image, pendingBox) == 0 && brightMarkerPixels(root, image, finishedBox) >= 3,
           "Rendered pixels must show the check only on the selected item");
@@ -427,6 +553,9 @@ public final class FxWritingPaneTests {
       pending.fire();
       check(editor.markdown().equals(source.replace("- [ ] A pending task", "- [x] A pending task")),
           "The visible native control must still toggle the corresponding Markdown task");
+      editor.area().insertText(editor.area().getLength(), " edited");
+      check(editor.markdown().endsWith("> A short quotation edited\n"),
+          "Editing a styled quote must retain the Markdown quote marker on save");
     } finally { editor.dispose(); stage.close(); }
   }
 
@@ -548,7 +677,7 @@ public final class FxWritingPaneTests {
                 "A scroll within the same wrapped paragraph must move the transparent band to fresh caret geometry");
             editor.area().scrollYToPixel(700); phase[0]++;
           } else if (phase[0] == 3 && (caret.isEmpty() || caret.get().getMaxY() < -100)) {
-            boolean opaque = mask.getFill().equals(FxTheme.EDITOR_BACKGROUND);
+            boolean opaque = mask.getFill().equals(Color.BLACK);
             if (mask.getFill() instanceof LinearGradient gradient)
               opaque = gradientOpacity(gradient, 0) > .99 && gradientOpacity(gradient, .5) > .99 && gradientOpacity(gradient, 1) > .99;
             check(opaque, "An offscreen focus line must not leave a stale bright band over unrelated text");

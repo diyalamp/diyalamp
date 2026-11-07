@@ -4,40 +4,41 @@
   -fx-font-family: "Inter";
   -fx-font-size: 16px;
   -fx-font-weight: normal;
-  -fx-background-color: #121314;
-  -color-bg-default: #121314;
-  -color-bg-subtle: #242526;
-  -color-bg-inset: #191A1B;
-  -color-bg-overlay: #202122;
+  -fx-background-color: -color-bg-default;
+  -color-bg-default: #111213;
+  -color-bg-subtle: #202122;
+  -color-bg-inset: -color-bg-default;
+  -color-bg-overlay: -color-bg-subtle;
   -color-fg-default: #BFBFBF;
-  -color-editor-fg: #BBBEBF;
+  -color-editor-fg: -color-fg-default;
   -color-fg-muted: #8C8C8C;
-  -color-border-default: #2A2B2C;
-  -color-border-muted: #2A2B2C;
-  -color-border-subtle: #2A2B2C;
-  -color-code-fg: #8C8C8C;
+  -color-border-default: #333536;
+  -color-border-muted: -color-border-default;
+  -color-border-subtle: -color-border-default;
+  -diyalamp-divider: -color-border-default;
+  -color-code-fg: -color-fg-muted;
   -color-fg-emphasis: #FFFFFF;
-  -color-accent-emphasis: #297AA0;
-  -color-accent-fg: #48A0C7;
-  -diyalamp-accent: #297AA0;
-  -diyalamp-link: #48A0C7;
+  -color-accent-emphasis: #EE0000;
+  -color-accent-fg: #FF6B6B;
+  -diyalamp-accent: -color-accent-emphasis;
+  -diyalamp-link: -color-accent-fg;
   -diyalamp-accent-contrast: #FFFFFF;
-  -diyalamp-accent-subtle: #3994BC26;
-  -diyalamp-focus: #3994BCB3;
-  -diyalamp-selection: #276782DD;
-  -diyalamp-drop: #3994BC1A;
+  -diyalamp-accent-subtle: #FF555526;
+  -diyalamp-focus: #FF5555B3;
+  -diyalamp-selection: #AB2828DD;
+  -diyalamp-drop: #FF55551A;
 }
 .workspace-root .label, .workspace-root .button, .workspace-root .toggle-button, .workspace-root .radio-button,
 .workspace-root .check-box, .workspace-root .text-input, .workspace-root .combo-box-base,
 .workspace-root .list-cell, .workspace-root .tree-cell, .workspace-root .menu-item,
 .workspace-root .menu-button, .workspace-root .hyperlink { -fx-font-size: 16px; }
 .workspace-root .button, .workspace-root .toggle-button {
-  -color-button-bg: #313131;
+  -color-button-bg: -color-bg-subtle;
   -color-button-bg-hover: #FFFFFF10;
-  -color-button-border: #333536;
+  -color-button-border: -color-border-default;
   -color-button-border-focused: -diyalamp-focus;
 }
-.workspace-root .toggle-button:selected { -color-button-bg: #313233; }
+.workspace-root .toggle-button:selected { -color-button-bg: -color-border-default; }
 .workspace-root .button:default, .workspace-root .button.accent {
   -color-button-bg: -color-accent-emphasis;
   -color-button-bg-hover: -color-accent-emphasis;
@@ -49,31 +50,59 @@
   -color-button-bg-focused: -color-accent-emphasis;
 }
 .workspace-root .text-input, .workspace-root .combo-box-base {
-  -fx-background-color: #191A1B; -fx-text-fill: #BFBFBF;
-  -fx-border-color: #333536; -fx-prompt-text-fill: #555555;
+  -fx-background-color: -color-bg-inset; -fx-text-fill: -color-fg-default;
+  -fx-border-color: -color-border-default; -fx-prompt-text-fill: -color-fg-muted;
 }
 .workspace-root .text-input:focused, .workspace-root .combo-box-base:focused { -fx-border-color: -diyalamp-focus; }
-.workspace-root .check-box > .box { -fx-background-color: #242526; -fx-border-color: #707070; }
+.workspace-root .check-box > .box { -fx-background-color: -color-bg-subtle; -fx-border-color: -color-fg-muted; }
 .workspace-root .check-box:selected > .box > .mark { -fx-background-color: #8C8C8C; }
 .tooltip, .context-menu, .context-menu .label, .context-menu .menu-item {
   -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal;
 }
-.tooltip, .context-menu { -fx-background-color: #202122; -fx-text-fill: #BFBFBF; -fx-border-color: #2A2B2C; }
+.tooltip, .context-menu { -fx-background-color: #202122; -fx-text-fill: #BFBFBF; -fx-border-color: #333536; }
+.context-menu {
+  -fx-background-insets: 0;
+  -fx-background-radius: 12;
+  -fx-border-radius: 12;
+  -fx-effect: null;
+}
 .context-menu .label { -fx-text-fill: #BFBFBF; }
+.context-menu .menu-item { -fx-background-color: transparent; }
 .context-menu .menu-item:focused { -fx-background-color: -diyalamp-accent-subtle; }
 .context-menu .menu-item:focused .label { -fx-text-fill: #BFBFBF; }
+.context-menu.slash-menu {
+  -fx-background-color: -color-bg-overlay;
+  -fx-border-color: -color-border-default;
+  -fx-padding: 8;
+  -fx-min-width: 216;
+}
+.context-menu.slash-menu .menu-item {
+  -fx-padding: 0 8;
+}
+.context-menu.slash-menu .menu-item > .graphic-container { -fx-padding: 0 8 0 0; }
+.context-menu.slash-menu .menu-item:focused, .context-menu.slash-menu .menu-item:hover {
+  -fx-background-color: -color-bg-subtle;
+}
+.context-menu.slash-menu .menu-item:focused .label, .context-menu.slash-menu .menu-item:hover .label {
+  -fx-text-fill: -color-fg-emphasis;
+}
+.context-menu.slash-menu .menu-item:focused .icon-stroke, .context-menu.slash-menu .menu-item:hover .icon-stroke {
+  -fx-stroke: -color-fg-default;
+}
 .workspace-toolbar {
   -fx-background-color: -color-bg-inset;
   -fx-border-width: 0 0 1 0;
-  -fx-border-color: transparent transparent #2A2B2C transparent;
+  -fx-border-color: transparent transparent -diyalamp-divider transparent;
   -fx-padding: 0 12;
   -fx-spacing: 8;
   -fx-min-height: 52; -fx-pref-height: 52; -fx-max-height: 52;
 }
 .workspace-window-header .workspace-toolbar { -fx-border-width: 0; }
 .workspace-tool, .workspace-brand, .workspace-root .note-search-field,
+.context-menu.slash-menu .menu-item,
 .diyalamp-dialog .dialog-action, .diyalamp-dialog .text-field, .diyalamp-dialog .combo-box-base,
-.diyalamp-popover .accent-choice, .diyalamp-popover .pomodoro-phase, .diyalamp-popover .popover-action {
+.diyalamp-popover .accent-choice, .diyalamp-popover .accent-hex,
+.diyalamp-popover .pomodoro-phase, .diyalamp-popover .popover-action {
   -fx-min-height: 36; -fx-pref-height: 36; -fx-max-height: 36;
   -fx-background-insets: 0; -fx-background-radius: 8; -fx-border-radius: 8; -fx-effect: null;
 }
@@ -81,7 +110,7 @@
   -fx-padding: 8; -fx-border-width: 0; -fx-background-color: transparent;
 }
 .workspace-tool { -fx-min-width: 36; -fx-pref-width: 36; }
-.workspace-brand { -fx-graphic-text-gap: 8; -fx-text-fill: -color-fg-default; }
+.workspace-brand { -fx-font-family: "Inter SemiBold"; -fx-graphic-text-gap: 8; -fx-text-fill: -color-fg-default; }
 .workspace-root .workspace-folder { -fx-text-fill: -color-fg-muted; -fx-graphic-text-gap: 8; }
 .workspace-root .workspace-folder:hover { -fx-text-fill: -color-fg-default; }
 .workspace-tool:hover, .workspace-brand:hover { -fx-background-color: -color-bg-subtle; }
@@ -99,7 +128,7 @@
   transition-timing-function: ease-out;
 }
 .note-metric { -fx-padding: 4; -fx-background-color: transparent; -fx-background-radius: 8; -fx-text-fill: #8C8C8C; }
-.note-metric:hover { -fx-background-color: #242526; -fx-text-fill: #BFBFBF; }
+.note-metric:hover { -fx-background-color: -color-bg-subtle; -fx-text-fill: -color-fg-default; }
 .workspace-root:reduced-motion .workspace-tool,
 .workspace-root:reduced-motion .workspace-brand, .workspace-root:reduced-motion .note-metric,
 .workspace-root:reduced-motion .workspace-tool .icon-stroke,
@@ -109,7 +138,7 @@
 .workspace-root:reduced-motion .sidebar-search-mode, .workspace-root:reduced-motion .sidebar-search-option {
   transition-duration: 0s;
 }
-.workspace-tool:selected { -fx-background-color: #313233; }
+.workspace-tool:selected { -fx-background-color: -color-bg-subtle; }
 .workspace-tool:selected .icon-stroke { -fx-stroke: -color-accent-fg; }
 .workspace-tool:focus-visible {
   -fx-background-color: -diyalamp-focus, -color-bg-subtle;
@@ -121,10 +150,9 @@
   -fx-padding: 8;
   -fx-background-color: -color-bg-inset;
 }
+.workspace-band-divider { -fx-stroke: -diyalamp-divider; -fx-stroke-width: 1; }
 .file-explorer {
-  -fx-background-color: #191A1B;
-  -fx-border-color: transparent #2A2B2C transparent transparent;
-  -fx-border-width: 0 1 0 0;
+  -fx-background-color: -color-bg-inset;
 }
 .workspace-root .note-search-field {
   -fx-background-color: -color-bg-subtle;
@@ -161,47 +189,60 @@
   -fx-border-radius: 8; -fx-effect: null;
 }
 .workspace-root .file-rename-field:invalid { -fx-border-color: #F3A39E; }
-.writing-split { -fx-padding: 0; -fx-border-width: 0; -fx-background-color: #121314; }
-.writing-split > .split-pane-divider { -fx-padding: 0 .5 0 .5; -fx-background-color: #2A2B2C; }
-.document-pane { -fx-background-color: #121314; -fx-min-width: 200; }
+.writing-split { -fx-padding: 0; -fx-border-width: 0; -fx-background-color: -color-bg-default; }
+.writing-split > .split-pane-divider { -fx-padding: 0 .5; -fx-background-color: -diyalamp-divider; }
+.document-pane { -fx-background-color: -color-bg-default; -fx-min-width: 200; }
 .document-pane:drop-target { -fx-border-color: -diyalamp-focus; -fx-border-width: 2; -fx-background-color: -diyalamp-drop; }
-.document-tabs {
-  -color-tab-bg-selected: #121314;
-  -color-tab-fg-selected: #BFBFBF;
-  -color-tab-border-selected: transparent;
-  -fx-background-color: #191A1B;
-  -fx-border-width: 0;
-}
 .document-tabs.floating.dense > .root-container { -fx-padding: 0; }
 .document-tabs.floating.dense > .root-container > .tabs > .tab {
-  -fx-padding: 4 8; -fx-pref-height: 36; -fx-background-radius: 8; -fx-border-width: 0;
+  -fx-padding: 2 7 4 7; -fx-pref-height: 36;
+  -fx-background-radius: 0; -fx-background-insets: 0;
+  -fx-background-color: -color-bg-inset;
+  -fx-border-width: 2 1 0 1;
+  -fx-border-color: transparent -color-border-default transparent transparent;
+  transition-property: -fx-background-color;
+  transition-duration: 120ms; transition-timing-function: ease-out;
 }
-.document-tabs .tab { -fx-font-size: 16px; -fx-background-color: #191A1B; }
-.document-tabs .tab:selected { -fx-background-color: #121314; }
+.document-tabs.floating.dense > .root-container > .tabs > .tab:hover {
+  -fx-background-color: -color-bg-subtle;
+}
+.document-tabs.floating.dense > .root-container > .tabs > .tab:selected {
+  -fx-background-color: -color-bg-default;
+  -fx-border-color: -color-accent-fg -color-border-default transparent transparent;
+}
+.document-tabs .tab-insertion-guide { -fx-background-color: -color-accent-fg; }
+.document-tabs .tab:drag-source { -fx-opacity: .45; }
+.workspace-root:reduced-motion .document-tabs .tab { transition-duration: 0s; }
+.document-tabs .tab { -fx-font-size: 16px; }
 .document-tabs .tab > .tab-box { -fx-spacing: 8; }
-.document-tabs .tab > .tab-box > .label { -fx-text-fill: #8C8C8C; }
-.document-tabs .tab:selected > .tab-box > .label { -fx-text-fill: #BFBFBF; }
-.document-tabs .tab > .tab-box > .close-button { -fx-padding: 6; -fx-background-radius: 6; }
-.document-tabs .tab > .tab-box > .close-button > .graphic { -fx-background-color: #8C8C8C; }
+.document-tabs .tab > .tab-box > .label { -fx-text-fill: -color-fg-muted; }
+.document-tabs .tab:selected > .tab-box > .label { -fx-text-fill: -color-fg-default; }
+.document-tabs.floating > .root-container > .tabs > .tab > .tab-box > .close-button {
+  -fx-padding: 7; -fx-background-color: transparent;
+}
+.document-tabs .tab > .tab-box > .close-button > .graphic { -fx-background-color: -color-fg-muted; }
+.document-tabs .tab > .tab-box > .close-button:hover > .graphic { -fx-background-color: -color-fg-default; }
 .document-location { -fx-min-height: 32; -fx-padding: 8 16; -fx-spacing: 8; }
 .document-breadcrumb { -fx-text-fill: #8C8C8C; }
-.note-page { -fx-background-color: #121314; -fx-padding: 0; }
-.diyalamp-editor, .diyalamp-editor > .viewport, .writing-area { -fx-background-color: #121314; }
+.note-page { -fx-background-color: -color-bg-default; -fx-padding: 0; }
+.diyalamp-editor, .diyalamp-editor > .viewport, .writing-area { -fx-background-color: -color-bg-default; }
 .writing-area { -fx-background-insets: 0; }
 .writing-area .paragraph-box { -fx-padding: 0; }
-.writing-area .caret { -fx-stroke: #BBBEBF; }
+.writing-area .caret { -fx-stroke: -color-editor-fg; }
 .writing-area .selection { -fx-fill: -diyalamp-selection; }
 .writing-area .md-link { -fx-fill: -color-accent-fg; }
 .workspace-root .writing-area .md-paragraph { -fx-line-spacing: 4; -fx-padding: 0 0 8 0; }
 .workspace-root .writing-area .md-paragraph.md-heading { -fx-padding: 8 0 8 0; }
+.workspace-root .writing-area .md-paragraph.md-quote {
+  -fx-background-color: -color-bg-subtle; -fx-background-radius: 8; -fx-background-insets: 0 0 8 0;
+  -fx-border-color: transparent transparent transparent -color-accent-fg;
+  -fx-border-width: 0 0 0 3; -fx-border-radius: 8; -fx-border-insets: 0 0 8 0;
+  -fx-padding: 8 16 16 16;
+}
 .workspace-root .writing-area .md-paragraph.md-code { -fx-line-spacing: 2; -fx-padding: 0 0 2 0; }
 .writing-area .md-marker {
   -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: -color-fg-muted;
   -fx-alignment: top-left; -fx-padding: 2 8 0 0;
-}
-.writing-area .md-quote-marker {
-  -fx-border-color: transparent transparent transparent derive(-color-fg-muted, -30%);
-  -fx-border-width: 0 0 0 2; -fx-border-insets: 4 0 8 4;
 }
 .writing-area .md-inline-code {
   -rtfx-border-stroke-color: -color-border-default; -rtfx-border-stroke-width: 1;
@@ -229,9 +270,9 @@
 .writing-area .check-box.md-task:hover > .box { -fx-border-color: -color-accent-fg; }
 .writing-area .check-box.md-task:focused > .box { -fx-border-color: -color-fg-emphasis; }
 .workspace-root:reduced-motion .writing-area .check-box.md-task > .box { transition-duration: 0s; }
-.workspace-status { -fx-background-color: #191A1B; -fx-border-color: #2A2B2C transparent transparent transparent; -fx-border-width: 1 0 0 0; -fx-padding: 8 24; -fx-min-height: 40; }
+.workspace-status { -fx-background-color: -color-bg-inset; -fx-border-color: -diyalamp-divider transparent transparent transparent; -fx-border-width: 1 0 0 0; -fx-padding: 8 24; -fx-min-height: 40; }
 .workspace-status .label { -fx-text-fill: #8C8C8C; }
-.workspace-empty { -fx-padding: 24; -fx-background-color: #121314; }
+.workspace-empty { -fx-padding: 24; -fx-background-color: -color-bg-default; }
 .workspace-empty-title { -fx-font-family: "Inter SemiBold"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #BFBFBF; }
 .empty-detail { -fx-text-fill: #8C8C8C; }
 .save-warning { -fx-background-color: #352A05; -fx-padding: 8 16; -fx-background-radius: 8; -fx-border-width: 0; }
@@ -244,6 +285,6 @@
 
 .workspace-sidebars > .split-pane-divider {
   -fx-padding: 0 3;
-  -fx-background-color: transparent, -color-border-default;
-  -fx-background-insets: 0, 0 2.5;
+  -fx-background-color: -diyalamp-divider;
+  -fx-background-insets: 0 2 0 3;
 }

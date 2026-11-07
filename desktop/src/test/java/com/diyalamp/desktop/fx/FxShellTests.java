@@ -13,13 +13,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.prefs.Preferences;
 import javafx.application.Platform;
+import javafx.css.PseudoClass;
+import javafx.event.ActionEvent;
 import javafx.scene.AccessibleRole;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Region;
@@ -196,27 +198,56 @@ public final class FxShellTests {
           "The shared motion visibly fades and slides the anchored popup into place");
       popup.getRoot().applyCss(); popup.getRoot().layout();
       var choices = popup.getContentNode().lookupAll(".accent-choice").stream().map(node -> (Button) node).toList();
-      check(choices.size() == 6 && popup.getContentNode().lookupAll(".color-picker").isEmpty(),
-          "The accent bubble must contain only the six approved muted presets");
+      var palette = choices.stream().collect(java.util.stream.Collectors.toMap(Button::getText, button -> button));
+      check(palette.keySet().equals(java.util.Set.of("Red", "Blue", "Yellow", "Green", "White", "Custom"))
+              && popup.getContentNode().lookupAll(".color-picker").isEmpty(),
+          "The accent bubble must contain exactly five named colors and the custom hex choice");
       check(choices.stream().allMatch(button -> button.getFont().getName().equals("Inter Regular") && button.getFont().getSize() == 16),
           "Actual palette buttons must use the shared regular UI typography");
       var widths = choices.stream().map(Button::getWidth).toList();
       check(widths.getFirst() > 100 && widths.stream().allMatch(width -> Math.abs(width - widths.getFirst()) <= 1),
           "The accent picker uses two stable equal-width columns");
-      Button sage = choices.stream().filter(button -> button.getText().equals("Sage")).findFirst().orElseThrow(); sage.fire();
+      PseudoClass selected = PseudoClass.getPseudoClass("selected");
+      check(FxTheme.accentOf(root).equals(Color.web("#EE0000")) && palette.get("Red").getPseudoClassStates().contains(selected),
+          "A clean workspace must begin with the red accent selected");
+      Map<String, String> presets = Map.of("Red", "#EE0000", "Blue", "#489CFF", "Yellow", "#F7C843",
+          "Green", "#4CD980", "White", "#FFFFFF");
+      for (String name : java.util.List.of("Blue", "Yellow", "Green", "White", "Red")) {
+        Button choice = palette.get(name);
+        choice.fire();
+        popup.getRoot().applyCss(); popup.getRoot().layout();
+        check(widths.equals(choices.stream().map(Button::getWidth).toList()),
+            "Selecting " + name + " must keep both columns stable");
+        check(choice.getPseudoClassStates().contains(selected) && choice.getAccessibleText().endsWith(", selected")
+                && choice.getText().equals(name),
+            "The styled selection and accessible name must leave the visible label unchanged");
+        check(fixture.preferences.get("accent", "").equals(presets.get(name)) && popup.isShowing(),
+            "A preset must store its exact color and leave the bubble available");
+      }
+      TextField hex = (TextField) popup.getContentNode().lookup(".accent-hex");
+      Button apply = (Button) popup.getContentNode().lookup(".popover-action");
+      Button custom = palette.get("Custom");
+      check(hex != null && !hex.getParent().isVisible() && !hex.getParent().isManaged(),
+          "The custom hex field must be hidden until Custom opens it");
+      custom.fire();
       popup.getRoot().applyCss(); popup.getRoot().layout();
-      check(widths.equals(choices.stream().map(Button::getWidth).toList()),
-          "Selecting an accent must not resize its button or any other choice");
-      check(sage.getAccessibleText().contains("selected") && sage.getText().contains("✓"),
-          "Preset selection must have both a visible and accessible indicator");
-      check(fixture.preferences.get("accent", "").equals("#7A9A85") && popup.isShowing(),
-          "Choosing a preset must apply immediately while keeping the bubble available for another choice");
-      choices.stream().filter(button -> button.getText().equals("Lavender")).findFirst().orElseThrow().fire();
-      popup.getRoot().applyCss(); popup.getRoot().layout();
-      check(widths.equals(choices.stream().map(Button::getWidth).toList()),
-          "Selecting the longest accent label must leave the columns unchanged");
-      check(popup.getContentNode().lookupAll(".label").stream().filter(node -> node instanceof Label)
-          .noneMatch(node -> ((Label) node).getText().contains("#")), "The preset bubble must omit implementation-only color values");
+      check(hex.getParent().isVisible() && hex.getParent().isManaged() && "#EE0000".equals(hex.getText())
+              && widths.equals(choices.stream().map(Button::getWidth).toList()),
+          "Custom must reveal the current hex value without resizing the choices");
+      hex.setText("#12G456");
+      hex.fireEvent(new ActionEvent());
+      check(apply.isDisabled() && fixture.preferences.get("accent", "").equals("#EE0000"),
+          "An invalid hex value must be rejected without altering preferences");
+      hex.setText("7b8fb7");
+      hex.fireEvent(new ActionEvent());
+      check(!apply.isDisabled() && fixture.preferences.get("accent", "").equals("#7B8FB7")
+              && custom.getPseudoClassStates().contains(selected) && custom.getAccessibleText().endsWith(", selected"),
+          "A valid custom hex without a hash must save canonically and select Custom");
+      FxDiyalamp reopened = new FxDiyalamp(fixture.preferences);
+      call(reopened, "initializeAccent", new Class<?>[0]);
+      check(FxTheme.accentOf((BorderPane) field(reopened, "root")).equals(Color.web("#7B8FB7")),
+          "An older valid accent value must survive reopening as a custom color");
+      call(reopened, "disposeAll", new Class<?>[0]);
       popup.hide(javafx.util.Duration.ZERO); stage.close();
     }
   }

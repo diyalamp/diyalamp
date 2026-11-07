@@ -13,28 +13,28 @@ diyalamp is a desktop Markdown editor with rendered formatting and local file st
 
 The application opens a folder of `.md` or `.markdown` files. Editing does not require an account, subscription, server, database, or internet connection. Notes remain readable by other Markdown tools.
 
-## Development features · 1.3.2
+## Development features · 1.3.3
 
-This describes the 1.3.2 development workspace. See macOS downloads below for the published release.
+This describes the 1.3.3 development workspace. See macOS downloads below for the published release.
 
-- Dark-only macOS workspace using maintained AtlantaFX CupertinoDark controls and the official VS Code 2026 Dark palette, with a file explorer, note tabs, and flat Lucide icons.
-- One 16 px text size throughout: static Inter for interface/prose and headings, with weight indicating headings or emphasis; installed Menlo for code.
-- Rendered headings, bold, italic, inline code, links, lists, checklists, quotes, and fenced code blocks.
-- Formatting controls, Markdown typing shortcuts, and slash commands.
+- Dark-only macOS workspace using AtlantaFX CupertinoDark controls, two charcoal surfaces, aligned dividers, and flat Lucide icons.
+- 16 px Inter for the interface and prose, with distinct sizes for the first three headings inside notes. Code uses installed Menlo.
+- Rendered headings, bold, italic, inline code, links, lists, checklists, inset quotes, and fenced code blocks.
+- Formatting controls, Markdown typing shortcuts, and keyboard-accessible slash commands with icons.
 - Folder explorer with nested Markdown files, closable note tabs, and side-by-side editing.
-- Workspace search for filenames or note text, with case, whole-word, regex, and include/exclude filters. Text matches are grouped by note.
+- Workspace search for filenames or note text, with an icon beside the query to show or hide advanced filters. Text matches are grouped by note.
 - Local autosave with external-file conflict detection.
 - Note creation, import, rename, export, recoverable deletion, and restore.
 - Undo/redo and macOS keyboard shortcuts.
 - `[[Note name]]` links with directed incoming/outgoing navigation and a SmartGraph panel that retains layout and zoom during note selection and safe saves.
 - Focus fades text away from the active caret line and dims the workspace chrome while keeping tabs, sidebars, and controls available.
 - Smooth accent transitions, matching dark dialogs, and restrained hover paint transitions without moving controls.
-- A toolbar Pomodoro with a live Focus or Break countdown, editable durations, and a choice of one cycle or continuous repeat. The color-circle accent picker keeps its geometry stable when switching colors.
+- A toolbar Pomodoro that shows Focus or Break with the popover closed, with editable durations and one-cycle or repeat controls. The color-circle accent picker keeps its geometry stable when switching colors.
 - Drag tabs between panes or move notes into workspace folders without overwrites.
 - A unified macOS toolbar with centered native window buttons and one clickable workspace path. The files sidebar has search and creation controls, with split, inline rename, and recoverable delete on each note row.
 - Character, word, and logical-line counts for rendered text, plus the current Markdown's UTF-8 byte size in the status bar.
 - Native draggable dividers for both sidebars, with saved pixel widths and independent open/closed states. An icon-only reset restores the default widths without closing notes or changing Zen.
-- Six accent choices with a blue default and explicit in-app update checks.
+- Five accent presets with a red default and a custom hex option. In-app update checks are explicit.
 
 ## macOS downloads
 

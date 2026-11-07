@@ -24,12 +24,11 @@ import org.w3c.dom.Element;
 /** AtlantaFX dark controls, pinned static Inter faces, and the existing Lucide SVG assets. */
 public final class FxTheme {
   public static final double TEXT_SIZE = 16;
-  public static final Color DEFAULT_ACCENT = Color.web("#297AA0");
-  public static final Color EDITOR_BACKGROUND = Color.web("#121314");
-  public static final Color CHROME_BACKGROUND = Color.web("#191A1B");
-  private static final Color DEFAULT_LINK = Color.web("#48A0C7");
-  private static final Color DEFAULT_FOCUS = Color.web("#3994BCB3");
-  private static final Color DEFAULT_SELECTION = Color.web("#276782DD");
+  public static final Color DEFAULT_ACCENT = Color.web("#EE0000");
+  public static final Color EDITOR_BACKGROUND = Color.web("#111213");
+  private static final Color DEFAULT_LINK = Color.web("#FF6B6B");
+  private static final Color DEFAULT_FOCUS = Color.web("#FF5555B3");
+  private static final Color DEFAULT_SELECTION = Color.web("#AB2828DD");
   static final String DISPLAYED_ACCENT = "diyalamp.displayedAccent";
   private static final Map<String, String> TEXT_FACES = new HashMap<>();
   private static final Map<String, Font> TEXT_FONTS = new HashMap<>();
@@ -66,12 +65,11 @@ public final class FxTheme {
     root.pseudoClassStateChanged(javafx.css.PseudoClass.getPseudoClass("reduced-motion"),
         Boolean.getBoolean("diyalamp.reduceMotion"));
     root.getProperties().put(DISPLAYED_ACCENT, color);
-    // Apply the same continuous hue/saturation/brightness transform at every animation
-    // frame. Its default endpoint is VS Code's Dark 2026 link color, without a last-frame jump.
+    // Derive readable tones continuously as the accent animates.
     Color readable = accentTone(color, DEFAULT_LINK);
     for (int i = 1; contrast(readable, EDITOR_BACKGROUND) < 4.5 && i <= 100; i++)
       readable = readable.interpolate(Color.WHITE, .02);
-    Color foreground = contrast(Color.WHITE, color) >= 4.5 ? Color.WHITE : CHROME_BACKGROUND;
+    Color foreground = contrast(Color.WHITE, color) >= 4.5 ? Color.WHITE : Color.BLACK;
     Color focus = accentTone(color, DEFAULT_FOCUS);
     Color subtle = new Color(focus.getRed(), focus.getGreen(), focus.getBlue(), 0x26 / 255.0);
     Color drop = new Color(focus.getRed(), focus.getGreen(), focus.getBlue(), 0x1A / 255.0);

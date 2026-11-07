@@ -2,6 +2,7 @@ package com.diyalamp.desktop.fx;
 
 import atlantafx.base.controls.Tab;
 import atlantafx.base.controls.TabLine;
+import atlantafx.base.controls.TabSkin;
 import com.diyalamp.desktop.NoteStore;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -16,8 +17,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.prefs.Preferences;
 import javafx.application.Platform;
 import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
+import javafx.scene.Scene;
 import javafx.scene.control.SplitPane;
 import javafx.scene.input.TransferMode;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -36,7 +41,7 @@ public final class FxTabTransferTests {
       Fixture fixture = null;
       try {
         fixture = new Fixture();
-        transferModes(); reorderHeaders(fixture); moveToSplit(fixture); coalesceSameNote(fixture); moveToFolder(fixture);
+        transferModes(); reorderHeaders(fixture); narrowDropGuide(); moveToSplit(fixture); coalesceSameNote(fixture); moveToFolder(fixture);
         singlePaneTransfer(fixture);
         Fixture current = fixture;
         PauseTransition settle = new PauseTransition(Duration.millis(220));
@@ -78,13 +83,37 @@ public final class FxTabTransferTests {
   private static void reorderHeaders(Fixture fixture) throws Exception {
     Object original = fixture.active(); FxWritingPane editor = fixture.editor();
     Tab tab = (Tab) field(original, "tab");
+    FxDocumentTabs tabs = (FxDocumentTabs) tabs(fixture.primary);
+    tabs.setAnimated(false);
     Path second = fixture.store().create("Second", "Second note\n");
     Path third = fixture.store().create("Third", "Third note\n");
     call(fixture.app, "open", new Class<?>[] {Path.class, boolean.class}, second, false);
     Tab secondTab = (Tab) field(fixture.active(), "tab");
     call(fixture.app, "open", new Class<?>[] {Path.class, boolean.class}, third, false);
     Tab thirdTab = (Tab) field(fixture.active(), "tab");
-    FxDocumentTabs tabs = (FxDocumentTabs) tabs(fixture.primary);
+    tabs.setAnimated(true);
+    var root = fixture.stage.getScene().getRoot();
+    root.resize(1450, root.getLayoutBounds().getHeight());
+    root.applyCss(); root.layout();
+    var firstHeader = header(tabs, tab);
+    var thirdHeader = header(tabs, thirdTab);
+    double firstLeft = firstHeader.localToScene(0, 0).getX();
+    double thirdLeft = thirdHeader.localToScene(0, 0).getX();
+    check(tabs.insertionAt(thirdLeft + 1) == 2 && tabs.insertionAt(thirdLeft + thirdHeader.getWidth()) == 3,
+        "The visible header midpoint must separate the before and after drop positions");
+    tabs.showInsertion(2);
+    Region guide = (Region) tabs.lookup(".tab-insertion-guide");
+    check(guide.isVisible() && Math.abs(guide.localToScene(1, 0).getX() - thirdLeft) <= 1
+        && tabs.getTabs().getLast() == thirdTab,
+        "A live insertion guide must precede the target without mutating the order during drag");
+    tabs.showInsertion(3);
+    var strip = thirdHeader.getParent();
+    double stripRight = strip.localToScene(strip.getClip().getBoundsInParent().getMaxX() - 1, 0).getX();
+    check(Math.abs(guide.localToScene(1, 0).getX() - Math.min(stripRight, thirdLeft + thirdHeader.getWidth())) <= 1,
+        "The insertion guide must follow the pointer to the opposite edge");
+    tabs.clearInsertion();
+    check(!guide.isVisible() && tab.getTooltip() == null,
+        "Drag exit must clear the guide, and tabs must omit redundant filename tooltips");
     boolean[] permuted = {false};
     javafx.collections.ListChangeListener<Tab> listener = change -> {
       while (change.next()) if (change.wasPermutated()) permuted[0] = true;
@@ -95,12 +124,52 @@ public final class FxTabTransferTests {
     check(permuted[0], "Header reordering must use AtlantaFX's real permutation event, not detach and recreate tab skins");
     check(tabs.getSelectionModel().getSelectedItem() == tab && fixture.active() == original && fixture.editor() == editor,
         "Header reordering must retain the dragged editor and select its document");
+    var movedHeader = header(tabs, tab);
+    check(Math.abs(movedHeader.localToScene(0, 0).getX() - firstLeft) <= 1 && movedHeader.getTranslateX() < -1,
+        "Reordered headers must begin at their previous painted positions");
+    Timeline motion = (Timeline) field(tabs, "reorderMotion");
+    double offset = movedHeader.getTranslateX();
+    motion.jumpTo(Duration.millis(80));
+    check(movedHeader.getTranslateX() > offset && movedHeader.getTranslateX() < 0,
+        "Header positions must ease toward their new layout during the animation");
+    motion.jumpTo(Duration.millis(160));
+    check(movedHeader.getTranslateX() == 0, "Header animation must finish at the actual new layout position");
     check(tabs.moveToInsertion(tab, 0) && tabs.getTabs().getFirst() == tab,
         "A header drop before the first tab must also reorder backwards");
     tabs.getTabs().removeListener(listener);
     tabs.getSelectionModel().select(secondTab); call(fixture.app, "closeActive", new Class<?>[0]);
     tabs.getSelectionModel().select(thirdTab); call(fixture.app, "closeActive", new Class<?>[0]);
     tabs.getSelectionModel().select(tab);
+  }
+
+  private static void narrowDropGuide() {
+    FxDocumentTabs tabs = new FxDocumentTabs();
+    tabs.getStyleClass().addAll("floating", "dense", "document-tabs", "workspace-band");
+    tabs.setMinWidth(0); tabs.setTabMinWidth(110); tabs.setAnimated(false);
+    tabs.getTabs().addAll(new Tab("first", "A very long first document"), new Tab("second", "Second document"),
+        new Tab("third", "Third document"));
+    tabs.getSelectionModel().selectFirst();
+    StackPane root = new StackPane(tabs);
+    root.getStyleClass().add("workspace-root");
+    root.getStylesheets().add(FxDocumentTabs.class.getResource("/fx-workspace.css").toExternalForm());
+    Stage stage = new Stage(); stage.setScene(new Scene(root, 175, 70)); stage.show();
+    try {
+      root.applyCss(); root.layout();
+      Region strip = (Region) tabs.lookup(".tabs");
+      double edge = strip.localToScene(strip.getClip().getBoundsInParent().getMaxX(), 0).getX();
+      int insertion = tabs.insertionAt(edge - 1);
+      check(insertion > 0 && insertion < tabs.getTabs().size(),
+          "A drop at the visible edge must insert after the visible header rather than jump past clipped tabs");
+      tabs.showInsertion(insertion);
+      Region guide = (Region) tabs.lookup(".tab-insertion-guide");
+      check(guide.isVisible() && guide.localToScene(2, 0).getX() <= edge + .01,
+          "The two-pixel insertion guide must stay inside the clipped tab viewport");
+    } finally { stage.close(); }
+  }
+
+  private static TabSkin header(FxDocumentTabs tabs, Tab tab) {
+    return tabs.lookupAll(".tab").stream().filter(TabSkin.class::isInstance).map(TabSkin.class::cast)
+        .filter(skin -> skin.getTab() == tab).findFirst().orElseThrow();
   }
 
   private static void moveToSplit(Fixture fixture) throws Exception {

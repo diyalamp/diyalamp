@@ -12,7 +12,6 @@ import javafx.css.PseudoClass;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonBase;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.Separator;
@@ -41,12 +40,12 @@ final class FxPomodoro implements AutoCloseable {
   private final PomodoroClock clock;
   private final Preferences preferences;
   private final Button control = new Button();
-  private final Node timerIcon = FxTheme.icon("timer", 16), playIcon = FxTheme.icon("play", 16),
+  private final Node timerIcon = FxTheme.icon("timer", 12), playIcon = FxTheme.icon("play", 16),
       pauseIcon = FxTheme.icon("pause", 16), pausedIndicator = FxTheme.icon("pause", 12);
   private final Region runningIndicator = new Region();
   private final Label toolbarPhase = new Label(), toolbarTime = new Label();
   private final StackPane toolbarState = new StackPane();
-  private final HBox activeTimer = new HBox(8, toolbarPhase, toolbarTime, toolbarState);
+  private final HBox toolbarDisplay = new HBox(8, toolbarPhase, toolbarTime, toolbarState);
   private final Timeline ticker;
   private final Label time = new Label(), state = new Label(), detail = new Label(),
       settingsHelp = new Label(), durationError = new Label("Enter 1–180 minutes.");
@@ -104,6 +103,10 @@ final class FxPomodoro implements AutoCloseable {
     });
     choices(focus, rest);
     choices(once, repeat);
+    focus.setGraphic(FxTheme.icon("focus", 16));
+    rest.setGraphic(FxTheme.icon("coffee", 16));
+    once.setGraphic(FxTheme.icon("repeat-1", 16));
+    repeat.setGraphic(FxTheme.icon("repeat", 16));
     focus.setOnAction(event -> select(PomodoroClock.Phase.FOCUS));
     rest.setOnAction(event -> select(PomodoroClock.Phase.BREAK));
     once.setOnAction(event -> repeat(false));
@@ -138,12 +141,10 @@ final class FxPomodoro implements AutoCloseable {
     header.setAlignment(Pos.TOP_LEFT);
     VBox focusSetting = labeledMinutes("Focus minutes", focusMinutes);
     VBox breakSetting = labeledMinutes("Break minutes", breakMinutes);
-    HBox.setHgrow(focusSetting, Priority.ALWAYS);
-    HBox.setHgrow(breakSetting, Priority.ALWAYS);
     Label schedule = new Label("Schedule");
     schedule.getStyleClass().add("pomodoro-detail");
     VBox content = new VBox(8, header, row(start, reset), row(focus, rest), new Separator(),
-        new HBox(8, focusSetting, breakSetting), schedule, row(once, repeat), settingsHelp, durationError, detail);
+        row(focusSetting, breakSetting), schedule, row(once, repeat), settingsHelp, durationError, detail);
     content.getStyleClass().add("pomodoro-bubble");
     content.setPrefWidth(328);
     popup = new Popover(content);
@@ -154,18 +155,18 @@ final class FxPomodoro implements AutoCloseable {
 
   private void buildToolbarButton() {
     control.setText(null);
-    control.setGraphic(timerIcon);
+    control.setGraphic(toolbarDisplay);
     control.getStyleClass().addAll("flat", "workspace-tool", "pomodoro-control");
     control.getStylesheets().add(FxPomodoro.class.getResource("/fx-popovers.css").toExternalForm());
     control.setTooltip(new Tooltip());
     control.setOnAction(event -> show());
-    activeTimer.setAlignment(Pos.CENTER);
+    toolbarDisplay.setAlignment(Pos.CENTER);
     toolbarPhase.getStyleClass().add("pomodoro-toolbar-phase");
     toolbarTime.getStyleClass().add("pomodoro-toolbar-time");
     toolbarTime.setAlignment(Pos.CENTER_RIGHT);
     toolbarState.getStyleClass().add("pomodoro-toolbar-state");
     runningIndicator.getStyleClass().add("pomodoro-running-dot");
-    activeTimer.setMouseTransparent(true);
+    toolbarDisplay.setMouseTransparent(true);
   }
 
   private static void choices(RadioButton first, RadioButton second) {
@@ -176,7 +177,7 @@ final class FxPomodoro implements AutoCloseable {
     second.getStyleClass().add("pomodoro-phase");
   }
 
-  private static HBox row(ButtonBase first, ButtonBase second) {
+  private static HBox row(Region first, Region second) {
     first.setMaxWidth(Double.MAX_VALUE);
     second.setMaxWidth(Double.MAX_VALUE);
     first.setPrefWidth(128);
@@ -272,13 +273,11 @@ final class FxPomodoro implements AutoCloseable {
     toolbarPhase.setText(phase);
     toolbarTime.setText(remaining);
     toolbarState.setAccessibleText(activity);
-    Node indicator = clock.running() ? runningIndicator : pausedIndicator;
+    Node indicator = clock.running() ? runningIndicator : clock.paused() ? pausedIndicator : timerIcon;
     if (toolbarState.getChildren().isEmpty() || toolbarState.getChildren().getFirst() != indicator)
       toolbarState.getChildren().setAll(indicator);
-    Node graphic = active ? activeTimer : timerIcon;
-    if (control.getGraphic() != graphic) control.setGraphic(graphic);
     control.pseudoClassStateChanged(ACTIVE, active);
-    control.setAccessibleText(active ? "Pomodoro timer, " + phase + ", " + activity : "Pomodoro focus timer");
+    control.setAccessibleText("Pomodoro timer, " + phase + ", " + activity);
     control.setAccessibleHelp(summary);
     control.getTooltip().setText(summary);
 

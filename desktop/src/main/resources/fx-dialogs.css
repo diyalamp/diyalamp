@@ -39,8 +39,9 @@
   -fx-text-fill: -color-fg-default;
   -fx-font-weight: normal;
 }
-.diyalamp-dialog .dialog-action:hover { -fx-background-color: #313233; }
-.diyalamp-dialog .dialog-action:pressed { -fx-background-color: #373839; }
+.diyalamp-dialog .dialog-action:hover, .diyalamp-dialog .dialog-action:pressed {
+  -fx-background-color: -color-border-default;
+}
 .diyalamp-dialog .dialog-action.accent {
   -fx-background-color: -diyalamp-accent;
   -fx-border-color: transparent;

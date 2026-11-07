@@ -50,6 +50,7 @@ public final class FxWritingPane {
   private double lastFocusTop = Double.NaN, lastFocusBottom, lastFocusLine, lastFocusHeight;
   private boolean lineHighlighterInstalled;
   private final ContextMenu slash = new ContextMenu();
+  private int slashCaret = -1;
   private final Subscription richSubscription, plainSubscription;
   private final FxMarkdown.Writer writer = new FxMarkdown.Writer();
   private Runnable onChange = () -> {};
@@ -69,13 +70,18 @@ public final class FxWritingPane {
   private static final KeyCombination OPEN_NOTE_KEY = new KeyCodeCombination(KeyCode.ENTER, KeyCombination.SHORTCUT_DOWN);
   private boolean changing, disposed, shortcutScheduled;
   private String original = "";
-  private static final String[][] BLOCKS = {
-    {"Text", "paragraph", "1"}, {"Heading 1", "heading", "1"},
-    {"Heading 2", "heading", "2"}, {"Heading 3", "heading", "3"},
-    {"Bullet list", "bullet", "1"}, {"Numbered list", "ordered", "1"},
-    {"Checklist", "task", "1"}, {"Quote", "quote", "1"},
-    {"Code block", "code", "1"}, {"Divider", "divider", "1"}
-  };
+  private record BlockCommand(String label, String kind, int level, String icon) {}
+  private static final List<BlockCommand> BLOCKS = List.of(
+      new BlockCommand("Text", "paragraph", 1, "type"),
+      new BlockCommand("Heading 1", "heading", 1, "heading-1"),
+      new BlockCommand("Heading 2", "heading", 2, "heading-2"),
+      new BlockCommand("Heading 3", "heading", 3, "heading-3"),
+      new BlockCommand("Bullet list", "bullet", 1, "list"),
+      new BlockCommand("Numbered list", "ordered", 1, "list-ordered"),
+      new BlockCommand("Checklist", "task", 1, "list-checks"),
+      new BlockCommand("Quote", "quote", 1, "quote"),
+      new BlockCommand("Code block", "code", 1, "code"),
+      new BlockCommand("Divider", "divider", 1, "minus"));
 
   public FxWritingPane(String markdown) {
     FxMarkdown.Block text = FxMarkdown.Block.text();
@@ -106,12 +112,21 @@ public final class FxWritingPane {
     };
     editorRoot.setMinSize(0, 0);
     editorRoot.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-    editorRoot.sceneProperty().addListener((observable, previous, current) -> syncFocusLayoutListener());
+    editorRoot.sceneProperty().addListener((observable, previous, current) -> {
+      slash.hide();
+      syncFocusLayoutListener();
+    });
     area.caretBoundsProperty().addListener((observable, previous, current) -> updateFocusLine());
     area.estimatedScrollYProperty().addListener((observable, previous, current) -> updateFocusLine());
     area.addEventFilter(KeyEvent.KEY_PRESSED, this::key);
-    area.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> area.setTextInsertionStyle(null));
+    area.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+      // Popup auto-hide exempts its anchor node, which is the whole editor.
+      slash.hide();
+      area.setTextInsertionStyle(null);
+    });
+    area.addEventFilter(ScrollEvent.SCROLL, event -> slash.hide());
     area.caretPositionProperty().addListener((observable, previous, current) -> {
+      if (slash.isShowing() && current.intValue() != slashCaret) slash.hide();
       leaveNoteLinkAtBoundary();
       updateFocusLine();
     });
@@ -124,12 +139,17 @@ public final class FxWritingPane {
       });
     });
     area.setContextMenu(contextMenu());
-    for (String[] item : BLOCKS) {
-      MenuItem command = new MenuItem(item[0]);
+    slash.getStyleClass().addAll("workspace-root", "slash-menu");
+    slash.setAutoHide(true);
+    slash.setConsumeAutoHidingEvents(false);
+    for (BlockCommand item : BLOCKS) {
+      MenuItem command = new MenuItem(item.label(), FxTheme.icon(item.icon(), 16));
       command.setOnAction(event -> {
-        if (area.getCaretPosition() > 0 && area.getText(area.getCaretPosition() - 1, area.getCaretPosition()).equals("/"))
-          area.replaceText(area.getCaretPosition() - 1, area.getCaretPosition(), "");
-        block(item[1], Integer.parseInt(item[2]));
+        if (disposed || slashCaret <= 0 || area.getCaretPosition() != slashCaret
+            || !area.getText(slashCaret - 1, slashCaret).equals("/")) return;
+        area.replaceText(slashCaret - 1, slashCaret, "");
+        block(item.kind(), item.level());
+        focus();
       });
       slash.getItems().add(command);
     }
@@ -139,6 +159,7 @@ public final class FxWritingPane {
       if (!changing && !disposed) onChange.run();
     });
     plainSubscription = area.plainTextChanges().subscribe(change -> {
+      slash.hide();
       if (changing || disposed || shortcutScheduled || area.getUndoManager().isPerformingAction()) return;
       shortcutScheduled = true;
       Platform.runLater(() -> {
@@ -198,7 +219,7 @@ public final class FxWritingPane {
       caret = area.getCharacterBoundsOnScreen(area.getCaretPosition(), area.getCaretPosition());
     caret = caret.map(editorRoot::screenToLocal);
     if (caret.isEmpty()) {
-      if (!FxTheme.EDITOR_BACKGROUND.equals(focusLineMask.getFill())) focusLineMask.setFill(FxTheme.EDITOR_BACKGROUND);
+      if (!Color.BLACK.equals(focusLineMask.getFill())) focusLineMask.setFill(Color.BLACK);
       return;
     }
     double top = caret.get().getMinY() - frame.getMinY() - 2;
@@ -220,8 +241,7 @@ public final class FxWritingPane {
   }
 
   private static Color focusShade(double opacity) {
-    Color background = FxTheme.EDITOR_BACKGROUND;
-    return new Color(background.getRed(), background.getGreen(), background.getBlue(), opacity);
+    return Color.color(0, 0, 0, opacity);
   }
 
   private static double shadeAt(double y, double[] positions, double[] opacity) {
@@ -552,7 +572,10 @@ public final class FxWritingPane {
     }
     if (before.equals("/")) {
       if (area.getScene() != null && area.getScene().getWindow() != null)
-        area.getCaretBounds().ifPresent(bounds -> slash.show(area, bounds.getMinX(), bounds.getMaxY() + 4));
+        area.getCaretBounds().ifPresent(bounds -> {
+          slashCaret = position;
+          slash.show(area, bounds.getMinX(), bounds.getMaxY() + 8);
+        });
       return;
     }
     Matcher prefix = BLOCK_SHORTCUT.matcher(before);
@@ -662,14 +685,12 @@ public final class FxWritingPane {
     String marker = switch (block.kind()) {
       case "bullet" -> "•";
       case "ordered" -> block.number() + ".";
-      case "quote" -> "";
       default -> null;
     };
     if (marker == null) return null;
     Label label = new Label(marker);
     label.setFont(FxTheme.textFont(FxTheme.TEXT_SIZE, false, false));
     label.getStyleClass().add("md-marker");
-    if (block.kind().equals("quote")) label.getStyleClass().add("md-quote-marker");
     label.setMinWidth(24);
     label.setMaxWidth(Double.MAX_VALUE);
     return label;
@@ -691,7 +712,12 @@ public final class FxWritingPane {
     boolean inlineCode = span.flag(Markdown.INLINE_CODE);
     boolean code = inlineCode || span.blockKind().equals("code");
     boolean heading = span.blockKind().equals("heading");
-    double size = FxTheme.TEXT_SIZE;
+    double size = heading ? switch (span.level()) {
+      case 1 -> 28;
+      case 2 -> 23;
+      case 3 -> 19;
+      default -> FxTheme.TEXT_SIZE;
+    } : FxTheme.TEXT_SIZE;
     boolean bold = heading || span.flag(StyleConstants.Bold), italic = span.flag(StyleConstants.Italic);
     String face = code ? "Menlo " + (bold ? "Bold" : "Regular") : "System " + (bold ? "Bold" : "Regular");
     if (italic) face = code ? (bold ? "Menlo Bold Italic" : "Menlo Italic")
@@ -726,9 +752,9 @@ public final class FxWritingPane {
     item(menu, "Bold", () -> format("bold")); item(menu, "Italic", () -> format("italic"));
     item(menu, "Inline code", () -> format("code")); item(menu, "Insert or edit link…", this::insertLink);
     Menu blocks = new Menu("Block style");
-    for (String[] choice : BLOCKS) {
-      MenuItem item = new MenuItem(choice[0]);
-      item.setOnAction(event -> block(choice[1], Integer.parseInt(choice[2])));
+    for (BlockCommand choice : BLOCKS) {
+      MenuItem item = new MenuItem(choice.label(), FxTheme.icon(choice.icon(), 16));
+      item.setOnAction(event -> block(choice.kind(), choice.level()));
       blocks.getItems().add(item);
     }
     menu.getItems().add(blocks);
