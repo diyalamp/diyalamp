@@ -11,6 +11,7 @@ for architecture in arm64 x86_64; do
   xcrun swiftc -parse-as-library -Osize -whole-module-optimization \
     -target "$architecture-apple-macos15.0" -I "$upstream/include-full" \
     main.swift CmarkPatch.swift RenderedStyle.swift FolderWorkspace.swift RecoveryStore.swift \
+    WorkspaceSearch.swift WorkspaceSearchControls.swift \
     "$upstream/$architecture/libcmark-gfm-extensions.a" "$upstream/$architecture/libcmark-gfm.a" \
     -o "$output/probe-$architecture"
 done
@@ -25,6 +26,7 @@ for size in 16 32 128 256 512; do
   sips -z "$double" "$double" "$sources/app-icon.png" --out "$iconset/icon_${size}x${size}@2x.png" >/dev/null
 done
 iconutil -c icns "$iconset" -o "$app/Contents/Resources/diyalamp.icns"
+python3 compact-icon.py "$app/Contents/Resources/diyalamp.icns"
 cp "$upstream/cmark-gfm-0.29.0.gfm.13/COPYING" "$app/Contents/Resources/cmark-gfm-LICENSE.txt"
 cp "$sources/lamp.png" "$app/Contents/Resources/"
 cp "$sources"/fonts/Inter-*.ttf "$sources/fonts/Inter-LICENSE.txt" "$sources/fonts/PROVENANCE.txt" \

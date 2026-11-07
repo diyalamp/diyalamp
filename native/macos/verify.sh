@@ -94,6 +94,8 @@ if not any(line.startswith('PASS Native editor') for line in stdout.splitlines()
     raise SystemExit(f'{architecture}: native editor success marker missing')
 if not any(line.startswith('PASS Native folder') for line in stdout.splitlines()):
     raise SystemExit(f'{architecture}: native folder success marker missing')
+if not any(line.startswith('PASS Native workspace search') for line in stdout.splitlines()):
+    raise SystemExit(f'{architecture}: native search success marker missing')
 print(f'{architecture}: exited normally')
 
 def recovery_command(phase, note, store):

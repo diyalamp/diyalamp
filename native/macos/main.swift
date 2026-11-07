@@ -70,13 +70,24 @@ func noteFont(_ size: CGFloat, strong: Bool = false, italic: Bool = false) -> NS
 }
 
 @MainActor
+private final class WorkspaceFilesTable: NSTableView {
+    var activateSelection: (() -> Bool)?
+
+    override func keyDown(with event: NSEvent) {
+        if (event.keyCode == 36 || event.keyCode == 76), activateSelection?() == true { return }
+        super.keyDown(with: event)
+    }
+}
+
+@MainActor
 final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWindowDelegate,
     NSMenuItemValidation, NSTableViewDataSource, NSTableViewDelegate {
     private let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 620),
         styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
     private let editorScroll = NSTextView.scrollableTextView()
     private let previewScroll = NSTextView.scrollableTextView()
-    private let folderTable = NSTableView()
+    private let folderTable = WorkspaceFilesTable()
+    private lazy var searchControls = WorkspaceSearchControls()
     private var editor: NSTextView { editorScroll.documentView as! NSTextView }
     private var preview: NSTextView { previewScroll.documentView as! NSTextView }
     private let status = NSTextField(labelWithString: "Open a Markdown note")
@@ -93,6 +104,9 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
     private var note: NoteFile?
     private var folder: FolderWorkspace?
     private var updatingFolderSelection = false
+    private var searchTask: Task<Void, Never>?
+    private var searchRows: [WorkspaceSearch.Match]?
+    private var openWhenSearchCompletes = false
     private var windowIsClosing = false
     private let fixture: URL?
     private let recoveryStore: RecoveryStore?
@@ -131,7 +145,9 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         if let recoverySmoke {
             DispatchQueue.main.async { self.runRecoverySmoke(recoverySmoke) }
         } else if let fixture {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.runSmoke(fixture) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                Task { await self.runSmoke(fixture) }
+            }
         }
     }
 
@@ -168,6 +184,13 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         redo.target = self
         editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
         editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(.separator())
+        editMenu.addItem(withTitle: "Find File in Folder…", action: #selector(focusFilenameSearch),
+                         keyEquivalent: "p").target = self
+        let textSearch = editMenu.addItem(withTitle: "Find Text in Folder…", action: #selector(focusTextSearch),
+                                          keyEquivalent: "f")
+        textSearch.keyEquivalentModifierMask = [.command, .option]
+        textSearch.target = self
         editItem.submenu = editMenu
         bar.addItem(editItem)
         NSApp.mainMenu = bar
@@ -199,7 +222,10 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         let split = NSSplitView()
         split.isVertical = true
         split.dividerStyle = .thin
-        split.addArrangedSubview(pane("Files", makeFolderList()))
+        searchControls.onChange = { [weak self] in self?.refreshSearch() }
+        searchControls.onSubmit = { [weak self] in self?.openFirstSearchHit() }
+        searchControls.setFolderAvailable(false)
+        split.addArrangedSubview(pane("Files", makeFolderList(), controls: searchControls))
         split.addArrangedSubview(pane("Markdown source", editorScroll))
         split.addArrangedSubview(pane("Rendered editor", previewScroll))
         split.setHoldingPriority(.defaultHigh, forSubviewAt: 0)
@@ -230,12 +256,12 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         split.setPosition(590, ofDividerAt: 1)
     }
 
-    private func pane(_ title: String, _ scroll: NSScrollView) -> NSView {
+    private func pane(_ title: String, _ scroll: NSScrollView, controls: NSView? = nil) -> NSView {
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = noteFont(13, strong: true)
         let heading = NSStackView(views: [titleLabel])
         heading.edgeInsets = NSEdgeInsets(top: 9, left: 16, bottom: 9, right: 16)
-        let pane = NSStackView(views: [heading, scroll])
+        let pane = NSStackView(views: [heading, controls, scroll].compactMap { $0 })
         pane.orientation = .vertical
         pane.alignment = .width
         pane.spacing = 0
@@ -247,6 +273,7 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
     }
 
     private func install(_ file: NoteFile) {
+        let discardedOverlay = note != nil && hasUnsavedChanges
         note = file
         recoveryCopy = nil
         editor.isEditable = true
@@ -256,6 +283,7 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         status.stringValue = file.url.lastPathComponent
         window.isDocumentEdited = false
         syncFolderSelection()
+        if discardedOverlay { refreshTextSearch() }
     }
 
     @objc private func openNote() {
@@ -292,6 +320,13 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         folderTable.addTableColumn(NSTableColumn(identifier: NSUserInterfaceItemIdentifier("note")))
         folderTable.dataSource = self
         folderTable.delegate = self
+        folderTable.target = self
+        folderTable.doubleAction = #selector(openSelectedSearchHit)
+        folderTable.activateSelection = { [weak self] in
+            guard let self, self.searchRows != nil else { return false }
+            self.openSelectedSearchHit()
+            return true
+        }
         folderTable.backgroundColor = surface
         folderTable.setAccessibilityLabel("Markdown files")
         let scroll = NSScrollView()
@@ -300,20 +335,38 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         return scroll
     }
 
-    func numberOfRows(in tableView: NSTableView) -> Int { folder?.notes.count ?? 0 }
+    func numberOfRows(in tableView: NSTableView) -> Int { searchRows?.count ?? folder?.notes.count ?? 0 }
 
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        guard let folder else { return nil }
-        let entry = folder.notes[row]
-        let label = NSTextField(labelWithString: entry.relativePath)
+        if let searchRows, searchRows.indices.contains(row) {
+            let match = searchRows[row]
+            guard let lineNumber = match.lineNumber else { return pathLabel(match.relativePath) }
+            let location = pathLabel("\(match.relativePath):\(lineNumber)")
+            let preview = pathLabel(match.preview)
+            preview.textColor = .secondaryLabelColor
+            preview.lineBreakMode = .byTruncatingTail
+            let result = NSStackView(views: [location, preview])
+            result.orientation = .vertical
+            result.alignment = .width
+            result.spacing = 2
+            return result
+        }
+        guard searchRows == nil, let folder, folder.notes.indices.contains(row) else { return nil }
+        return pathLabel(folder.notes[row].relativePath)
+    }
+
+    private func pathLabel(_ path: String) -> NSTextField {
+        let label = NSTextField(labelWithString: path)
         label.font = noteFont(13)
         label.lineBreakMode = .byTruncatingMiddle
-        label.toolTip = entry.relativePath
+        label.toolTip = path
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         return label
     }
 
     func tableViewSelectionDidChange(_ notification: Notification) {
-        guard !updatingFolderSelection, let folder, folder.notes.indices.contains(folderTable.selectedRow) else {
+        guard searchRows == nil, !updatingFolderSelection, let folder,
+              folder.notes.indices.contains(folderTable.selectedRow) else {
             return
         }
         do { try activateFolderNote(folderTable.selectedRow, in: folder) } catch { present(error) }
@@ -322,13 +375,12 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
     private func showFolder(_ folder: FolderWorkspace) {
         self.folder = folder
         folderTable.toolTip = folder.root.path
-        updatingFolderSelection = true
-        folderTable.reloadData()
-        updatingFolderSelection = false
-        syncFolderSelection()
+        searchControls.setFolderAvailable(true)
+        refreshSearch()
     }
 
     private func syncFolderSelection() {
+        guard searchRows == nil else { return }
         updatingFolderSelection = true
         defer { updatingFolderSelection = false }
         if let note, let row = folder?.index(of: note.url) {
@@ -339,13 +391,142 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         }
     }
 
+    @objc private func focusFilenameSearch() { focusSearch(.filenames) }
+    @objc private func focusTextSearch() { focusSearch(.text) }
+
+    private func focusSearch(_ mode: WorkspaceSearch.Mode) {
+        guard folder != nil else { return }
+        searchControls.setMode(mode)
+        window.makeFirstResponder(searchControls.field)
+        searchControls.field.selectText(nil)
+    }
+
+    private func refreshTextSearch() {
+        if searchControls.options.mode == .text && !searchControls.field.stringValue.isEmpty { refreshSearch() }
+    }
+
+    private func refreshSearch() {
+        searchTask?.cancel()
+        searchTask = nil
+        openWhenSearchCompletes = false
+        let query = searchControls.field.stringValue
+        guard let folder, !query.isEmpty else {
+            showSearchRows(nil, message: "")
+            return
+        }
+        let options = searchControls.options
+        let overlay = hasUnsavedChanges ? note.map { WorkspaceSearch.Overlay(url: $0.url, text: source) } : nil
+        showSearchRows([], message: "Searching…")
+        searchTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .milliseconds(180))
+                let worker = Task.detached(priority: .userInitiated) {
+                    let refreshed = try folder.refreshed(isCancelled: { Task.isCancelled })
+                    let result = try WorkspaceSearch.search(query, in: refreshed, options: options,
+                        overlay: overlay, isCancelled: { Task.isCancelled })
+                    return (refreshed, result)
+                }
+                let (refreshed, result) = try await withTaskCancellationHandler {
+                    try await worker.value
+                } onCancel: { worker.cancel() }
+                try Task.checkCancellation()
+                guard let self else { return }
+                self.searchTask = nil
+                self.folder = refreshed
+                let count = result.matches.count
+                var message = count == 0 ? "No matches" : "\(count) match\(count == 1 ? "" : "es")"
+                if result.truncated { message += " · Refine search for more" }
+                if result.skipped > 0 { message += " · \(result.skipped) skipped" }
+                self.showSearchRows(result.matches, message: message)
+                if self.openWhenSearchCompletes {
+                    self.openWhenSearchCompletes = false
+                    self.openFirstSearchHit()
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                if !Task.isCancelled {
+                    self?.searchTask = nil
+                    self?.openWhenSearchCompletes = false
+                    self?.showSearchRows([], message: error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    private func showSearchRows(_ rows: [WorkspaceSearch.Match]?, message: String) {
+        updatingFolderSelection = true
+        searchRows = rows
+        folderTable.deselectAll(nil)
+        folderTable.rowHeight = rows?.first?.lineNumber == nil ? 26 : 44
+        folderTable.reloadData()
+        updatingFolderSelection = false
+        searchControls.setMessage(message)
+        syncFolderSelection()
+    }
+
+    private func openFirstSearchHit() {
+        if searchTask != nil {
+            openWhenSearchCompletes = true
+            return
+        }
+        let row = folderTable.selectedRow
+        openSearchHit(at: searchRows?.indices.contains(row) == true ? row : 0)
+    }
+
+    @objc private func openSelectedSearchHit() { openSearchHit(at: folderTable.selectedRow) }
+
+    private func openSearchHit(at row: Int) {
+        do { try activateSearchHit(at: row) } catch { present(error) }
+    }
+
+    private func activateSearchHit(at row: Int, deciding: (() -> EditDecision)? = nil) throws {
+        guard let searchRows, searchRows.indices.contains(row), let folder else { return }
+        let match = searchRows[row]
+        guard let index = folder.notes.firstIndex(where: { $0.relativePath == match.relativePath }) else {
+            refreshSearch()
+            return
+        }
+        let url = try folder.checkedURL(for: folder.notes[index])
+        try activateFolderNote(index, in: folder, refreshCleanNote: match.range != nil, deciding: deciding)
+        guard note?.url == url else {
+            folderTable.deselectAll(nil)
+            return
+        }
+        if let range = match.range {
+            let text = source as NSString
+            if range.location <= text.length, range.length <= text.length - range.location,
+               let matchedText = match.matchedText,
+               text.substring(with: range).utf8.elementsEqual(matchedText.utf8) {
+                let selection: NSRange
+                if range.length > 0 { selection = text.rangeOfComposedCharacterSequences(for: range) }
+                else if range.location < text.length {
+                    selection = NSRange(location: text.rangeOfComposedCharacterSequence(at: range.location).location, length: 0)
+                } else { selection = range }
+                window.makeFirstResponder(editor)
+                editor.setSelectedRange(selection)
+                editor.scrollRangeToVisible(selection)
+            } else {
+                refreshSearch()
+            }
+        } else {
+            window.makeFirstResponder(preview.isEditable ? preview : editor)
+        }
+    }
+
     private func activateFolderNote(_ row: Int, in folder: FolderWorkspace,
+        refreshCleanNote: Bool = false,
         deciding: (() -> EditDecision)? = nil) throws {
         defer { syncFolderSelection() }
         let entry = folder.notes[row]
         let checkedAccess = { try folder.checkedURL(for: entry) }
         let url = try checkedAccess()
-        guard url != note?.url else { return }
+        if let note, note.url == url {
+            guard refreshCleanNote, !hasUnsavedChanges else { return }
+            let refreshed = try NoteFile(url, checkedAccess: checkedAccess)
+            if refreshed.original != note.original { install(refreshed) }
+            return
+        }
         let file = try NoteFile(url, checkedAccess: checkedAccess)
         guard try resolvePendingEdits(deciding: deciding) else { return }
         try finishSwitch(to: file)
@@ -365,8 +546,9 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         guard panel.runModal() == .OK, let selection = panel.url else { return }
         do {
             guard try resolvePendingEdits() else { return }
-            let url = selection.standardizedFileURL.resolvingSymlinksInPath()
-            try NoteFile.create(at: url)
+            let destination = selection.standardizedFileURL.resolvingSymlinksInPath()
+            try NoteFile.create(at: destination)
+            let url = destination.resolvingSymlinksInPath()
             if let folder, let refreshed = try? folder.refreshed(), let row = refreshed.index(of: url) {
                 showFolder(refreshed)
                 try activateFolderNote(row, in: refreshed, deciding: { .discard })
@@ -505,6 +687,7 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
             do { try recoveryStore?.clear() }
             catch { status.stringValue = "Recovery copy could not be cleared" }
         }
+        refreshTextSearch()
     }
 
     private func scheduleRecovery() {
@@ -561,6 +744,7 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         switch menuItem.action {
         case #selector(undoEdit): history.canUndo
         case #selector(redoEdit): history.canRedo
+        case #selector(focusFilenameSearch), #selector(focusTextSearch): folder != nil
         default: true
         }
     }
@@ -683,7 +867,7 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         }
     }
 
-    private func runSmoke(_ url: URL) {
+    private func runSmoke(_ url: URL) async {
         do {
             try load(url)
             guard window.isVisible, let note else { throw CocoaError(.validationMissingMandatoryProperty) }
@@ -757,6 +941,7 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
             }
             try verifyContinuousWriting(in: url.deletingLastPathComponent())
             try verifyFolderNavigation(in: url.deletingLastPathComponent())
+            try await verifyWorkspaceSearch(in: url.deletingLastPathComponent())
             print("PASS Native editor styled rendering, exact rendered and source edits, mixed undo/redo, save/reopen, and external-edit rejection.")
             window.performClose(nil)
         } catch {
@@ -967,6 +1152,85 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         try activateFolderNote(1, in: folder, deciding: { .discard })
         expect(folderTable.selectedRow == 1 && !window.isDocumentEdited)
         print("PASS Native folder sidebar selection, Save / Discard / Cancel, and blocked switch on external conflict.")
+    }
+
+    private func verifyWorkspaceSearch(in directory: URL) async throws {
+        let root = directory.appendingPathComponent("Search Notes", isDirectory: true)
+        let empty = directory.appendingPathComponent("No Notes", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        try FileManager.default.createDirectory(at: empty, withIntermediateDirectories: false)
+        let draftPath = root.appendingPathComponent("Draft.md")
+        let referencePath = root.appendingPathComponent("Reference.md")
+        let bom = Data([0xEF, 0xBB, 0xBF])
+        let draftText = "First line\r\n"
+        let referenceText = "Intro\r\nLamp 🪔 Needle found\r\n"
+        try Data(draftText.utf8).write(to: draftPath)
+        try (bom + Data(referenceText.utf8)).write(to: referencePath)
+        let draft = draftPath.resolvingSymlinksInPath()
+        let reference = referencePath.resolvingSymlinksInPath()
+
+        showFolder(try FolderWorkspace(opening: root))
+        searchControls.field.stringValue = "Refer"
+        searchControls.onChange?()
+        searchControls.onSubmit?()
+        await searchTask?.value
+        expect(searchRows?.map(\.relativePath) == ["Reference.md"], "Filename search did not filter the sidebar")
+        expect(note?.url.path == reference.path,
+               "Submitting before results arrived did not open the first match (active: \(note?.url.path ?? "none"))")
+
+        try load(draft)
+        searchControls.field.stringValue = "Needle"
+        searchControls.setMode(.text)
+        await searchTask?.value
+        expect(searchRows?.count == 1 && searchRows?.first?.lineNumber == 2)
+        window.makeFirstResponder(editor)
+        let end = NSRange(location: editor.string.utf16.count, length: 0)
+        editor.insertText("Needle in unsaved draft\r\n", replacementRange: end)
+        await searchTask?.value
+        expect(searchRows?.count == 2 && searchRows?.first?.relativePath == "Draft.md",
+               "Search did not include the active unsaved note")
+        expect(tryBytes(draft) == Data(draftText.utf8), "Search saved an unsaved note")
+        guard let referenceRow = searchRows?.firstIndex(where: { $0.relativePath == "Reference.md" }) else {
+            throw CocoaError(.fileReadUnknown)
+        }
+        folderTable.selectRowIndexes(IndexSet(integer: referenceRow), byExtendingSelection: false)
+        expect(note?.url.path == draft.path, "Selecting a result should let the user browse first")
+        try activateSearchHit(at: referenceRow, deciding: { .cancel })
+        expect(note?.url.path == draft.path && hasUnsavedChanges && folderTable.selectedRow == -1)
+        try activateSearchHit(at: referenceRow, deciding: { .save })
+        expect(note?.url.path == reference.path && tryBytes(draft) == Data((draftText + "Needle in unsaved draft\r\n").utf8))
+        expect(editor.selectedRange() == (referenceText as NSString).range(of: "Needle"),
+               "Search selection did not preserve UTF-16 offsets after emoji and CRLF")
+
+        try load(draft)
+        try (bom + Data("Intro rewritten externally\r\nNeedle moved\r\n".utf8)).write(to: reference, options: .atomic)
+        try activateSearchHit(at: referenceRow)
+        expect(note?.url.path == reference.path && editor.selectedRange().length == 0,
+               "An externally moved match should refresh without selecting stale text")
+        await searchTask?.value
+        guard let movedRow = searchRows?.firstIndex(where: { $0.relativePath == "Reference.md" }) else {
+            throw CocoaError(.fileReadUnknown)
+        }
+        try activateSearchHit(at: movedRow)
+        expect(editor.selectedRange() == (source as NSString).range(of: "Needle"))
+
+        try (bom + Data("Intro changed\r\nScope after an external edit\r\n".utf8)).write(to: reference, options: .atomic)
+        searchControls.field.stringValue = "Scope"
+        searchControls.onChange?()
+        await searchTask?.value
+        expect(searchRows?.map(\.relativePath) == ["Reference.md"], "A clean editor shadowed newer text on disk")
+        try activateSearchHit(at: 0)
+        expect(source.contains("Scope after an external edit")
+            && editor.selectedRange() == (source as NSString).range(of: "Scope"))
+
+        searchControls.onChange?()
+        showFolder(try FolderWorkspace(opening: empty))
+        await searchTask?.value
+        expect(searchRows?.isEmpty == true, "An earlier search leaked matches into a different folder")
+        searchControls.field.stringValue = ""
+        searchControls.onChange?()
+        expect(searchRows == nil && folderTable.numberOfRows == 0)
+        print("PASS Native workspace search, unsaved note matching, safe navigation, and stale result cancellation.")
     }
 
     private func expect(_ condition: @autoclosure () -> Bool, _ message: String = "Assertion failed", line: Int = #line) {

@@ -1,7 +1,7 @@
 import Foundation
 
-struct FolderWorkspace {
-    struct Entry {
+struct FolderWorkspace: Sendable {
+    struct Entry: Sendable {
         let relativePath: String
         fileprivate let components: [String]
     }
@@ -13,7 +13,7 @@ struct FolderWorkspace {
         try self.init(root: directory.standardizedFileURL.resolvingSymlinksInPath())
     }
 
-    private init(root: URL) throws {
+    private init(root: URL, isCancelled: () -> Bool = { false }) throws {
         try Self.checkRoot(root)
         self.root = root
         let keys: Set<URLResourceKey> = [.isRegularFileKey, .isSymbolicLinkKey]
@@ -26,6 +26,7 @@ struct FolderWorkspace {
         var notes: [Entry] = []
         let prefix = root.pathComponents
         for case let url as URL in files {
+            if isCancelled() { throw CancellationError() }
             let values = try url.resourceValues(forKeys: keys)
             guard values.isSymbolicLink != true, values.isRegularFile == true,
                 Self.markdownExtensions.contains(url.pathExtension.lowercased())
@@ -42,8 +43,8 @@ struct FolderWorkspace {
         }
     }
 
-    func refreshed() throws -> FolderWorkspace {
-        try FolderWorkspace(root: root)
+    func refreshed(isCancelled: () -> Bool = { false }) throws -> FolderWorkspace {
+        try FolderWorkspace(root: root, isCancelled: isCancelled)
     }
 
     func index(of url: URL) -> Int? {
