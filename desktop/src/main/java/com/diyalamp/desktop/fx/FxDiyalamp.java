@@ -54,6 +54,7 @@ import javafx.scene.input.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -356,7 +357,23 @@ public final class FxDiyalamp extends Application {
     Button reset = FxTheme.iconButton("layout-template", "Reset sidebar widths", this::resetSidebarWidths);
     reset.setAccessibleHelp("Restore default left and right sidebar widths without changing visibility or notes.");
     toolbar.getItems().addAll(accentButton(), zen, reset, connections);
+    fitFolderControl();
     return toolbar;
+  }
+
+  private void fitFolderControl() {
+    Text path = new Text();
+    path.textProperty().bind(folderControl.textProperty());
+    path.fontProperty().bind(folderControl.fontProperty());
+    var timerWidth = pomodoro == null ? toolbar.widthProperty() : pomodoro.button().prefWidthProperty();
+    folderControl.prefWidthProperty().bind(Bindings.createDoubleBinding(() -> {
+      Insets insets = toolbar.getInsets();
+      // Match the toolbar's 4px item gaps and leave room for pixel rounding.
+      double reserved = insets.getLeft() + insets.getRight() + 4 * toolbar.getItems().size();
+      for (Node item : toolbar.getItems()) if (item != folderControl) reserved += item.prefWidth(-1);
+      double natural = path.getLayoutBounds().getWidth() + 40;
+      return Math.max(36, Math.min(natural, toolbar.getWidth() - reserved));
+    }, toolbar.widthProperty(), toolbar.insetsProperty(), path.layoutBoundsProperty(), timerWidth));
   }
 
   private void buildExplorer() {

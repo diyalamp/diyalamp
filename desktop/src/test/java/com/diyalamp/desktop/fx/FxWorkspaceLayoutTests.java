@@ -204,6 +204,11 @@ public final class FxWorkspaceLayoutTests {
   private static void compactWidth(Fixture fixture) throws Exception {
     ((FxNoteGraph) field(fixture.app, "noteGraph")).showingProperty().set(false);
     call(fixture.app, "layoutSidebars", new Class<?>[] {boolean.class}, false);
+    Button folder = (Button) field(fixture.app, "folderControl");
+    String longPath = "/workspace" + "/long folder name".repeat(12);
+    folder.setText(longPath);
+    FxPomodoro pomodoro = (FxPomodoro) field(fixture.app, "pomodoro");
+    ((Button) pomodoro.popover().getContentNode().lookup("#pomodoro-start")).fire();
     fixture.stage.setWidth(820); fixture.layout();
     Region pane = (Region) field(field(fixture.app, "primary"), "container");
     check(pane.getWidth() >= 500, "The default closed inspector must leave a useful writing area at the minimum window width");
@@ -211,8 +216,13 @@ public final class FxWorkspaceLayoutTests {
         "The editor must stay within the native window rather than overflowing horizontally");
     Node toggle = (Node) field(fixture.app, "connectionsControl");
     var bounds = toggle.localToScene(toggle.getBoundsInLocal());
-    check(toggle.isVisible() && bounds.getMinX() >= 0 && bounds.getMaxX() <= fixture.stage.getScene().getWidth(),
-        "The persistent right-sidebar toggle must fit the top bar even at the minimum width");
+    Node overflow = ((ToolBar) field(fixture.app, "toolbar")).lookup(".tool-bar-overflow-button");
+    check(toggle.isVisible() && toggle.getScene() == fixture.stage.getScene()
+        && bounds.getMinX() >= 0 && bounds.getMaxX() <= fixture.stage.getScene().getWidth()
+        && (overflow == null || !overflow.isVisible()),
+        "The right-sidebar toggle stays on the bar at minimum width with a long folder and running timer");
+    check(folder.getTooltip().getText().equals(longPath),
+        "A shortened folder button still exposes the complete path");
     HBox metrics = (HBox) field(fixture.app, "metrics");
     var stats = metrics.localToScene(metrics.getBoundsInLocal());
     check(stats.getMinX() >= 0 && stats.getMaxX() <= fixture.stage.getScene().getWidth(),

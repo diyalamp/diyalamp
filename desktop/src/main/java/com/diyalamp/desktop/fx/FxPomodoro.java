@@ -179,8 +179,8 @@ final class FxPomodoro implements AutoCloseable {
   private static HBox row(ButtonBase first, ButtonBase second) {
     first.setMaxWidth(Double.MAX_VALUE);
     second.setMaxWidth(Double.MAX_VALUE);
-    first.setPrefWidth(0);
-    second.setPrefWidth(0);
+    first.setPrefWidth(128);
+    second.setPrefWidth(128);
     HBox.setHgrow(first, Priority.ALWAYS);
     HBox.setHgrow(second, Priority.ALWAYS);
     return new HBox(8, first, second);
