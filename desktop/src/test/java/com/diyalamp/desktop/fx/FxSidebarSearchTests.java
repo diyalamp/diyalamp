@@ -72,8 +72,12 @@ public final class FxSidebarSearchTests {
     Path notePath = rootPath.resolve("Research/Original note.md");
     panel.setWorkspaceRoot(rootPath);
 
-    HBox header = new HBox(8, panel.queryControl(), FxTheme.iconButton("folder-plus", "New folder", () -> {}),
-        FxTheme.iconButton("plus", "New note", () -> {}));
+    Button createFolder = FxTheme.iconButton("folder-plus", "New folder", () -> {});
+    Button createNote = FxTheme.iconButton("plus", "New note", () -> {});
+    createFolder.getStyleClass().add("file-row-action");
+    createNote.getStyleClass().add("file-row-action");
+    HBox actions = new HBox(panel.optionsButton(), createFolder, createNote);
+    HBox header = new HBox(8, panel.queryControl(), actions);
     header.setPadding(new Insets(8));
     header.setAlignment(Pos.CENTER_LEFT);
     HBox.setHgrow(panel.queryControl(), Priority.ALWAYS);
@@ -94,14 +98,14 @@ public final class FxSidebarSearchTests {
       workspace.applyCss();
       workspace.layout();
       TextField input = (TextField) panel.queryControl().lookup(".text-field");
-      ToggleButton advanced = (ToggleButton) panel.queryControl().lookup(".sidebar-search-toggle");
+      ToggleButton advanced = panel.optionsButton();
       var options = panel.lookup(".sidebar-search-options");
-      check(header.getHeight() == 52 && input.getHeight() == 36,
-          "The query must fit alongside creation controls in the shared 52-pixel header");
-      check(advanced.getHeight() == 36 && advanced.getWidth() == 36
+      check(header.getHeight() == 52 && input.getHeight() == 36 && input.getWidth() >= 152,
+          "The wider query must fit beside the compact action strip in the shared 52-pixel header");
+      check(advanced.getHeight() == 28 && advanced.getWidth() == 28 && actions.getWidth() == 84
               && advanced.getGraphic().lookup(".icon-stroke") != null
               && "Search options".equals(advanced.getAccessibleText()),
-          "The options icon must share the toolbar size and have an accessible name");
+          "The options icon must share the compact file-action size and have an accessible name");
       check(!options.isVisible() && !options.isManaged(), "Advanced search must start collapsed");
       check(!panel.hasQuery() && files.isVisible(), "The empty query must leave the files view visible");
       panel.focusQuery();
@@ -210,10 +214,10 @@ public final class FxSidebarSearchTests {
       workspace.layout();
       workspace.applyCss();
       workspace.layout();
-      check(input.getWidth() >= 56 && advanced.getWidth() == 28
+      check(input.getWidth() >= 84 && advanced.getWidth() == 28
               && advanced.localToScene(advanced.getBoundsInLocal()).getMaxX()
                   < header.localToScene(header.getBoundsInLocal()).getMaxX(),
-          "At 200 pixels the options button must compact without removing the search field or creation controls: "
+          "At 200 pixels the compact action strip must leave a useful search field: "
               + input.getWidth() + " / " + advanced.getWidth());
     } finally {
       stage.close();

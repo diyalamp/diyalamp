@@ -1,6 +1,6 @@
 # diyalamp desktop
 
-A focused, local Markdown writing app for macOS. The 1.3.3 development interface uses JavaFX 27, AtlantaFX CupertinoDark controls, RichTextFX rendered editing, bundled Inter text, and installed Menlo for code. No backend, model provider, database, or account is required.
+A focused, local Markdown writing app for macOS. The 1.3.4 development interface uses JavaFX 27, AtlantaFX CupertinoDark controls, RichTextFX rendered editing, bundled Inter text, and installed Menlo for code. No backend, model provider, database, or account is required.
 
 ## Build and run
 
@@ -43,7 +43,7 @@ This community release is unsigned and not Apple-notarized. Do not describe it a
 
 The interface is dark-only, with no theme switch. Its colors follow the official [VS Code 2026 Dark theme](https://github.com/microsoft/vscode/blob/main/extensions/theme-defaults/themes/2026-dark.json): editor `#121314` with `#BBBEBF` text, sidebar/top/status chrome `#191A1B`, separators `#2A2B2C`, text `#BFBFBF`, muted text `#8C8C8C`, inputs `#191A1B` with `#333536` borders and `#555555` placeholders, default action blue `#297AA0`, and link blue `#48A0C7`. The interface and prose use 16 px. Markdown H1, H2, and H3 use Inter SemiBold at 28, 23, and 19 px. H4–H6 use the 16 px body size. Quotes use a rounded inset with an accent rule. Code uses installed Menlo, and real italic faces preserve emphasis. Alternate accents receive dark-aware foreground contrast and transition smoothly.
 
-Workspace spacing uses an 8 px grid. The wordmark, toolbar controls, tabs, search fields, dialog actions, and popover actions share a 36 px control height and 8 px corners. The toolbar and pane header rows are 52 px tall. Use the shared 140 ms control transition for hover and focus. Dialogs use 24 px inner padding and 12 px surface corners. Entrance motion leaves adjacent controls in place and honors reduced motion.
+Workspace spacing uses an 8 px grid. The wordmark, toolbar controls, search fields, dialog actions, and popover actions share a 36 px control height and 8 px corners. The toolbar and pane header rows are 52 px tall. Tabs fill the editor header row and keep their labels and close targets centered. Use the shared 140 ms control transition for hover and focus. Dialogs use 24 px inner padding and 12 px surface corners. Entrance motion leaves adjacent controls in place and honors reduced motion.
 
 ## Writing and storage
 

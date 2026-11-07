@@ -169,7 +169,7 @@ public final class FxWritingPaneTests {
       Node surface = menu.getSkin().getNode();
       check(surface instanceof Region panel && panel.getEffect() == null && panel.getBackground() != null
               && !panel.getBackground().getFills().isEmpty()
-              && panel.getBackground().getFills().getFirst().getFill().equals(Color.web("#202122"))
+              && panel.getBackground().getFills().getFirst().getFill().equals(FxTheme.EDITOR_BACKGROUND)
               && panel.getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius() == 12,
           "The rendered menu must use the same rounded, shadow-free surface as the workspace");
       var rows = menu.getScene().getRoot().lookupAll(".menu-item");
@@ -465,7 +465,7 @@ public final class FxWritingPaneTests {
         codeRuns.add(text.getText());
         if (System.getProperty("os.name").startsWith("Mac"))
           check(text.getFont().getFamily().equals("Menlo"), "Only code should switch to installed Menlo");
-        check(text.getFill().equals(Color.web("#8C8C8C")) && text.getBackgroundColor().equals(Color.web("#202122")),
+        check(text.getFill().equals(Color.web("#8C8C8C")) && text.getBackgroundColor().equals(FxTheme.EDITOR_BACKGROUND),
             "Inline and fenced code must use readable dark-theme foreground and background colors");
       }
       else if (text.getText().equals("strong"))
@@ -540,7 +540,7 @@ public final class FxWritingPaneTests {
           "Bullets, numbers and checkboxes must share the marker gutter");
       var quote = (javafx.scene.layout.Region) editor.area().lookup(".md-quote");
       var border = quote.getBorder().getStrokes().getFirst();
-      check(quote.getBackground().getFills().getFirst().getFill().equals(Color.web("#202122"))
+      check(quote.getBackground().getFills().getFirst().getFill().equals(FxTheme.EDITOR_BACKGROUND)
           && border.getLeftStroke().equals(Color.web("#FF6B6B")) && border.getWidths().getLeft() == 3,
           "The quote must have a tinted surface and an accent rule");
       check(editor.area().getParagraphGraphic(6) == null && quote.getPadding().getLeft() == 16,
@@ -602,8 +602,8 @@ public final class FxWritingPaneTests {
     int[] changes = {0}; editor.setOnChange(() -> changes[0]++);
     progress.set(1); root.applyCss(); root.layout();
     var focused = root.snapshot(null, null);
-    check(mask.isVisible() && mask.getOpacity() == 1 && editor.area().isLineHighlighterOn(),
-        "Full focus must reveal the fade and the maintained editor's current-line highlight");
+    check(mask.isVisible() && mask.getOpacity() == 1 && !editor.area().isLineHighlighterOn(),
+        "Full focus emphasizes the caret line with the fade and without a separate line fill");
     var gradient = (LinearGradient) mask.getFill();
     var maskBounds = mask.localToScene(mask.getBoundsInLocal());
     double caretCenter = editor.node().screenToLocal(editor.area().getCaretBoundsOnScreen(editor.area().getCaretSelectionBind().getUnderlyingCaret()).orElseThrow()).getCenterY();

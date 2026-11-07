@@ -18,7 +18,9 @@ import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.IndexedCell;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToolBar;
@@ -31,6 +33,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import javax.imageio.ImageIO;
@@ -112,6 +115,8 @@ public final class FxWorkspaceLayoutTests {
         && bandDivider.getEndX() == fixture.stage.getScene().getWidth()
         && Math.abs(bandDivider.localToScene(0, 0).getY() - tabs.localToScene(0, 51.5).getY()) < .01,
         "A single one-pixel rule spans the workspace without intercepting the sidebar dividers");
+    paintedRows(tree, ".tree-cell", 4);
+    graphRows(fixture);
     HBox metrics = (HBox) field(fixture.app, "metrics");
     check(metrics.getChildren().size() == 4 && metrics.isVisible(), "An open note must expose all four live statistics");
     check(((javafx.scene.control.Label) field(fixture.app, "characters")).getText().endsWith(" chars")
@@ -127,8 +132,12 @@ public final class FxWorkspaceLayoutTests {
         "The selected document filename must remain visible after the tab's reveal animation");
     Region tab = (Region) tabs.lookup(".tab:selected");
     var tabOrigin = tab.localToScene(0, 0).subtract(tabs.localToScene(0, 0));
-    check(Math.abs(tabOrigin.getX() - 8) <= 1 && Math.abs(tabOrigin.getY() - 8) <= 1 && tab.getHeight() == 36,
-        "The first document tab uses the same 36 px height and 8 px inset: " + tabOrigin);
+    check(Math.abs(tabOrigin.getX()) <= 1 && Math.abs(tabOrigin.getY()) <= 1 && tab.getHeight() == tabs.getHeight(),
+        "The first document tab must touch the left, top, and bottom of the 52 px strip: " + tabOrigin);
+    Region tabClose = (Region) tab.lookup(".close-button");
+    double tabCenter = tab.localToScene(0, tab.getHeight() / 2).getY();
+    check(tabClose.getHeight() == 28 && Math.abs(tabClose.localToScene(0, 14).getY() - tabCenter) <= 1,
+        "The close target must retain its height and stay centered in the taller tab");
     Region explorer = (Region) field(fixture.app, "explorerClip");
     Region pane = (Region) field(primary, "container");
     check(explorer.localToScene(0, 0).getX() == 0 && Math.abs(pane.localToScene(0, 0).getX() - explorer.getWidth()) <= 7,
@@ -173,7 +182,25 @@ public final class FxWorkspaceLayoutTests {
     check(tree.isVisible() && tree.getExpandedItemCount() == 2, "Clearing search restores the note tree");
     tree.getSelectionModel().select(0);
     fixture.layout();
+    Region selectedRow = (Region) tree.lookup(".tree-cell:filled:selected");
+    check(selectedRow.getBackground().getFills().getLast().getFill().equals(FxTheme.EDITOR_BACKGROUND),
+        "Selected file outlines must preserve the Normal surface inside the row");
+    FxTheme.focusSurface(fixture.stage.getScene().getRoot(), 1);
+    fixture.layout();
+    check(selectedRow.getBackground().getFills().getLast().getFill().equals(Color.BLACK),
+        "Selected file outlines must preserve the Focus surface inside the row");
+    FxTheme.focusSurface(fixture.stage.getScene().getRoot(), 0);
+    fixture.layout();
     var rowActions = tree.lookupAll(".file-row-action");
+    var headerActions = filesHeader.lookupAll(".file-row-action");
+    var headerCenters = headerActions.stream().map(node -> node.localToScene(node.getLayoutBounds()).getCenterX())
+        .sorted().toList();
+    var rowCenters = rowActions.stream().filter(node -> node.getAccessibleText().contains("Draft.md"))
+        .map(node -> node.localToScene(node.getLayoutBounds()).getCenterX()).sorted().toList();
+    check(headerActions.size() == 3 && headerActions.stream().allMatch(node ->
+            node.getLayoutBounds().getWidth() == 28 && node.getLayoutBounds().getHeight() == 28)
+            && headerCenters.equals(rowCenters),
+        "Search options and creation actions must share file-row dimensions and alignment: " + headerCenters + " / " + rowCenters);
     check(rowActions.stream().filter(Node::isVisible).count() == 6,
         "Both notes expose split, rename and delete without hovering");
     Button split = action(tree, "Open Draft.md side by side");
@@ -224,6 +251,10 @@ public final class FxWorkspaceLayoutTests {
     folder.setText(longPath);
     FxPomodoro pomodoro = (FxPomodoro) field(fixture.app, "pomodoro");
     fixture.stage.setWidth(820); fixture.layout();
+    Region sidebar = (Region) field(fixture.app, "explorer");
+    Region queryField = (Region) sidebar.lookup(".sidebar-search-query-field");
+    check(queryField.getWidth() >= 152 && sidebar.lookupAll(".files-heading-row .file-row-action").size() == 3,
+        "At minimum window width the compact controls must leave room to type in the search field");
     Node toggle = (Node) field(fixture.app, "connectionsControl");
     var readyBounds = toggle.localToScene(toggle.getBoundsInLocal());
     check(pomodoro.button().getWidth() == 160 && toggle.isVisible()
@@ -261,6 +292,39 @@ public final class FxWorkspaceLayoutTests {
         .filter(node -> name.equals(node.getAccessibleText())).findFirst().orElseThrow();
   }
 
+  @SuppressWarnings("unchecked")
+  private static void graphRows(Fixture fixture) throws Exception {
+    FxNoteGraph graph = (FxNoteGraph) field(fixture.app, "noteGraph");
+    var list = (ListView<Path>) field(graph, "incoming");
+    var original = java.util.List.copyOf(list.getItems());
+    try {
+      list.getItems().setAll(fixture.directory.resolve("Draft.md"), fixture.directory.resolve("Reference.md"));
+      fixture.layout();
+      paintedRows(list, ".list-cell", 0);
+      check(((Region) list.getParent()).getPadding().equals(new Insets(8)),
+          "Connection lists retain their section's existing 8 px inset");
+    } finally { list.getItems().setAll(original); }
+  }
+
+  private static void paintedRows(Region list, String selector, double outerPadding) {
+    var rows = list.lookupAll(selector).stream()
+        .filter(node -> node instanceof IndexedCell<?> cell && !cell.isEmpty())
+        .map(node -> (IndexedCell<?>) node).sorted(java.util.Comparator.comparingInt(IndexedCell::getIndex))
+        .limit(2).toList();
+    check(rows.size() == 2 && list.getPadding().getTop() == outerPadding && list.getPadding().getBottom() == outerPadding,
+        "The list must expose two painted rows and the expected wrapper spacing: " + list.getStyleClass());
+    var first = rows.getFirst(); var second = rows.getLast();
+    Insets firstPaint = first.getBackground().getFills().getFirst().getInsets();
+    Insets secondPaint = second.getBackground().getFills().getFirst().getInsets();
+    double listTop = list.localToScene(0, 0).getY();
+    double firstTop = first.localToScene(0, firstPaint.getTop()).getY();
+    double firstBottom = first.localToScene(0, first.getHeight() - firstPaint.getBottom()).getY();
+    double secondTop = second.localToScene(0, secondPaint.getTop()).getY();
+    check(firstPaint.equals(new Insets(4, 0, 4, 0)) && secondPaint.equals(firstPaint)
+        && Math.abs(firstTop - listTop - (outerPadding + 4)) < .01 && Math.abs(secondTop - firstBottom - 8) < .01,
+        "Rows share the same paint insets and 8 px gap: " + list.getStyleClass());
+  }
+
   private static void searchInWorkspace(Fixture fixture, AtomicReference<Throwable> failure, Runnable close) throws Exception {
     FxSidebarSearch sidebar = (FxSidebarSearch) field(fixture.app, "sidebarSearch");
     sidebar.focusQuery(FxWorkspaceSearch.Scope.CONTENTS);
@@ -277,6 +341,7 @@ public final class FxWorkspaceLayoutTests {
       try {
         check(results.getRoot() != null && results.getRoot().getChildren().size() == 1,
             "Typing in the sidebar reaches the background search worker and returns one grouped note");
+        fixture.layout(); paintedRows(results, ".tree-cell", 4);
         query.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ENTER, false, false, false, false));
         Object active = field(fixture.app, "active");
         FxWritingPane editor = (FxWritingPane) field(active, "editor");

@@ -1,12 +1,13 @@
 /* Cupertino Dark controls share an 8/16/24 spacing scale, an 8 px control
-   radius, and quiet borders. Separate chrome and writing surfaces define the layout. */
+   radius, and quiet borders. One surface spans the chrome and editor. */
 .workspace-root {
   -fx-font-family: "Inter";
   -fx-font-size: 16px;
   -fx-font-weight: normal;
   -fx-background-color: -color-bg-default;
-  -color-bg-default: #111213;
-  -color-bg-subtle: #202122;
+  -diyalamp-surface: #111213;
+  -color-bg-default: -diyalamp-surface;
+  -color-bg-subtle: -color-bg-default;
   -color-bg-inset: -color-bg-default;
   -color-bg-overlay: -color-bg-subtle;
   -color-fg-default: #BFBFBF;
@@ -26,7 +27,6 @@
   -diyalamp-accent-subtle: #FF555526;
   -diyalamp-focus: #FF5555B3;
   -diyalamp-selection: #AB2828DD;
-  -diyalamp-drop: #FF55551A;
 }
 .workspace-root .label, .workspace-root .button, .workspace-root .toggle-button, .workspace-root .radio-button,
 .workspace-root .check-box, .workspace-root .text-input, .workspace-root .combo-box-base,
@@ -34,11 +34,14 @@
 .workspace-root .menu-button, .workspace-root .hyperlink { -fx-font-size: 16px; }
 .workspace-root .button, .workspace-root .toggle-button {
   -color-button-bg: -color-bg-subtle;
-  -color-button-bg-hover: #FFFFFF10;
+  -color-button-bg-hover: -color-bg-default;
+  -color-button-bg-focused: -color-bg-default;
+  -color-button-bg-pressed: -color-bg-default;
   -color-button-border: -color-border-default;
+  -color-button-border-hover: -color-fg-muted;
   -color-button-border-focused: -diyalamp-focus;
 }
-.workspace-root .toggle-button:selected { -color-button-bg: -color-border-default; }
+.workspace-root .toggle-button:selected { -color-button-border: -diyalamp-focus; }
 .workspace-root .button:default, .workspace-root .button.accent {
   -color-button-bg: -color-accent-emphasis;
   -color-button-bg-hover: -color-accent-emphasis;
@@ -48,6 +51,7 @@
   -color-button-fg-focused: -diyalamp-accent-contrast;
   -color-button-fg-pressed: -diyalamp-accent-contrast;
   -color-button-bg-focused: -color-accent-emphasis;
+  -color-button-bg-pressed: -color-accent-emphasis;
 }
 .workspace-root .text-input, .workspace-root .combo-box-base {
   -fx-background-color: -color-bg-inset; -fx-text-fill: -color-fg-default;
@@ -59,7 +63,8 @@
 .tooltip, .context-menu, .context-menu .label, .context-menu .menu-item {
   -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal;
 }
-.tooltip, .context-menu { -fx-background-color: #202122; -fx-text-fill: #BFBFBF; -fx-border-color: #333536; }
+.tooltip, .context-menu { -fx-background-color: -color-bg-default; -fx-text-fill: #BFBFBF; -fx-border-color: #333536; }
+.tooltip { -fx-background-insets: 0; -fx-background-radius: 8; -fx-border-radius: 8; -fx-effect: null; }
 .context-menu {
   -fx-background-insets: 0;
   -fx-background-radius: 12;
@@ -68,20 +73,19 @@
 }
 .context-menu .label { -fx-text-fill: #BFBFBF; }
 .context-menu .menu-item { -fx-background-color: transparent; }
-.context-menu .menu-item:focused { -fx-background-color: -diyalamp-accent-subtle; }
+.context-menu .menu-item:focused { -fx-border-color: -color-border-default; -fx-border-radius: 8; }
 .context-menu .menu-item:focused .label { -fx-text-fill: #BFBFBF; }
 .context-menu.slash-menu {
-  -fx-background-color: -color-bg-overlay;
-  -fx-border-color: -color-border-default;
   -fx-padding: 8;
   -fx-min-width: 216;
 }
 .context-menu.slash-menu .menu-item {
   -fx-padding: 0 8;
+  -fx-border-color: transparent; -fx-border-radius: 8;
 }
 .context-menu.slash-menu .menu-item > .graphic-container { -fx-padding: 0 8 0 0; }
 .context-menu.slash-menu .menu-item:focused, .context-menu.slash-menu .menu-item:hover {
-  -fx-background-color: -color-bg-subtle;
+  -fx-border-color: -color-border-default;
 }
 .context-menu.slash-menu .menu-item:focused .label, .context-menu.slash-menu .menu-item:hover .label {
   -fx-text-fill: -color-fg-emphasis;
@@ -113,7 +117,11 @@
 .workspace-brand { -fx-font-family: "Inter SemiBold"; -fx-graphic-text-gap: 8; -fx-text-fill: -color-fg-default; }
 .workspace-root .workspace-folder { -fx-text-fill: -color-fg-muted; -fx-graphic-text-gap: 8; }
 .workspace-root .workspace-folder:hover { -fx-text-fill: -color-fg-default; }
-.workspace-tool:hover, .workspace-brand:hover { -fx-background-color: -color-bg-subtle; }
+.workspace-tool:hover, .workspace-brand:hover {
+  -fx-background-color: -color-border-default, -color-bg-default;
+  -fx-background-insets: 0, 1;
+  -fx-background-radius: 8, 7;
+}
 .workspace-tool, .workspace-brand, .note-metric,
 .diyalamp-dialog .dialog-action, .diyalamp-dialog .text-field, .diyalamp-dialog .combo-box-base,
 .diyalamp-popover .accent-choice, .diyalamp-popover .pomodoro-phase, .diyalamp-popover .popover-action,
@@ -121,6 +129,11 @@
   transition-property: -fx-background-color, -fx-border-color, -fx-text-fill, -fx-opacity;
   transition-duration: 140ms;
   transition-timing-function: ease-out;
+}
+/* Menus and dialogs follow the workspace surface without a second background fade. */
+.diyalamp-dialog .dialog-action, .diyalamp-dialog .text-field, .diyalamp-dialog .combo-box-base,
+.diyalamp-popover .accent-choice, .diyalamp-popover .pomodoro-phase, .diyalamp-popover .popover-action {
+  transition-property: -fx-border-color, -fx-text-fill, -fx-opacity;
 }
 .workspace-tool .icon-stroke {
   transition-property: -fx-stroke;
@@ -138,7 +151,10 @@
 .workspace-root:reduced-motion .sidebar-search-mode, .workspace-root:reduced-motion .sidebar-search-option {
   transition-duration: 0s;
 }
-.workspace-tool:selected { -fx-background-color: -color-bg-subtle; }
+.workspace-tool:selected {
+  -fx-background-color: -diyalamp-focus, -color-bg-default;
+  -fx-background-insets: 0, 1; -fx-background-radius: 8, 7;
+}
 .workspace-tool:selected .icon-stroke { -fx-stroke: -color-accent-fg; }
 .workspace-tool:focus-visible {
   -fx-background-color: -diyalamp-focus, -color-bg-subtle;
@@ -163,19 +179,33 @@
   -fx-prompt-text-fill: -color-fg-muted;
 }
 .workspace-root .note-search-field:focused { -fx-border-color: -diyalamp-focus; }
-.file-tree { -fx-background-color: transparent; -fx-background-insets: 0; -fx-padding: 0 8 8 8; -fx-border-width: 0; }
+.file-tree, .sidebar-search-results { -fx-padding: 4 8; }
+.file-tree .tree-cell, .sidebar-search-results .tree-cell, .graph-note-list .list-cell {
+  -fx-background-radius: 8; -fx-background-insets: 4 0;
+}
+.file-tree { -fx-background-color: transparent; -fx-background-insets: 0; -fx-border-width: 0; }
 .file-tree .virtual-flow { -fx-background-color: transparent; }
 .file-tree .tree-cell {
-  -fx-background-color: transparent; -fx-background-radius: 8; -fx-background-insets: 4 0;
+  -fx-background-color: transparent;
   -fx-padding: 0 4 0 0; -fx-indent: 16;
 }
 .file-tree .tree-cell .label { -fx-text-fill: #BFBFBF; }
-.file-tree .tree-cell:filled:hover { -fx-background-color: #FFFFFF14; }
-.file-tree .tree-cell:filled:selected { -fx-background-color: #FFFFFF22; }
+.file-tree .tree-cell:filled:hover,
+.sidebar-search-results .tree-cell:filled:hover,
+.graph-note-list .list-cell:filled:hover {
+  -fx-background-color: -color-border-default, -color-bg-default;
+  -fx-background-insets: 4 0, 5 1; -fx-background-radius: 8, 7;
+}
+.file-tree .tree-cell:filled:selected,
+.sidebar-search-results .tree-cell:filled:selected,
+.graph-note-list .list-cell:filled:selected {
+  -fx-background-color: -diyalamp-focus, -color-bg-default;
+  -fx-background-insets: 4 0, 5 1; -fx-background-radius: 8, 7;
+}
 .file-tree .tree-cell:filled:selected .label { -fx-text-fill: #EDEDED; }
 .file-tree .tree-cell:filled:selected .file-kind .icon-stroke { -fx-stroke: -diyalamp-accent; }
 .file-tree .tree-cell:drop-target {
-  -fx-background-color: -diyalamp-drop; -fx-border-color: -diyalamp-focus; -fx-border-radius: 8; -fx-border-insets: 4 0;
+  -fx-border-color: -diyalamp-focus; -fx-border-radius: 8; -fx-border-insets: 4 0;
 }
 .workspace-root .file-row-action {
   -fx-min-width: 28; -fx-pref-width: 28; -fx-max-width: 28;
@@ -192,33 +222,32 @@
 .writing-split { -fx-padding: 0; -fx-border-width: 0; -fx-background-color: -color-bg-default; }
 .writing-split > .split-pane-divider { -fx-padding: 0 .5; -fx-background-color: -diyalamp-divider; }
 .document-pane { -fx-background-color: -color-bg-default; -fx-min-width: 200; }
-.document-pane:drop-target { -fx-border-color: -diyalamp-focus; -fx-border-width: 2; -fx-background-color: -diyalamp-drop; }
-.document-tabs.floating.dense > .root-container { -fx-padding: 0; }
+.document-pane:drop-target { -fx-border-color: -diyalamp-focus; -fx-border-width: 2; }
+.document-tabs.workspace-band, .document-tabs.floating.dense > .root-container { -fx-padding: 0; }
 .document-tabs.floating.dense > .root-container > .tabs > .tab {
-  -fx-padding: 2 7 4 7; -fx-pref-height: 36;
+  -fx-padding: 2 7 4 7; -fx-pref-height: 52;
   -fx-background-radius: 0; -fx-background-insets: 0;
   -fx-background-color: -color-bg-inset;
   -fx-border-width: 2 1 0 1;
   -fx-border-color: transparent -color-border-default transparent transparent;
-  transition-property: -fx-background-color;
-  transition-duration: 120ms; transition-timing-function: ease-out;
-}
-.document-tabs.floating.dense > .root-container > .tabs > .tab:hover {
-  -fx-background-color: -color-bg-subtle;
 }
 .document-tabs.floating.dense > .root-container > .tabs > .tab:selected {
-  -fx-background-color: -color-bg-default;
   -fx-border-color: -color-accent-fg -color-border-default transparent transparent;
 }
 .document-tabs .tab-insertion-guide { -fx-background-color: -color-accent-fg; }
 .document-tabs .tab:drag-source { -fx-opacity: .45; }
-.workspace-root:reduced-motion .document-tabs .tab { transition-duration: 0s; }
 .document-tabs .tab { -fx-font-size: 16px; }
 .document-tabs .tab > .tab-box { -fx-spacing: 8; }
-.document-tabs .tab > .tab-box > .label { -fx-text-fill: -color-fg-muted; }
+.document-tabs .tab > .tab-box > .label {
+  -fx-text-fill: -color-fg-muted;
+  transition-property: -fx-text-fill;
+  transition-duration: 120ms; transition-timing-function: ease-out;
+}
+.workspace-root:reduced-motion .document-tabs .tab > .tab-box > .label { transition-duration: 0s; }
+.document-tabs .tab:hover > .tab-box > .label,
 .document-tabs .tab:selected > .tab-box > .label { -fx-text-fill: -color-fg-default; }
 .document-tabs.floating > .root-container > .tabs > .tab > .tab-box > .close-button {
-  -fx-padding: 7; -fx-background-color: transparent;
+  -fx-max-height: 28; -fx-padding: 7; -fx-background-color: transparent;
 }
 .document-tabs .tab > .tab-box > .close-button > .graphic { -fx-background-color: -color-fg-muted; }
 .document-tabs .tab > .tab-box > .close-button:hover > .graphic { -fx-background-color: -color-fg-default; }
@@ -235,8 +264,8 @@
 .workspace-root .writing-area .md-paragraph.md-heading { -fx-padding: 8 0 8 0; }
 .workspace-root .writing-area .md-paragraph.md-quote {
   -fx-background-color: -color-bg-subtle; -fx-background-radius: 8; -fx-background-insets: 0 0 8 0;
-  -fx-border-color: transparent transparent transparent -color-accent-fg;
-  -fx-border-width: 0 0 0 3; -fx-border-radius: 8; -fx-border-insets: 0 0 8 0;
+  -fx-border-color: -color-border-default -color-border-default -color-border-default -color-accent-fg;
+  -fx-border-width: 1 1 1 3; -fx-border-radius: 8; -fx-border-insets: 0 0 8 0;
   -fx-padding: 8 16 16 16;
 }
 .workspace-root .writing-area .md-paragraph.md-code { -fx-line-spacing: 2; -fx-padding: 0 0 2 0; }
@@ -254,7 +283,7 @@
 .writing-area .check-box.md-task > .box {
   -fx-min-width: 16; -fx-pref-width: 16; -fx-max-width: 16;
   -fx-min-height: 16; -fx-pref-height: 16; -fx-max-height: 16;
-  -fx-padding: 0; -fx-background-color: -color-bg-subtle; -fx-background-insets: 0;
+  -fx-padding: 0; -fx-background-color: transparent; -fx-background-insets: 0;
   -fx-background-radius: 4; -fx-border-color: -color-fg-muted; -fx-border-radius: 4; -fx-border-width: 1;
   transition-property: -fx-background-color, -fx-border-color;
   transition-duration: 140ms; transition-timing-function: ease-out;
@@ -275,10 +304,14 @@
 .workspace-empty { -fx-padding: 24; -fx-background-color: -color-bg-default; }
 .workspace-empty-title { -fx-font-family: "Inter SemiBold"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #BFBFBF; }
 .empty-detail { -fx-text-fill: #8C8C8C; }
-.save-warning { -fx-background-color: #352A05; -fx-padding: 8 16; -fx-background-radius: 8; -fx-border-width: 0; }
+.save-warning {
+  -fx-background-color: -color-bg-default; -fx-padding: 8 16;
+  -fx-border-radius: 8; -fx-border-width: 1; -fx-border-color: -color-border-default;
+}
 .save-warning .label { -fx-text-fill: #E5BA7D; }
 .accent-swatch { -fx-min-width: 12; -fx-pref-width: 12; -fx-max-width: 12; -fx-min-height: 12; -fx-pref-height: 12; -fx-max-height: 12; -fx-background-radius: 99; }
 
+.workspace-root .scroll-bar, .workspace-root .scroll-pane > .corner { -fx-background-color: transparent; }
 .workspace-root .scroll-bar .thumb { -fx-background-color: #A8A9AA85; }
 .workspace-root .scroll-bar .thumb:hover { -fx-background-color: #A8A9AA90; }
 .workspace-root .scroll-bar .thumb:pressed { -fx-background-color: #A8A9AA9C; }

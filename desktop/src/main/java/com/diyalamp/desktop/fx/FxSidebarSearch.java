@@ -38,12 +38,10 @@ public final class FxSidebarSearch extends VBox {
   private static final PseudoClass SEARCH_ICON = PseudoClass.getPseudoClass("search-icon");
   private static final PseudoClass CLEAR_BUTTON = PseudoClass.getPseudoClass("clear-button");
   private static final PseudoClass ERROR = PseudoClass.getPseudoClass("error");
-  private static final PseudoClass COMPACT = PseudoClass.getPseudoClass("compact");
   private static final PseudoClass OPTIONS_ACTIVE = PseudoClass.getPseudoClass("options-active");
   private final TextField query = new TextField(), include = new TextField(), exclude = new TextField();
-  private final StackPane queryField = new StackPane(query);
+  private final StackPane queryControl = new StackPane(query);
   private final ToggleButton searchOptions = new ToggleButton(null, FxTheme.icon("settings-2", 16));
-  private final HBox queryControl = new HBox(8, queryField, searchOptions);
   private final RadioButton files = new RadioButton(), contents = new RadioButton();
   private final ToggleGroup mode = new ToggleGroup();
   private final ToggleButton matchCase = new ToggleButton(null, FxTheme.icon("case-sensitive", 16)),
@@ -63,6 +61,7 @@ public final class FxSidebarSearch extends VBox {
     String stylesheet = FxSidebarSearch.class.getResource("/fx-sidebar-search.css").toExternalForm();
     getStylesheets().add(stylesheet);
     queryControl.getStylesheets().add(stylesheet);
+    searchOptions.getStylesheets().add(stylesheet);
     getStyleClass().add("sidebar-search");
     setMinWidth(0);
     setFillWidth(true);
@@ -93,6 +92,7 @@ public final class FxSidebarSearch extends VBox {
     getChildren().addAll(options, status, results);
     addEventFilter(KeyEvent.KEY_PRESSED, this::dismissOnEscape);
     queryControl.addEventFilter(KeyEvent.KEY_PRESSED, this::dismissOnEscape);
+    searchOptions.addEventFilter(KeyEvent.KEY_PRESSED, this::dismissOnEscape);
 
     query.textProperty().addListener(observable -> changed());
     include.textProperty().addListener(observable -> changed());
@@ -105,8 +105,9 @@ public final class FxSidebarSearch extends VBox {
     });
   }
 
-  /** Mount this in the shared 52-pixel sidebar header, before the creation controls. */
+  /** Mount the query and options toggle in the sidebar header. */
   public Region queryControl() { return queryControl; }
+  public ToggleButton optionsButton() { return searchOptions; }
   public BooleanBinding hasQueryProperty() { return hasQuery; }
   public boolean hasQuery() { return hasQuery.get(); }
   public void setOnSearch(Consumer<FxWorkspaceSearch.Query> handler) { onSearch = Objects.requireNonNull(handler); }
@@ -164,14 +165,9 @@ public final class FxSidebarSearch extends VBox {
 
   private void buildQueryControl() {
     queryControl.getStyleClass().add("sidebar-search-query");
-    queryControl.setAlignment(Pos.CENTER_LEFT);
     queryControl.setMinWidth(0);
     queryControl.setMaxWidth(Double.MAX_VALUE);
-    queryControl.widthProperty().addListener((observable, previous, width) ->
-        searchOptions.pseudoClassStateChanged(COMPACT, width.doubleValue() < 132));
-    queryField.setMinWidth(0);
-    HBox.setHgrow(queryField, Priority.ALWAYS);
-    searchOptions.getStyleClass().addAll("flat", "workspace-tool", "sidebar-search-toggle");
+    searchOptions.getStyleClass().addAll("flat", "workspace-tool", "file-row-action", "sidebar-search-toggle");
     searchOptions.setAccessibleText("Search options");
     searchOptions.setAccessibleHelp("Show or hide search scope and filters.");
     Tooltip optionsTooltip = new Tooltip();
@@ -197,8 +193,8 @@ public final class FxSidebarSearch extends VBox {
 
     Node searchIcon = FxTheme.icon("search", 16);
     searchIcon.setMouseTransparent(true);
-    searchIcon.visibleProperty().bind(queryField.widthProperty().greaterThanOrEqualTo(96)
-        .and(hasQuery.not().or(queryField.widthProperty().greaterThanOrEqualTo(152))));
+    searchIcon.visibleProperty().bind(queryControl.widthProperty().greaterThanOrEqualTo(96)
+        .and(hasQuery.not().or(queryControl.widthProperty().greaterThanOrEqualTo(152))));
     searchIcon.managedProperty().bind(searchIcon.visibleProperty());
     searchIcon.visibleProperty().addListener((observable, previous, visible) -> query.pseudoClassStateChanged(SEARCH_ICON, visible));
     StackPane.setAlignment(searchIcon, Pos.CENTER_LEFT);
@@ -206,12 +202,12 @@ public final class FxSidebarSearch extends VBox {
 
     Button clear = FxTheme.iconButton("x", "Clear search", this::dismiss);
     clear.getStyleClass().add("sidebar-search-clear");
-    clear.visibleProperty().bind(hasQuery.and(queryField.widthProperty().greaterThanOrEqualTo(92)));
+    clear.visibleProperty().bind(hasQuery.and(queryControl.widthProperty().greaterThanOrEqualTo(92)));
     clear.managedProperty().bind(clear.visibleProperty());
     clear.visibleProperty().addListener((observable, previous, visible) -> query.pseudoClassStateChanged(CLEAR_BUTTON, visible));
     StackPane.setAlignment(clear, Pos.CENTER_RIGHT);
     StackPane.setMargin(clear, new Insets(0, 4, 0, 0));
-    queryField.getChildren().addAll(searchIcon, clear);
+    queryControl.getChildren().addAll(searchIcon, clear);
   }
 
   private VBox buildOptions() {

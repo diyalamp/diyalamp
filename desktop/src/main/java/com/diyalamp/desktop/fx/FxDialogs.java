@@ -37,24 +37,23 @@ public final class FxDialogs {
     pane.setGraphic(null);
     configureSurface(dialog, pane);
     if (dialog instanceof TextInputDialog input) arrangeInput(input);
-    FxTheme.accent(pane, owner == null || owner.getScene() == null
-        ? FxTheme.DEFAULT_ACCENT : FxTheme.accentOf(owner.getScene().getRoot()));
+    applyOwnerTheme(pane, owner == null || owner.getScene() == null ? null : owner.getScene().getRoot());
     if (owner != null) {
-      class OwnerAccent {
+      class OwnerTheme {
         Parent source;
         final MapChangeListener<Object, Object> listener = change -> {
-          if (FxTheme.DISPLAYED_ACCENT.equals(change.getKey())) FxTheme.accent(pane, FxTheme.accentOf(source));
+          if (FxTheme.themeChanged(change.getKey())) applyOwnerTheme(pane, source);
         };
         void unbind() { if (source != null) source.getProperties().removeListener(listener); source = null; }
         void bind() {
           unbind();
           if (owner.getScene() == null) return;
           source = owner.getScene().getRoot();
-          FxTheme.accent(pane, FxTheme.accentOf(source));
+          applyOwnerTheme(pane, source);
           source.getProperties().addListener(listener);
         }
       }
-      OwnerAccent link = new OwnerAccent();
+      OwnerTheme link = new OwnerTheme();
       dialog.showingProperty().addListener((observable, previous, showing) -> { if (showing) link.bind(); else link.unbind(); });
       if (dialog.isShowing()) link.bind();
     }
@@ -62,10 +61,15 @@ public final class FxDialogs {
     pane.getButtonTypes().addListener((ListChangeListener<ButtonType>) change -> decorateButtons(pane));
   }
 
+  private static void applyOwnerTheme(DialogPane pane, Parent source) {
+    FxTheme.inherit(pane, source);
+    if (!Platform.isSupported(ConditionalFeature.TRANSPARENT_WINDOW)) pane.getScene().setFill(FxTheme.surfaceOf(source));
+  }
+
   private static void configureSurface(Dialog<?> dialog, DialogPane pane) {
     boolean transparent = Platform.isSupported(ConditionalFeature.TRANSPARENT_WINDOW);
     dialog.initStyle(transparent ? StageStyle.TRANSPARENT : StageStyle.UNDECORATED);
-    pane.getScene().setFill(transparent ? Color.TRANSPARENT : Color.web("#202122"));
+    if (transparent) pane.getScene().setFill(Color.TRANSPARENT);
     if (pane.getHeader() == null && (dialog.getHeaderText() == null || dialog.getHeaderText().isBlank()))
       dialog.setHeaderText(dialog.getTitle());
 

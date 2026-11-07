@@ -62,7 +62,7 @@ public final class FxDarkThemeTests {
       color(background(root), "#111213", "Workspace");
       color(background(toolbar), "#111213", "Toolbar"); color(background(sidebar), "#111213", "Sidebar");
       color(background(writing), "#111213", "Editor"); color(background(footer), "#111213", "Status bar");
-      color(background(input), "#202122", "Search field"); color((Color) css(input, "-fx-text-fill"), "#BFBFBF", "Input text");
+      color(background(input), "#111213", "Search field"); color((Color) css(input, "-fx-text-fill"), "#BFBFBF", "Input text");
       color((Color) css(input, "-fx-prompt-text-fill"), "#8C8C8C", "Placeholder");
       color((Color) paragraph.getTextFill(), "#BFBFBF", "UI text");
       color((Color) input.getBorder().getStrokes().getFirst().getTopStroke(), "#333536", "Input border");
@@ -89,10 +89,14 @@ public final class FxDarkThemeTests {
       FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
       TextInputDialog dialog = new TextInputDialog("Fictional note"); dialog.setHeaderText("Rename note");
       FxDialogs.style(dialog, stage); dialog.show(); layout(dialog.getDialogPane());
-      color(background(dialog.getDialogPane()), "#202122", "Dialog");
+      color(background(dialog.getDialogPane()), "#111213", "Dialog");
       color(background(dialog.getEditor()), "#111213", "Dialog input");
       for (Node node : dialog.getDialogPane().lookupAll(".label")) font(((Label) node).getFont().getSize(), "Dialog label/header");
       for (ButtonType type : dialog.getDialogPane().getButtonTypes()) font(((Button) dialog.getDialogPane().lookupButton(type)).getFont().getSize(), "Dialog action");
+      FxTheme.focusSurface(root, 1); layout(dialog.getDialogPane());
+      color(background(dialog.getDialogPane()), "#000000", "Focus dialog");
+      color(background(dialog.getEditor()), "#000000", "Focus dialog input");
+      FxTheme.focusSurface(root, 0);
       dialog.close();
       toolbar.getChildren().add(timer.button()); layout(root); timer.popover().setAnimated(false); timer.show();
       layout(timer.popover().getRoot());
@@ -105,13 +109,19 @@ public final class FxDarkThemeTests {
       for (Node node : timer.popover().getRoot().lookupAll(".button")) font(((Button) node).getFont().getSize(), "Timer action");
       for (Node node : timer.popover().getRoot().lookupAll(".toggle-button")) font(((ToggleButton) node).getFont().getSize(), "Timer phase");
       var border = (javafx.scene.shape.Shape) timer.popover().getRoot().lookup(".border");
-      color((Color) border.getFill(), "#202122", "Popover"); timer.popover().hide(Duration.ZERO);
+      color((Color) border.getFill(), "#111213", "Popover"); timer.popover().hide(Duration.ZERO);
       Tooltip tip = tools.getTooltip(); tip.show(stage, 100, 100); tip.getScene().getRoot().applyCss();
       font(tip.getFont().getSize(), "Tooltip"); color((Color) ((Label) tip.getSkin().getNode()).getTextFill(), "#BFBFBF", "Tooltip ink"); tip.hide();
-      ContextMenu menu = new ContextMenu(new MenuItem("Copy")); menu.show(tools, Side.BOTTOM, 0, 0);
+      ContextMenu menu = FxTheme.contextMenu();
+      menu.getItems().add(new MenuItem("Copy"));
+      menu.show(tools, Side.BOTTOM, 0, 0);
       layout(menu.getScene().getRoot());
       for (Node node : menu.getScene().getRoot().lookupAll(".menu-item .label")) font(((Label) node).getFont().getSize(), "Context menu");
-      color(background((Region) menu.getSkin().getNode()), "#202122", "Context menu"); menu.hide();
+      Region menuSurface = (Region) menu.getSkin().getNode();
+      color(background(menuSurface), "#111213", "Context menu");
+      FxTheme.focusSurface(root, 1); layout(menu.getScene().getRoot());
+      color(background(menuSurface), "#000000", "Focus context menu");
+      FxTheme.focusSurface(root, 0); menu.hide();
     } finally { stage.close(); }
   }
   private static void font(double size, String label) { check(size == FxTheme.TEXT_SIZE, label + " must use one 16px size, got " + size); }

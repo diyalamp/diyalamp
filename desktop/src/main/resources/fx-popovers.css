@@ -43,13 +43,12 @@
 }
 .diyalamp-popover .accent-choice:hover,
 .diyalamp-popover .pomodoro-phase:hover,
-.diyalamp-popover .popover-action:hover { -fx-background-color: -color-border-default; }
+.diyalamp-popover .popover-action:hover,
 .diyalamp-popover .accent-choice:pressed,
 .diyalamp-popover .pomodoro-phase:pressed,
-.diyalamp-popover .popover-action:pressed { -fx-background-color: -color-border-default; }
+.diyalamp-popover .popover-action:pressed,
 .diyalamp-popover .accent-choice:selected,
-.diyalamp-popover .pomodoro-phase:selected { -fx-background-color: -diyalamp-accent-subtle; }
-.diyalamp-popover .accent-choice:selected { -fx-border-color: -diyalamp-focus; }
+.diyalamp-popover .pomodoro-phase:selected { -fx-border-color: -diyalamp-focus; }
 .diyalamp-popover .accent-hex {
   -fx-padding: 0 8;
   -fx-border-width: 1;

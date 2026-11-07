@@ -142,6 +142,7 @@ public final class FxDiyalamp extends Application {
   FxDiyalamp(Preferences preferences) {
     this.preferences = preferences;
     zenMode.addListener((observable, previous, enabled) -> animateZen(enabled));
+    zenProgress.addListener((observable, previous, progress) -> FxTheme.focusSurface(root, progress.doubleValue()));
   }
 
   ReadOnlyDoubleProperty zenProgressProperty() { return zenProgress; }
@@ -410,13 +411,18 @@ public final class FxDiyalamp extends Application {
       if (!refreshing && selected != null && selected.getValue() != null && store != null
           && !store.isDirectory(selected.getValue())) open(selected.getValue(), false);
     });
-    Button createFolder = FxTheme.iconButton("folder-plus", "New folder", () -> newFolder(null));
-    createFolder.disableProperty().bind(tree.rootProperty().isNull());
-    Button create = FxTheme.iconButton("plus", "New note", () -> newNote(null));
+    Button createFolder = fileAction("folder-plus", "New folder", () -> newFolder(null));
+    Button create = fileAction("plus", "New note", () -> newNote(null));
     Region query = sidebarSearch.queryControl();
-    query.disableProperty().bind(tree.rootProperty().isNull());
+    ToggleButton options = sidebarSearch.optionsButton();
+    var noFolder = tree.rootProperty().isNull();
+    createFolder.disableProperty().bind(noFolder);
+    query.disableProperty().bind(noFolder);
+    options.disableProperty().bind(noFolder);
     HBox.setHgrow(query, Priority.ALWAYS);
-    HBox actions = new HBox(8, query, createFolder, create);
+    HBox actionStrip = new HBox(options, createFolder, create);
+    HBox.setMargin(actionStrip, new Insets(0, 4, 0, 0)); // Match the file cell's inner right inset.
+    HBox actions = new HBox(8, query, actionStrip);
     actions.setAlignment(Pos.CENTER_LEFT);
     actions.getStyleClass().addAll("workspace-band", "files-heading-row");
     sidebarSearch.setWorkspaceRoot(null);
@@ -486,7 +492,7 @@ public final class FxDiyalamp extends Application {
       if (!directory) row.getChildren().add(fileActions(path));
       setTooltip(new Tooltip(path.getFileName().toString()));
       setGraphic(row); setAccessibleText(path.getFileName() + (directory ? ", folder" : ", Markdown note"));
-      ContextMenu menu = new ContextMenu();
+      ContextMenu menu = FxTheme.contextMenu();
       if (directory) menu.getItems().addAll(item("New note", () -> newNote(path)), item("New folder…", () -> newFolder(path)));
       else menu.getItems().addAll(item("Open", () -> open(path, false)),
           item("Open side by side", () -> open(path, true)), item("Rename…", () -> Platform.runLater(() -> beginRename(path))),

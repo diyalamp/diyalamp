@@ -8,6 +8,7 @@ import java.util.function.BooleanSupplier;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.control.Button;
@@ -63,6 +64,8 @@ public final class FxPopoverLifecycleTests {
     Button anchor = new Button("Fictional preview");
     BorderPane root = new BorderPane(); root.setTop(anchor);
     root.getStyleClass().add("workspace-root");
+    Color chosenAccent = Color.web("#489CFF");
+    FxTheme.accent(root, chosenAccent);
     Scene scene = new Scene(root, 500, 500);
     scene.getStylesheets().add(FxTheme.class.getResource("/fx-workspace.css").toExternalForm());
     Stage owner = new Stage(); owner.setScene(scene); owner.show(); root.applyCss(); root.layout();
@@ -90,12 +93,11 @@ public final class FxPopoverLifecycleTests {
         Path border = (Path) surface.lookup(".border");
         check(border.getStrokeWidth() == 1 && border.getStroke().equals(Color.web("#333536")),
             "The rounded popup must use the shared one-pixel dialog border");
-        SnapshotParameters parameters = new SnapshotParameters(); parameters.setFill(Color.TRANSPARENT);
-        var image = surface.snapshot(parameters, null);
-        var pixels = image.getPixelReader();
-        check(pixels.getColor(0, 0).getOpacity() < .05
-            && pixels.getColor((int) image.getWidth() / 2, 6).equals(Color.web("#202122")),
-            "Rendered popup pixels must have a transparent corner and the dark dialog surface");
+        checkPopupSurface(popup, Color.web("#111213"), chosenAccent);
+        FxTheme.focusSurface(root, 1);
+        checkPopupSurface(popup, Color.BLACK, chosenAccent);
+        FxTheme.focusSurface(root, 0);
+        checkPopupSurface(popup, Color.web("#111213"), chosenAccent);
         for (var node = surface.getParent(); node != null; node = node.getParent())
           if (node instanceof javafx.scene.layout.Region region && region.getBackground() != null)
             check(region.getBackground().getFills().stream()
@@ -121,6 +123,21 @@ public final class FxPopoverLifecycleTests {
         }, close, failure);
       }, close, failure);
     } catch (Throwable error) { failure.set(error); close.run(); }
+  }
+
+  private static void checkPopupSurface(Popover popup, Color expected, Color chosenAccent) {
+    Parent surface = popup.getRoot();
+    surface.applyCss(); surface.layout();
+    SnapshotParameters parameters = new SnapshotParameters(); parameters.setFill(Color.TRANSPARENT);
+    var image = surface.snapshot(parameters, null);
+    var pixels = image.getPixelReader();
+    check(popup.isShowing() && pixels.getColor(0, 0).getOpacity() < .05
+            && pixels.getColor((int) image.getWidth() / 2, 6).equals(expected),
+        "The open popover must track the workspace surface and keep transparent corners: " + expected);
+    Button start = (Button) popup.getContentNode().lookup("#pomodoro-start");
+    check(FxTheme.accentOf(surface).equals(chosenAccent) && start.getBackground().getFills().stream()
+            .anyMatch(fill -> chosenAccent.equals(fill.getFill())),
+        "A live Focus surface change must preserve the chosen action accent");
   }
 
   private static Timeline timeline(Popover popup) throws ReflectiveOperationException {
