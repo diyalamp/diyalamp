@@ -4,9 +4,8 @@
   -fx-background-color: #191A1B;
   -fx-border-color: transparent transparent transparent #2A2B2C; -fx-border-width: 0 0 0 1;
 }
-.graph-heading-row { -fx-padding: 8 16; }
 .graph-heading { -fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #BFBFBF; }
-.graph-summary { -fx-padding: 0 16 8 16; }
+.graph-summary { -fx-padding: 8 16; }
 .graph-current-note { -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #8C8C8C; }
 .graph-detail { -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #8C8C8C; }
 .tooltip { -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; }
@@ -16,11 +15,11 @@
 .note-graph-zoom, .note-graph-zoom > .viewport {
   -fx-background-color: #121314; -fx-background-insets: 0; -fx-padding: 0; -fx-border-width: 0;
 }
-.graph-link-section { -fx-padding: 16 8 8 8; }
+.graph-link-section { -fx-padding: 8; }
 .graph-list-heading { -fx-padding: 0 8; -fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #8C8C8C; }
 .graph-note-list, .graph-note-list .virtual-flow { -fx-background-color: transparent; -fx-border-width: 0; -fx-padding: 0; }
 .graph-note-list .list-cell {
-  -fx-background-color: transparent; -fx-background-radius: 8; -fx-padding: 8;
+  -fx-background-color: transparent; -fx-background-radius: 8; -fx-background-insets: 4 0; -fx-padding: 8;
   -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #BFBFBF; -fx-graphic-text-gap: 8;
 }
 .graph-note-list .list-cell:filled:hover { -fx-background-color: #FFFFFF14; }

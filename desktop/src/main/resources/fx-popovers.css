@@ -1,14 +1,82 @@
-/* AtlantaFX Popover supplies geometry, positioning, shadow and the fade transition. */
-.diyalamp-popover { -fx-background-color: transparent; -color-bg-default: #202122; -color-bg-overlay: #202122; }
-.accent-bubble { -fx-padding: 16; -fx-spacing: 16; }
-.accent-bubble .accent-choice { -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-alignment: center-left; -fx-min-height: 40; -fx-padding: 8 16; -fx-graphic-text-gap: 8; -fx-border-width: 0; -fx-background-radius: 8; -fx-background-color: #191A1B; -fx-text-fill: #BFBFBF; }
-.accent-bubble .accent-choice:hover { -fx-background-color: #242526; }
-.accent-bubble .accent-choice:selected { -fx-background-color: -diyalamp-accent-subtle; }
-.accent-bubble .accent-swatch { -fx-min-width: 16; -fx-pref-width: 16; -fx-max-width: 16; -fx-min-height: 16; -fx-pref-height: 16; -fx-max-height: 16; -fx-background-radius: 99; }
-.pomodoro-bubble { -fx-padding: 16; -fx-spacing: 16; }
-.pomodoro-bubble .toggle-button { -fx-font-size: 16px; -fx-padding: 8; }
-.pomodoro-bubble .pomodoro-time { -fx-font-family: "Inter SemiBold"; -fx-font-size: 16px; -fx-font-weight: normal; }
-.pomodoro-bubble .pomodoro-detail { -fx-font-size: 16px; -fx-text-fill: -color-fg-muted; }
-.pomodoro-bubble .button { -fx-min-height: 36; -fx-padding: 8 16; }
-.popover-title { -fx-font-family: "Inter SemiBold"; -fx-font-size: 16px; -fx-font-weight: normal; }
-.diyalamp-popover > .content > .title > .text { -fx-font-size: 16px; }
+/* Use the AtlantaFX shape as the sole painted surface, including its rounded corners. */
+.diyalamp-popover {
+  -fx-background-color: transparent;
+  -fx-effect: null;
+}
+.diyalamp-popover > .border {
+  -fx-fill: -color-bg-overlay;
+  -fx-stroke: -color-border-default;
+  -fx-stroke-width: 1;
+}
+.diyalamp-popover > .content { -fx-padding: 0; }
+.accent-bubble, .pomodoro-bubble { -fx-padding: 16; -fx-spacing: 8; }
+.diyalamp-popover .label {
+  -fx-font-family: "Inter";
+  -fx-font-size: 16px;
+  -fx-text-fill: -color-fg-default;
+}
+.diyalamp-popover .popover-title, .diyalamp-popover .pomodoro-time {
+  -fx-font-family: "Inter SemiBold";
+  -fx-font-weight: normal;
+  -fx-text-fill: -color-fg-emphasis;
+}
+.diyalamp-popover .pomodoro-detail { -fx-text-fill: -color-fg-muted; }
+
+.diyalamp-popover .accent-choice,
+.diyalamp-popover .pomodoro-phase,
+.diyalamp-popover .popover-action {
+  -fx-font-family: "Inter";
+  -fx-font-size: 16px;
+  -fx-font-weight: normal;
+  -fx-min-height: 36;
+  -fx-padding: 8 12;
+  -fx-graphic-text-gap: 8;
+  -fx-background-insets: 0;
+  -fx-background-radius: 8;
+  -fx-background-color: -color-bg-subtle;
+  -fx-border-insets: 0;
+  -fx-border-radius: 8;
+  -fx-border-width: 1;
+  -fx-border-color: -color-border-default;
+  -fx-text-fill: -color-fg-default;
+  -fx-effect: null;
+  transition-property: -fx-background-color, -fx-border-color;
+  transition-duration: 160ms;
+  transition-timing-function: ease-out;
+}
+.diyalamp-popover .accent-choice {
+  -fx-alignment: center-left;
+  -fx-background-color: transparent;
+  -fx-border-color: transparent;
+}
+.diyalamp-popover .accent-choice:hover,
+.diyalamp-popover .pomodoro-phase:hover,
+.diyalamp-popover .popover-action:hover { -fx-background-color: #313233; }
+.diyalamp-popover .accent-choice:pressed,
+.diyalamp-popover .pomodoro-phase:pressed,
+.diyalamp-popover .popover-action:pressed { -fx-background-color: #373839; }
+.diyalamp-popover .accent-choice:selected,
+.diyalamp-popover .pomodoro-phase:selected { -fx-background-color: -diyalamp-accent-subtle; }
+.diyalamp-popover .popover-action.accent {
+  -fx-background-color: -diyalamp-accent;
+  -fx-border-color: transparent;
+  -fx-text-fill: -diyalamp-accent-contrast;
+}
+.diyalamp-popover .accent-choice:focused,
+.diyalamp-popover .pomodoro-phase:focused,
+.diyalamp-popover .popover-action:focused,
+.diyalamp-popover .popover-action.accent:hover,
+.diyalamp-popover .popover-action.accent:pressed { -fx-border-color: -diyalamp-focus; }
+.diyalamp-popover:reduced-motion .accent-choice,
+.diyalamp-popover:reduced-motion .pomodoro-phase,
+.diyalamp-popover:reduced-motion .popover-action { transition-duration: 0s; }
+
+.accent-bubble .accent-swatch {
+  -fx-min-width: 16;
+  -fx-pref-width: 16;
+  -fx-max-width: 16;
+  -fx-min-height: 16;
+  -fx-pref-height: 16;
+  -fx-max-height: 16;
+  -fx-background-radius: 99;
+}

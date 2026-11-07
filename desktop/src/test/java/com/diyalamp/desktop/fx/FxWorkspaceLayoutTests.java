@@ -14,16 +14,18 @@ import java.util.prefs.Preferences;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.animation.PauseTransition;
-import javafx.animation.Timeline;
 import javafx.event.ActionEvent;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToolBar;
 import javafx.scene.control.TreeView;
 import javafx.scene.image.WritableImage;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
@@ -46,13 +48,18 @@ public final class FxWorkspaceLayoutTests {
       Fixture fixture = null;
       try {
         fixture = new Fixture(); Fixture current = fixture;
+        Runnable close = () -> {
+          try { current.close(); } catch (Throwable error) { failure.compareAndSet(null, error); }
+          finished.countDown();
+        };
         PauseTransition settle = new PauseTransition(Duration.millis(300));
         settle.setOnFinished(event -> {
-          try { current.layout(); composition(current); compactWidth(current); }
-          catch (Throwable error) { failure.compareAndSet(null, error); }
-          finally {
-            try { current.close(); } catch (Throwable error) { failure.compareAndSet(null, error); }
-            finished.countDown();
+          try {
+            current.layout(); composition(current); compactWidth(current);
+            searchInWorkspace(current, failure, close);
+          } catch (Throwable error) {
+            failure.compareAndSet(null, error);
+            close.run();
           }
         });
         settle.play();
@@ -73,7 +80,7 @@ public final class FxWorkspaceLayoutTests {
         "The workspace must use the maintained Cupertino Dark control theme");
     ToolBar toolbar = (ToolBar) field(fixture.app, "toolbar");
     check(toolbar.getHeight() >= 52 && toolbar.getHeight() <= 64, "The shared toolbar must have a single comfortable control row");
-    for (String name : new String[] {"Workspace accent color", "Pomodoro focus timer", "Zen mode", "Toggle right sidebar", "New note", "New folder", "Open note side by side", "Search notes"}) {
+    for (String name : new String[] {"Workspace accent color", "Pomodoro focus timer", "Zen mode", "Toggle right sidebar", "Open note side by side", "Open folder"}) {
       check(toolbar.getItems().stream().filter(node -> name.equals(node.getAccessibleText())).count() == 1,
           "The shared toolbar must expose one accessible " + name + " control");
     }
@@ -85,9 +92,19 @@ public final class FxWorkspaceLayoutTests {
     check(tabs.getRightNode() == null, "Note panes must not duplicate the workspace New/Split controls");
     VBox explorerList = (VBox) field(fixture.app, "explorer");
     TreeView<?> tree = (TreeView<?>) field(fixture.app, "tree");
-    check(explorerList.getChildren().size() == 1 && explorerList.getChildren().getFirst() == tree
-        && explorerList.lookupAll(".button").stream().allMatch(node -> node.getStyleClass().contains("file-row-action")),
-        "The files sidebar contains the note tree and its per-note actions");
+    Region filesHeader = (Region) explorerList.getChildren().getFirst();
+    FxSidebarSearch sidebarSearch = (FxSidebarSearch) field(fixture.app, "sidebarSearch");
+    check(explorerList.getChildren().containsAll(java.util.List.of(sidebarSearch, tree))
+        && filesHeader.lookupAll(".button").stream().anyMatch(node -> "New folder".equals(node.getAccessibleText()))
+        && filesHeader.lookupAll(".button").stream().anyMatch(node -> "New note".equals(node.getAccessibleText())),
+        "Search and both creation actions live in the files sidebar");
+    check(toolbar.getItems().stream().noneMatch(node -> java.util.List.of("New folder", "New note", "Search notes")
+        .contains(String.valueOf(node.getAccessibleText()))), "Sidebar controls are not repeated on the top bar");
+    Region graphHeader = (Region) ((FxNoteGraph) field(fixture.app, "noteGraph")).node().lookup(".graph-heading-row");
+    check(filesHeader.getHeight() == 52 && tabs.getHeight() == 52 && graphHeader.getHeight() == 52
+        && filesHeader.localToScene(0, 0).getY() == tabs.localToScene(0, 0).getY()
+        && filesHeader.localToScene(0, 0).getY() == graphHeader.localToScene(0, 0).getY(),
+        "Files, tabs and Connections start on one 52 px band");
     HBox metrics = (HBox) field(fixture.app, "metrics");
     check(metrics.getChildren().size() == 4 && metrics.isVisible(), "An open note must expose all four live statistics");
     check(((javafx.scene.control.Label) field(fixture.app, "characters")).getText().endsWith(" chars")
@@ -119,42 +136,60 @@ public final class FxWorkspaceLayoutTests {
         "The approved lamp and diyalamp name must share one horizontal brand row");
     check(toolbar.getItems().getFirst() == brand && "Toggle files sidebar".equals(toolbar.getItems().get(1).getAccessibleText()),
         "The sidebar toggle follows the lamp and diyalamp name");
-    Label path = (Label) field(fixture.app, "folderLabel");
+    Button path = (Button) field(fixture.app, "folderControl");
     check(path.isVisible() && path.getText().equals(fixture.directory.toString())
-        && path.getTooltip().getText().equals(path.getText()), "The toolbar exposes the full workspace path");
+        && path.getTooltip().getText().equals(path.getText()) && path.getGraphic() != null
+        && path.getWidth() > 100 && path.getOnAction() != null,
+        "One toolbar button exposes the full workspace path and opens the folder picker");
     String imagePath = System.getProperty("diyalamp.workspace.snapshot");
     if (imagePath != null && !imagePath.isBlank()) snapshot(fixture.stage, Path.of(imagePath));
-    ToggleButton find = (ToggleButton) toolbar.getItems().stream()
-        .filter(node -> "Search notes".equals(node.getAccessibleText())).findFirst().orElseThrow();
-    TextField search = (TextField) field(fixture.app, "search");
-    check(!search.isVisible(), "Search starts as an icon");
-    double findX = find.localToScene(0, 0).getX();
-    find.fire(); fixture.layout();
-    Timeline opening = (Timeline) field(fixture.app, "searchAnimation");
-    opening.jumpTo(opening.getTotalDuration().divide(2));
-    check(search.getOpacity() > 0 && search.getOpacity() < 1 && search.getTranslateY() < 0,
-        "Search fades and slides into the workspace");
-    opening.jumpTo(opening.getTotalDuration());
-    search.setText("Reference");
-    check(search.isVisible() && search.getFont().getSize() == 16 && tree.getExpandedItemCount() == 1
+    TextField search = (TextField) filesHeader.lookup(".sidebar-search-query-field");
+    check(search.isVisible() && search.getHeight() == 36 && search.getFont().getSize() == 16
         && search.getBorder().getStrokes().getFirst().getRadii().getTopLeftHorizontalRadius() == 8,
-        "The rounded toolbar search filters the note tree at the shared font size");
-    check(Math.abs(find.localToScene(0, 0).getX() - findX) <= 1,
-        "Search appears without moving the surrounding toolbar controls");
-    search.fireEvent(new ActionEvent());
-    Timeline closing = (Timeline) field(fixture.app, "searchAnimation");
-    closing.jumpTo(closing.getTotalDuration());
-    check(!search.isVisible() && path.isVisible() && tree.getExpandedItemCount() == 2
-        && fixture.stage.getTitle().startsWith("Reference.md"),
-        "Enter opens the search result and restores the full note list and folder path");
+        "The rounded sidebar search shares the first band's size and type");
+    search.setText("Reference");
+    check(!tree.isVisible() && sidebarSearch.hasQuery() && path.isVisible(),
+        "Search replaces the sidebar list while leaving the top folder control in place");
+    sidebarSearch.reset();
+    check(tree.isVisible() && tree.getExpandedItemCount() == 2, "Clearing search restores the note tree");
     tree.getSelectionModel().select(0);
     fixture.layout();
-    Button trash = (Button) tree.lookupAll(".file-row-action").stream()
-        .filter(node -> "Move Draft.md to deleted notes".equals(node.getAccessibleText())).findFirst().orElseThrow();
+    var rowActions = tree.lookupAll(".file-row-action");
+    check(rowActions.stream().filter(Node::isVisible).count() == 6,
+        "Both notes expose split, rename and delete without hovering");
+    Button split = action(tree, "Open Draft.md side by side");
+    split.fire(); fixture.layout();
+    check(((javafx.scene.control.SplitPane) field(fixture.app, "split")).getItems().size() == 2,
+        "The row action opens the note in the right editor pane");
+    call(fixture.app, "singlePane", new Class<?>[0]);
+    Button rename = action(tree, "Rename Draft.md");
+    rename.fire(); fixture.layout();
+    TextField renameInput = (TextField) tree.lookup(".file-rename-field");
+    check(renameInput != null && renameInput.getSelectedText().equals("Draft")
+        && fixture.stage.getScene().getFocusOwner() == renameInput,
+        "Inline rename focuses the filename immediately; field=" + renameInput
+            + ", selection=" + (renameInput == null ? "" : renameInput.getSelectedText())
+            + ", owner=" + fixture.stage.getScene().getFocusOwner() + ", editing=" + tree.getEditingItem());
+    renameInput.setText("Discard me");
+    path.fireEvent(new MouseEvent(MouseEvent.MOUSE_PRESSED, 0, 0, 0, 0, MouseButton.PRIMARY, 1,
+        false, false, false, false, true, false, false, false, false, false, null));
+    check(tree.lookup(".file-rename-field") == null && Files.exists(fixture.directory.resolve("Draft.md")),
+        "Clicking elsewhere cancels inline rename without changing the file");
+    action(tree, "Rename Draft.md").fire(); fixture.layout();
+    renameInput = (TextField) tree.lookup(".file-rename-field");
+    renameInput.setText("Reference");
+    renameInput.fireEvent(new ActionEvent());
+    check(tree.lookup(".file-rename-field") == renameInput && Files.exists(fixture.directory.resolve("Draft.md")),
+        "A rename collision leaves the inline field and both files intact");
+    renameInput.setText("Renamed");
+    renameInput.fireEvent(new ActionEvent()); fixture.layout();
+    check(Files.exists(fixture.directory.resolve("Renamed.md")) && !Files.exists(fixture.directory.resolve("Draft.md")),
+        "Enter saves the inline rename with the original extension");
+    Button trash = action(tree, "Move Renamed.md to deleted notes");
     var trashRight = trash.localToScene(trash.getWidth(), 0).getX();
     check(trash.isVisible() && tree.localToScene(tree.getWidth(), 0).getX() - trashRight <= 18,
         "The selected note has a right-aligned delete action");
-    Path draft = fixture.directory.resolve("Draft.md");
+    Path draft = fixture.directory.resolve("Renamed.md");
     String original = Files.readString(draft);
     trash.fire();
     check(!Files.exists(draft) && tree.getExpandedItemCount() == 1, "The row action moves its note to deleted notes");
@@ -163,6 +198,8 @@ public final class FxWorkspaceLayoutTests {
   }
 
   private static void compactWidth(Fixture fixture) throws Exception {
+    ((FxNoteGraph) field(fixture.app, "noteGraph")).showingProperty().set(false);
+    call(fixture.app, "layoutSidebars", new Class<?>[] {boolean.class}, false);
     fixture.stage.setWidth(820); fixture.layout();
     Region pane = (Region) field(field(fixture.app, "primary"), "container");
     check(pane.getWidth() >= 500, "The default closed inspector must leave a useful writing area at the minimum window width");
@@ -176,6 +213,38 @@ public final class FxWorkspaceLayoutTests {
     var stats = metrics.localToScene(metrics.getBoundsInLocal());
     check(stats.getMinX() >= 0 && stats.getMaxX() <= fixture.stage.getScene().getWidth(),
         "All four status statistics must fit within the window");
+  }
+
+  private static Button action(TreeView<?> tree, String name) {
+    return (Button) tree.lookupAll(".file-row-action").stream()
+        .filter(node -> name.equals(node.getAccessibleText())).findFirst().orElseThrow();
+  }
+
+  private static void searchInWorkspace(Fixture fixture, AtomicReference<Throwable> failure, Runnable close) throws Exception {
+    FxSidebarSearch sidebar = (FxSidebarSearch) field(fixture.app, "sidebarSearch");
+    sidebar.focusQuery(FxWorkspaceSearch.Scope.CONTENTS);
+    TextField query = (TextField) sidebar.queryControl().lookup(".text-field");
+    query.setText("Return");
+    TreeView<?> results = (TreeView<?>) sidebar.lookup(".sidebar-search-results");
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(8);
+    PauseTransition checkResults = new PauseTransition(Duration.millis(40));
+    checkResults.setOnFinished(event -> {
+      if (results.getRoot() == null && System.nanoTime() < deadline) {
+        checkResults.playFromStart();
+        return;
+      }
+      try {
+        check(results.getRoot() != null && results.getRoot().getChildren().size() == 1,
+            "Typing in the sidebar reaches the background search worker and returns one grouped note");
+        query.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ENTER, false, false, false, false));
+        Object active = field(fixture.app, "active");
+        FxWritingPane editor = (FxWritingPane) field(active, "editor");
+        check(fixture.stage.getTitle().startsWith("Reference.md") && editor.area().getSelectedText().equals("Return"),
+            "Enter opens the matching file and selects the exact text in the Markdown editor");
+      } catch (Throwable error) { failure.compareAndSet(null, error); }
+      finally { close.run(); }
+    });
+    checkResults.play();
   }
 
   private static void snapshot(Stage stage, Path path) throws Exception {
@@ -203,6 +272,7 @@ public final class FxWorkspaceLayoutTests {
           + "## Local Markdown files\n\n- Keep the files on your Mac\n- Open two notes side by side\n- Start a focus session when you are ready\n\n"
           + "```java\nString idea = \"A small beginning\";\nSystem.out.println(idea);\n```\n");
       Files.writeString(directory.resolve("Reference.md"), "# Reference\n\nReturn to [[Draft]].\n");
+      preferences.putBoolean("connectionsVisible", true);
       app.start(stage);
       call(app, "setFolder", new Class<?>[] {Path.class}, directory);
       call(app, "open", new Class<?>[] {Path.class, boolean.class}, directory.resolve("Draft.md"), false);

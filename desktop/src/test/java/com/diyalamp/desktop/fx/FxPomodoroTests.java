@@ -22,8 +22,8 @@ public final class FxPomodoroTests {
         ArrayList<String> notices = new ArrayList<>();
         try (FxPomodoro timer = new FxPomodoro(null, notices::add, clock)) {
           Popover popup = timer.popover();
-          check(popup.getRoot().getStyleClass().contains("diyalamp-popover") && popup.isAutoHide()
-              && popup.isHideOnEscape() && popup.isAnimated(), "Timer uses the shared animated popover");
+          check(popup.getStyleClass().contains("diyalamp-popover") && popup.isAutoHide()
+              && popup.isHideOnEscape(), "Timer uses the shared anchored popover");
           check(timer.button().getGraphic() != null, "Timer has a flat Lucide graphic");
           check(timer.button().getText() == null && timer.button().getAccessibleText().equals("Pomodoro focus timer")
               && timer.button().getAccessibleHelp().contains("25:00"),

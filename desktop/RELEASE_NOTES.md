@@ -1,6 +1,6 @@
-## diyalamp 1.2.2 · development
+## diyalamp 1.3.0 · development
 
-The dark-only macOS workspace combines AtlantaFX CupertinoDark controls with the official VS Code 2026 Dark palette, RichTextFX editing, and SmartGraph note navigation. These notes describe the 1.2.2 development build. See the README for the published downloads and measurements.
+The dark-only macOS workspace combines AtlantaFX CupertinoDark controls with the official VS Code 2026 Dark palette, RichTextFX editing, and SmartGraph note navigation. These notes describe the 1.3.0 development build. See the README for the published downloads and measurements.
 
 ### Connected notes
 
@@ -15,8 +15,10 @@ The dark-only macOS workspace combines AtlantaFX CupertinoDark controls with the
 - Six accent choices with a blue default transition smoothly, including when a new choice interrupts a transition. Accessibility attachment no longer disables animations; the explicit reduced-motion option remains.
 - All text is 16 px, including headings, graph labels, dialog headers, tooltips, menus, popovers, and timer digits. Static Inter Regular is used for ordinary text; exact Inter SemiBold changes heading weight without enlarging it, and Menlo 16 is used for code. Static italic faces preserve emphasis. Font files add about 1.6 MiB, measured separately from the runtime.
 - The global toolbar, sidebar, tabs, graph, dialogs, and popovers use a shared 8/16/24 spacing scale and CupertinoDark controls. Editor `#121314`/`#BBBEBF`, chrome `#191A1B`, border `#2A2B2C`, text `#BFBFBF`, and muted text `#8C8C8C` follow 2026 Dark. Inputs use `#191A1B` with `#333536` borders and `#555555` placeholders; default action/link blues are `#297AA0` and `#48A0C7`.
-- The dark toolbar centers its controls on the same row as the native macOS window buttons. The aligned lamp and app name precede the files toggle, full workspace path, search, new-note, new-folder, and split controls. The search field animates in place and uses the same corner radius as the toolbar buttons. Pomodoro and accent controls use an icon and a color circle.
-- Tabs and file rows share a consistent outer inset. A right-aligned trash button moves the hovered or selected note to recoverable deleted notes.
+- The native toolbar combines the folder icon and workspace path in one control. The files sidebar, note tabs, and Connections header share one 52 px band and 8 px inset.
+- The files sidebar includes new-folder and new-note actions. Each note row exposes split, inline rename, and recoverable delete, with an 8 px gap between row highlights.
+- Workspace search covers filenames and Markdown text, including unsaved changes. Case, whole-word, regex, and path glob filters narrow results. Text matches are grouped by note with clickable line previews.
+- Accent and Pomodoro use the same rounded AtlantaFX popup surface with a subtle border and short slide and fade.
 - App dialogs use a rounded dark surface, a consistent title and field layout, and a brief entrance transition.
 - The bottom status bar shows rendered character/word/logical-line counts and the current Markdown's UTF-8 byte size. Both sidebars have native draggable dividers and remember their pixel widths and visibility independently. The reset icon restores 272/304 px widths within window bounds without changing open notes, selection, visibility, or Zen.
 - Hover paint transitions do not lift, scale, or move controls. The explicit reduced-motion option removes those transitions.

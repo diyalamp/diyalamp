@@ -98,7 +98,7 @@ final class FxNoteGraph implements AutoCloseable {
     Button refresh = FxTheme.iconButton("refresh-cw", "Refresh note connections", this::refresh);
     Button close = FxTheme.iconButton("panel-right", "Hide connections", () -> showing.set(false));
     HBox heading = new HBox(8, title, spring, refresh, close); heading.setAlignment(Pos.CENTER_LEFT);
-    heading.getStyleClass().add("graph-heading-row");
+    heading.getStyleClass().addAll("workspace-band", "graph-heading-row");
     selected.getStyleClass().add("graph-current-note"); selected.setWrapText(true);
     detail.getStyleClass().add("graph-detail"); detail.setWrapText(true);
     VBox summary = new VBox(8, selected, detail); summary.getStyleClass().add("graph-summary");

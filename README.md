@@ -13,15 +13,16 @@ diyalamp is a desktop Markdown editor with rendered formatting and local file st
 
 The application opens a folder of `.md` or `.markdown` files. Editing does not require an account, subscription, server, database, or internet connection. Notes remain readable by other Markdown tools.
 
-## Development features · 1.2.2
+## Development features · 1.3.0
 
-This describes the 1.2.2 development workspace. See macOS downloads below for the published release.
+This describes the 1.3.0 development workspace. See macOS downloads below for the published release.
 
 - Dark-only macOS workspace using maintained AtlantaFX CupertinoDark controls and the official VS Code 2026 Dark palette, with a file explorer, note tabs, and flat Lucide icons.
 - One 16 px text size throughout: static Inter for interface/prose and headings, with weight indicating headings or emphasis; installed Menlo for code.
 - Rendered headings, bold, italic, inline code, links, lists, checklists, quotes, and fenced code blocks.
 - Formatting controls, Markdown typing shortcuts, and slash commands.
-- Folder explorer with nested Markdown files, filename search, closable note tabs, and side-by-side editing.
+- Folder explorer with nested Markdown files, closable note tabs, and side-by-side editing.
+- Workspace search for filenames or note text, with case, whole-word, regex, and include/exclude filters. Text matches are grouped by note.
 - Local autosave with external-file conflict detection.
 - Note creation, import, rename, export, recoverable deletion, and restore.
 - Undo/redo and macOS keyboard shortcuts.
@@ -30,7 +31,7 @@ This describes the 1.2.2 development workspace. See macOS downloads below for th
 - Smooth accent transitions, matching dark dialogs, and restrained hover paint transitions without moving controls.
 - Icon-only top-toolbar Pomodoro and a color-circle accent control. Pomodoro opens an animated popover for Start, Stop, and Reset; its tooltip and accessibility help show the phase and remaining time.
 - Drag tabs between panes or move notes into workspace folders without overwrites.
-- A unified macOS toolbar with centered native window buttons, the full workspace path, animated search, and controls for new notes, new folders, and split view. The files sidebar shows the note and folder tree with a recoverable delete action on note rows.
+- A unified macOS toolbar with centered native window buttons and one clickable workspace path. The files sidebar has search and creation controls, with split, inline rename, and recoverable delete on each note row.
 - Character, word, and logical-line counts for rendered text, plus the current Markdown's UTF-8 byte size in the status bar.
 - Native draggable dividers for both sidebars, with saved pixel widths and independent open/closed states. An icon-only reset restores the default widths without closing notes or changing Zen.
 - Six accent choices with a blue default and explicit in-app update checks.

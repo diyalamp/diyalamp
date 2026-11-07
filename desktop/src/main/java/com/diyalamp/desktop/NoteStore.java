@@ -7,12 +7,15 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.security.*;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CancellationException;
 
 /** Local files, optimistic conflict checks, and recoverable deletion. No network access. */
 public final class NoteStore {
   public record Loaded(String text, String fingerprint) {}
 
   public record Deleted(Path original, Path trashed) {}
+
+  public record NoteListing(List<Path> paths, boolean partial) {}
 
   public static final long MAX_BYTES = 5 * 1024 * 1024;
   private final Path root;
@@ -27,12 +30,35 @@ public final class NoteStore {
   }
 
   public List<Path> notes() throws IOException {
+    return listNotes(0, 0).paths();
+  }
+
+  /** Bounded discovery for an interruptible background search. */
+  public NoteListing notes(int maxNotes, int maxEntries) throws IOException {
+    if (maxNotes < 1 || maxEntries < 1) throw new IllegalArgumentException("Invalid listing limits");
+    return listNotes(maxNotes, maxEntries);
+  }
+
+  private NoteListing listNotes(int maxNotes, int maxEntries) throws IOException {
     List<Path> found = new ArrayList<>();
+    boolean bounded = maxEntries > 0;
+    boolean[] partial = {false};
     Files.walkFileTree(
         root,
         new SimpleFileVisitor<>() {
+          private int visited;
+
+          private boolean withinBudget() {
+            if (!bounded) return true;
+            if (Thread.currentThread().isInterrupted()) throw new CancellationException();
+            if (++visited <= maxEntries) return true;
+            partial[0] = true;
+            return false;
+          }
+
           @Override
           public FileVisitResult preVisitDirectory(Path directory, BasicFileAttributes attributes) {
+            if (!withinBudget()) return FileVisitResult.TERMINATE;
             return directory.equals(root) || visible(directory)
                 ? FileVisitResult.CONTINUE
                 : FileVisitResult.SKIP_SUBTREE;
@@ -40,12 +66,34 @@ public final class NoteStore {
 
           @Override
           public FileVisitResult visitFile(Path file, BasicFileAttributes attributes) {
-            if (attributes.isRegularFile() && visible(file) && isMarkdown(file)) found.add(file);
+            if (!withinBudget()) return FileVisitResult.TERMINATE;
+            if (attributes.isRegularFile() && visible(file) && isMarkdown(file)) {
+              if (bounded && found.size() >= maxNotes) {
+                partial[0] = true;
+                return FileVisitResult.TERMINATE;
+              }
+              found.add(file);
+            }
+            return FileVisitResult.CONTINUE;
+          }
+
+          @Override
+          public FileVisitResult visitFileFailed(Path path, IOException error) throws IOException {
+            if (!bounded || path.equals(root)) return super.visitFileFailed(path, error);
+            partial[0] = true;
+            return withinBudget() ? FileVisitResult.CONTINUE : FileVisitResult.TERMINATE;
+          }
+
+          @Override
+          public FileVisitResult postVisitDirectory(Path directory, IOException error) throws IOException {
+            if (error == null || !bounded || directory.equals(root))
+              return super.postVisitDirectory(directory, error);
+            partial[0] = true;
             return FileVisitResult.CONTINUE;
           }
         });
     found.sort(pathOrder());
-    return List.copyOf(found);
+    return new NoteListing(List.copyOf(found), partial[0]);
   }
 
   /** Direct folder contents for a lazy explorer; no recursive scan is needed to expand a row. */
@@ -196,7 +244,8 @@ public final class NoteStore {
 
   public Path rename(Path from, String name) throws IOException {
     from = checkedNote(from);
-    Path to = from.resolveSibling(cleanName(name) + ".md");
+    String filename = from.getFileName().toString();
+    Path to = from.resolveSibling(cleanName(name) + filename.substring(filename.lastIndexOf('.')));
     if (from.equals(to)) return from;
     return Files.move(from, to);
   }
