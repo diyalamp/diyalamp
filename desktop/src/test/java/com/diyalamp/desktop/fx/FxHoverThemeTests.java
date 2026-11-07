@@ -8,6 +8,7 @@ import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.css.TransitionEvent;
+import javafx.geometry.Bounds;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -31,35 +32,59 @@ public final class FxHoverThemeTests {
         HBox root = new HBox(8, tool, metric); root.getStyleClass().add("workspace-root");
         root.getStylesheets().add(FxTheme.class.getResource("/fx-workspace.css").toExternalForm());
         FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
-        stage.setScene(new Scene(root, 400, 200)); stage.show(); root.applyCss(); root.layout();
-        double x = tool.getLayoutX(), y = tool.getLayoutY(), width = tool.getWidth(), height = tool.getHeight();
+        Scene scene = new Scene(root, 400, 200);
+        stage.setScene(scene); stage.show(); root.applyCss(); root.layout();
+        Bounds originalBounds = tool.getBoundsInParent();
         AtomicInteger starts = new AtomicInteger();
         tool.addEventHandler(TransitionEvent.START, event -> starts.incrementAndGet());
         PseudoClass hover = PseudoClass.getPseudoClass("hover");
-        PauseTransition end = new PauseTransition(Duration.millis(250));
-        end.setOnFinished(event -> {
-          try {
-            check(starts.get() > 0, "Hover must start actual native CSS transitions");
-            check(tool.getBackground().getFills().getLast().getFill().equals(Color.web("#242526")), "Tool hover reaches the subdued dark surface");
-            check(metric.getBackground().getFills().getLast().getFill().equals(Color.web("#242526")),
-                "Metric hover reaches the same subdued surface: " + metric.getBackground().getFills().getLast().getFill()
-                    + " states=" + metric.getPseudoClassStates());
-            check(x == tool.getLayoutX() && y == tool.getLayoutY() && width == tool.getWidth() && height == tool.getHeight(),
-                "Hover must never lift, scale, or resize the workbench controls");
-            int previous = starts.get();
-            System.setProperty("diyalamp.reduceMotion", "true"); FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
-            root.applyCss(); tool.pseudoClassStateChanged(hover, false); root.applyCss();
-            check(((Color) tool.getBackground().getFills().getLast().getFill()).getOpacity() == 0,
-                "Reduced motion applies the final paint immediately");
-            check(previous == starts.get(), "Reduced motion must not start new CSS transitions");
-          } catch (Throwable error) { failure.set(error); }
-          finally { System.clearProperty("diyalamp.reduceMotion"); stage.close(); done.countDown(); }
-        });
         // Let the stage's initial pointer-state synchronization finish before the fixture's hover.
         PauseTransition begin = new PauseTransition(Duration.millis(100));
         begin.setOnFinished(event -> {
           tool.pseudoClassStateChanged(hover, true); metric.pseudoClassStateChanged(hover, true);
-          root.applyCss(); end.play();
+          root.applyCss();
+          Color target = Color.web("#242526");
+          long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+          scene.addPostLayoutPulseListener(new Runnable() {
+            private boolean geometryUnchanged = true;
+
+            @Override public void run() {
+              boolean complete = false;
+              try {
+                // Sample real CSS pulses, including intermediate frames, without assuming
+                // the paint starts on the same pulse as the synthetic hover state.
+                geometryUnchanged &= originalBounds.equals(tool.getBoundsInParent());
+                var toolPaint = tool.getBackground().getFills().getLast().getFill();
+                var metricPaint = metric.getBackground().getFills().getLast().getFill();
+                if ((starts.get() == 0 || !target.equals(toolPaint) || !target.equals(metricPaint))
+                    && System.nanoTime() < deadline) {
+                  Platform.requestNextPulse();
+                  return;
+                }
+                complete = true;
+                check(starts.get() > 0, "Hover must start actual native CSS transitions");
+                check(target.equals(toolPaint), "Tool hover reaches the subdued dark surface: " + toolPaint);
+                check(target.equals(metricPaint), "Metric hover reaches the same subdued surface: " + metricPaint
+                    + " states=" + metric.getPseudoClassStates());
+                check(geometryUnchanged, "Hover must never lift, scale, or resize the workbench controls");
+                int previous = starts.get();
+                System.setProperty("diyalamp.reduceMotion", "true"); FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
+                root.applyCss(); tool.pseudoClassStateChanged(hover, false); root.applyCss();
+                check(((Color) tool.getBackground().getFills().getLast().getFill()).getOpacity() == 0,
+                    "Reduced motion applies the final paint immediately");
+                check(previous == starts.get(), "Reduced motion must not start new CSS transitions");
+              } catch (Throwable error) {
+                failure.set(error);
+                complete = true;
+              } finally {
+                if (complete) {
+                  scene.removePostLayoutPulseListener(this);
+                  System.clearProperty("diyalamp.reduceMotion"); stage.close(); done.countDown();
+                }
+              }
+            }
+          });
+          Platform.requestNextPulse();
         });
         begin.play();
       } catch (Throwable error) { failure.set(error); stage.close(); done.countDown(); }
