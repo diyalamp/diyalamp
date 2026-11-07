@@ -62,6 +62,9 @@ public final class FxZenTests {
       entering.jumpTo(Duration.millis(120));
       double middle = f.app.zenProgressProperty().get();
       check(middle > 0 && middle < 1, "The focus fade must expose intermediate contrast");
+      Color surface = FxTheme.surfaceOf(f.stage.getScene().getRoot());
+      check(surface.getBrightness() > 0 && surface.getBrightness() < FxTheme.EDITOR_BACKGROUND.getBrightness(),
+          "The single workspace surface must fade toward black with the Focus animation");
       for (Node chrome : f.dimmedChrome())
         check(chrome.getEffect() instanceof ColorAdjust effect
             && effect.getBrightness() < 0 && effect.getBrightness() > -FxZenChrome.intensity(1),
@@ -99,8 +102,9 @@ public final class FxZenTests {
       check(f.dimmedChrome().stream().map(Node::getOpacity).toList().equals(original[9]),
           "Chrome dimming must leave sidebar reveal opacity independent");
       Color rest = (Color) original[8], dimmed = chromePixel(f.footer);
-      check(dimmed.getOpacity() == rest.getOpacity() && dimmed.getBrightness() < rest.getBrightness() - .015,
-          "The rendered chrome must darken while remaining opaque");
+      check(rest.equals(FxTheme.EDITOR_BACKGROUND) && dimmed.equals(Color.BLACK)
+          && FxTheme.surfaceOf(f.stage.getScene().getRoot()).equals(Color.BLACK),
+          "The workspace and rendered chrome must use the same pure black Focus surface");
       check(f.toolbar.getHeight() == (double) original[5] && f.footer.getHeight() == (double) original[6]
           && f.explorer.getWidth() == (double) original[7], "Line focus cannot resize workspace chrome");
       check(f.splitItems().size() == 2 && f.splitItems().getFirst() == original[4],
@@ -110,6 +114,8 @@ public final class FxZenTests {
       check(inactive.getEffect() instanceof ColorAdjust && !inactive.lookup(".zen-focus-mask").isVisible()
           && current.getEffect() == null && current.lookup(".zen-focus-mask").isVisible(),
           "Only the active writer's caret line stays highlighted across both open panes");
+      check(!f.editor.area().isLineHighlighterOn(),
+          "Caret-line emphasis comes from fading surrounding text instead of adding a second background");
       check(f.editor.area().getAnchor() == (int) original[1] && f.editor.area().getCaretPosition() == (int) original[2],
           "Line focus cannot move the caret or change the selection");
       check(f.editor.markdown().equals(original[3]) && !f.editor.canUndo(),

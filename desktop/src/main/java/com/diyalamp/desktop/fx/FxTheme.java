@@ -6,10 +6,12 @@ import java.util.Locale;
 import java.util.HashMap;
 import java.util.Map;
 import javafx.application.Application;
+import javafx.collections.MapChangeListener;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -18,6 +20,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.*;
 import javafx.scene.transform.Scale;
 import javafx.scene.text.Font;
+import javafx.stage.WindowEvent;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Element;
 
@@ -30,6 +33,7 @@ public final class FxTheme {
   private static final Color DEFAULT_FOCUS = Color.web("#FF5555B3");
   private static final Color DEFAULT_SELECTION = Color.web("#AB2828DD");
   static final String DISPLAYED_ACCENT = "diyalamp.displayedAccent";
+  private static final String DISPLAYED_SURFACE = "diyalamp.displayedSurface";
   private static final Map<String, String> TEXT_FACES = new HashMap<>();
   private static final Map<String, Font> TEXT_FONTS = new HashMap<>();
 
@@ -62,9 +66,26 @@ public final class FxTheme {
   }
 
   public static void accent(Parent root, Color color) {
+    paint(root, color, surfaceOf(root));
+  }
+
+  static void focusSurface(Parent root, double progress) {
+    paint(root, accentOf(root), EDITOR_BACKGROUND.interpolate(Color.BLACK, progress));
+  }
+
+  static void inherit(Parent root, Parent source) {
+    paint(root, accentOf(source), surfaceOf(source));
+  }
+
+  static boolean themeChanged(Object key) {
+    return DISPLAYED_ACCENT.equals(key) || DISPLAYED_SURFACE.equals(key);
+  }
+
+  private static void paint(Parent root, Color color, Color surface) {
     root.pseudoClassStateChanged(javafx.css.PseudoClass.getPseudoClass("reduced-motion"),
         Boolean.getBoolean("diyalamp.reduceMotion"));
     root.getProperties().put(DISPLAYED_ACCENT, color);
+    root.getProperties().put(DISPLAYED_SURFACE, surface);
     // Derive readable tones continuously as the accent animates.
     Color readable = accentTone(color, DEFAULT_LINK);
     for (int i = 1; contrast(readable, EDITOR_BACKGROUND) < 4.5 && i <= 100; i++)
@@ -73,7 +94,8 @@ public final class FxTheme {
     Color focus = accentTone(color, DEFAULT_FOCUS);
     Color subtle = new Color(focus.getRed(), focus.getGreen(), focus.getBlue(), 0x26 / 255.0);
     Color drop = new Color(focus.getRed(), focus.getGreen(), focus.getBlue(), 0x1A / 255.0);
-    root.setStyle("-color-accent-emphasis: " + hex(color) + "; -color-accent-fg: " + hex(readable)
+    root.setStyle("-diyalamp-surface: " + hex(surface) + "; -color-accent-emphasis: " + hex(color)
+        + "; -color-accent-fg: " + hex(readable)
         + "; -color-accent-subtle: " + cssColor(subtle) + "; -diyalamp-accent: " + hex(color)
         + "; -diyalamp-link: " + hex(readable) + "; -diyalamp-accent-contrast: " + hex(foreground)
         + "; -diyalamp-accent-subtle: " + cssColor(subtle) + "; -diyalamp-focus: " + cssColor(focus)
@@ -93,8 +115,33 @@ public final class FxTheme {
   }
 
   public static Color accentOf(Parent root) {
-    Object color = root.getProperties().get(DISPLAYED_ACCENT);
+    Object color = root == null ? null : root.getProperties().get(DISPLAYED_ACCENT);
     return color instanceof Color value ? value : DEFAULT_ACCENT;
+  }
+
+  static Color surfaceOf(Parent root) {
+    Object color = root == null ? null : root.getProperties().get(DISPLAYED_SURFACE);
+    return color instanceof Color value ? value : EDITOR_BACKGROUND;
+  }
+
+  static ContextMenu contextMenu() {
+    ContextMenu menu = new ContextMenu();
+    Parent[] owner = {null};
+    Runnable sync = () -> menu.setStyle("-color-bg-default: " + hex(surfaceOf(owner[0])) + ";");
+    MapChangeListener<Object, Object> listener = change -> {
+      if (DISPLAYED_SURFACE.equals(change.getKey())) sync.run();
+    };
+    menu.addEventHandler(WindowEvent.WINDOW_SHOWING, event -> {
+      var window = menu.getOwnerWindow();
+      owner[0] = window == null || window.getScene() == null ? null : window.getScene().getRoot();
+      if (owner[0] != null) owner[0].getProperties().addListener(listener);
+      sync.run();
+    });
+    menu.addEventHandler(WindowEvent.WINDOW_HIDDEN, event -> {
+      if (owner[0] != null) owner[0].getProperties().removeListener(listener);
+      owner[0] = null;
+    });
+    return menu;
   }
 
   static double contrast(Color first, Color second) {

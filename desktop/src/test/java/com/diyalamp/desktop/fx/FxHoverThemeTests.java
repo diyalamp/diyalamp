@@ -42,7 +42,7 @@ public final class FxHoverThemeTests {
         tool.addEventHandler(TransitionEvent.START, event -> starts.incrementAndGet());
         Robot pointer = new Robot();
         pointer.mouseMove(root.localToScreen(root.getWidth() / 2, root.getHeight() / 2));
-        Color target = Color.web("#202122");
+        Color target = Color.web("#111213"), outline = Color.web("#333536");
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
         scene.addPostLayoutPulseListener(new Runnable() {
           private boolean hoverStarted;
@@ -63,9 +63,11 @@ public final class FxHoverThemeTests {
                 hoverStarted = true;
               } else if (!checkingReducedMotion) {
                 geometryUnchanged &= originalBounds.equals(tool.getBoundsInParent());
-                if (tool.isHover() && target.equals(paint(tool)) && starts.get() > 0) {
+                if (tool.isHover() && target.equals(paint(tool)) && starts.get() > 0
+                    && outline.equals(tool.getBackground().getFills().getFirst().getFill())) {
                   check(starts.get() > 0, "Hover must start actual native CSS transitions");
-                  check(target.equals(paint(tool)), "Tool hover reaches the subdued dark surface");
+                  check(target.equals(paint(tool)) && tool.getBackground().getFills().size() == 2,
+                      "Tool hover must use an outline over the shared workbench surface");
                   check(geometryUnchanged, "Hover must never lift, scale, or resize the workbench controls");
                   startsBeforeReducedMotion = starts.get();
                   System.setProperty("diyalamp.reduceMotion", "true");

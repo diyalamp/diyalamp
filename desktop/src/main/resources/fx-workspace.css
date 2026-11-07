@@ -5,8 +5,9 @@
   -fx-font-size: 16px;
   -fx-font-weight: normal;
   -fx-background-color: -color-bg-default;
-  -color-bg-default: #111213;
-  -color-bg-subtle: #202122;
+  -diyalamp-surface: #111213;
+  -color-bg-default: -diyalamp-surface;
+  -color-bg-subtle: -color-bg-default;
   -color-bg-inset: -color-bg-default;
   -color-bg-overlay: -color-bg-subtle;
   -color-fg-default: #BFBFBF;
@@ -59,7 +60,8 @@
 .tooltip, .context-menu, .context-menu .label, .context-menu .menu-item {
   -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal;
 }
-.tooltip, .context-menu { -fx-background-color: #202122; -fx-text-fill: #BFBFBF; -fx-border-color: #333536; }
+.tooltip, .context-menu { -fx-background-color: -color-bg-default; -fx-text-fill: #BFBFBF; -fx-border-color: #333536; }
+.tooltip { -fx-background-insets: 0; -fx-background-radius: 8; -fx-border-radius: 8; -fx-effect: null; }
 .context-menu {
   -fx-background-insets: 0;
   -fx-background-radius: 12;
@@ -81,7 +83,7 @@
 }
 .context-menu.slash-menu .menu-item > .graphic-container { -fx-padding: 0 8 0 0; }
 .context-menu.slash-menu .menu-item:focused, .context-menu.slash-menu .menu-item:hover {
-  -fx-background-color: -color-bg-subtle;
+  -fx-background-color: -diyalamp-accent-subtle;
 }
 .context-menu.slash-menu .menu-item:focused .label, .context-menu.slash-menu .menu-item:hover .label {
   -fx-text-fill: -color-fg-emphasis;
@@ -113,7 +115,11 @@
 .workspace-brand { -fx-font-family: "Inter SemiBold"; -fx-graphic-text-gap: 8; -fx-text-fill: -color-fg-default; }
 .workspace-root .workspace-folder { -fx-text-fill: -color-fg-muted; -fx-graphic-text-gap: 8; }
 .workspace-root .workspace-folder:hover { -fx-text-fill: -color-fg-default; }
-.workspace-tool:hover, .workspace-brand:hover { -fx-background-color: -color-bg-subtle; }
+.workspace-tool:hover, .workspace-brand:hover {
+  -fx-background-color: -color-border-default, -color-bg-default;
+  -fx-background-insets: 0, 1;
+  -fx-background-radius: 8, 7;
+}
 .workspace-tool, .workspace-brand, .note-metric,
 .diyalamp-dialog .dialog-action, .diyalamp-dialog .text-field, .diyalamp-dialog .combo-box-base,
 .diyalamp-popover .accent-choice, .diyalamp-popover .pomodoro-phase, .diyalamp-popover .popover-action,
@@ -121,6 +127,11 @@
   transition-property: -fx-background-color, -fx-border-color, -fx-text-fill, -fx-opacity;
   transition-duration: 140ms;
   transition-timing-function: ease-out;
+}
+/* Menus and dialogs follow the workspace surface without a second background fade. */
+.diyalamp-dialog .dialog-action, .diyalamp-dialog .text-field, .diyalamp-dialog .combo-box-base,
+.diyalamp-popover .accent-choice, .diyalamp-popover .pomodoro-phase, .diyalamp-popover .popover-action {
+  transition-property: -fx-border-color, -fx-text-fill, -fx-opacity;
 }
 .workspace-tool .icon-stroke {
   transition-property: -fx-stroke;
@@ -138,7 +149,7 @@
 .workspace-root:reduced-motion .sidebar-search-mode, .workspace-root:reduced-motion .sidebar-search-option {
   transition-duration: 0s;
 }
-.workspace-tool:selected { -fx-background-color: -color-bg-subtle; }
+.workspace-tool:selected { -fx-background-color: -diyalamp-accent-subtle; }
 .workspace-tool:selected .icon-stroke { -fx-stroke: -color-accent-fg; }
 .workspace-tool:focus-visible {
   -fx-background-color: -diyalamp-focus, -color-bg-subtle;
@@ -163,10 +174,14 @@
   -fx-prompt-text-fill: -color-fg-muted;
 }
 .workspace-root .note-search-field:focused { -fx-border-color: -diyalamp-focus; }
-.file-tree { -fx-background-color: transparent; -fx-background-insets: 0; -fx-padding: 0 8 8 8; -fx-border-width: 0; }
+.file-tree, .sidebar-search-results { -fx-padding: 4 8; }
+.file-tree .tree-cell, .sidebar-search-results .tree-cell, .graph-note-list .list-cell {
+  -fx-background-radius: 8; -fx-background-insets: 4 0;
+}
+.file-tree { -fx-background-color: transparent; -fx-background-insets: 0; -fx-border-width: 0; }
 .file-tree .virtual-flow { -fx-background-color: transparent; }
 .file-tree .tree-cell {
-  -fx-background-color: transparent; -fx-background-radius: 8; -fx-background-insets: 4 0;
+  -fx-background-color: transparent;
   -fx-padding: 0 4 0 0; -fx-indent: 16;
 }
 .file-tree .tree-cell .label { -fx-text-fill: #BFBFBF; }
@@ -193,9 +208,9 @@
 .writing-split > .split-pane-divider { -fx-padding: 0 .5; -fx-background-color: -diyalamp-divider; }
 .document-pane { -fx-background-color: -color-bg-default; -fx-min-width: 200; }
 .document-pane:drop-target { -fx-border-color: -diyalamp-focus; -fx-border-width: 2; -fx-background-color: -diyalamp-drop; }
-.document-tabs.floating.dense > .root-container { -fx-padding: 0; }
+.document-tabs.workspace-band, .document-tabs.floating.dense > .root-container { -fx-padding: 0; }
 .document-tabs.floating.dense > .root-container > .tabs > .tab {
-  -fx-padding: 2 7 4 7; -fx-pref-height: 36;
+  -fx-padding: 2 7 4 7; -fx-pref-height: 52;
   -fx-background-radius: 0; -fx-background-insets: 0;
   -fx-background-color: -color-bg-inset;
   -fx-border-width: 2 1 0 1;
@@ -218,7 +233,7 @@
 .document-tabs .tab > .tab-box > .label { -fx-text-fill: -color-fg-muted; }
 .document-tabs .tab:selected > .tab-box > .label { -fx-text-fill: -color-fg-default; }
 .document-tabs.floating > .root-container > .tabs > .tab > .tab-box > .close-button {
-  -fx-padding: 7; -fx-background-color: transparent;
+  -fx-max-height: 28; -fx-padding: 7; -fx-background-color: transparent;
 }
 .document-tabs .tab > .tab-box > .close-button > .graphic { -fx-background-color: -color-fg-muted; }
 .document-tabs .tab > .tab-box > .close-button:hover > .graphic { -fx-background-color: -color-fg-default; }
@@ -235,8 +250,8 @@
 .workspace-root .writing-area .md-paragraph.md-heading { -fx-padding: 8 0 8 0; }
 .workspace-root .writing-area .md-paragraph.md-quote {
   -fx-background-color: -color-bg-subtle; -fx-background-radius: 8; -fx-background-insets: 0 0 8 0;
-  -fx-border-color: transparent transparent transparent -color-accent-fg;
-  -fx-border-width: 0 0 0 3; -fx-border-radius: 8; -fx-border-insets: 0 0 8 0;
+  -fx-border-color: -color-border-default -color-border-default -color-border-default -color-accent-fg;
+  -fx-border-width: 1 1 1 3; -fx-border-radius: 8; -fx-border-insets: 0 0 8 0;
   -fx-padding: 8 16 16 16;
 }
 .workspace-root .writing-area .md-paragraph.md-code { -fx-line-spacing: 2; -fx-padding: 0 0 2 0; }
@@ -254,7 +269,7 @@
 .writing-area .check-box.md-task > .box {
   -fx-min-width: 16; -fx-pref-width: 16; -fx-max-width: 16;
   -fx-min-height: 16; -fx-pref-height: 16; -fx-max-height: 16;
-  -fx-padding: 0; -fx-background-color: -color-bg-subtle; -fx-background-insets: 0;
+  -fx-padding: 0; -fx-background-color: transparent; -fx-background-insets: 0;
   -fx-background-radius: 4; -fx-border-color: -color-fg-muted; -fx-border-radius: 4; -fx-border-width: 1;
   transition-property: -fx-background-color, -fx-border-color;
   transition-duration: 140ms; transition-timing-function: ease-out;
@@ -275,7 +290,10 @@
 .workspace-empty { -fx-padding: 24; -fx-background-color: -color-bg-default; }
 .workspace-empty-title { -fx-font-family: "Inter SemiBold"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #BFBFBF; }
 .empty-detail { -fx-text-fill: #8C8C8C; }
-.save-warning { -fx-background-color: #352A05; -fx-padding: 8 16; -fx-background-radius: 8; -fx-border-width: 0; }
+.save-warning {
+  -fx-background-color: -color-bg-default; -fx-padding: 8 16;
+  -fx-border-radius: 8; -fx-border-width: 1; -fx-border-color: -color-border-default;
+}
 .save-warning .label { -fx-text-fill: #E5BA7D; }
 .accent-swatch { -fx-min-width: 12; -fx-pref-width: 12; -fx-max-width: 12; -fx-min-height: 12; -fx-pref-height: 12; -fx-max-height: 12; -fx-background-radius: 99; }
 

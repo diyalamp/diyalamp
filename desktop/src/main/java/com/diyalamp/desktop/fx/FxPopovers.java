@@ -38,21 +38,20 @@ public final class FxPopovers {
     root.getStylesheets().add(FxPopovers.class.getResource("/fx-workspace.css").toExternalForm());
     root.getStylesheets().add(FxPopovers.class.getResource("/fx-popovers.css").toExternalForm());
     Parent[] source = {null};
-    MapChangeListener<Object, Object> accent = change -> {
-      if (source[0] != null && FxTheme.DISPLAYED_ACCENT.equals(change.getKey()))
-        FxTheme.accent(root, FxTheme.accentOf(source[0]));
+    MapChangeListener<Object, Object> theme = change -> {
+      if (source[0] != null && FxTheme.themeChanged(change.getKey())) FxTheme.inherit(root, source[0]);
     };
     Runnable detach = () -> {
-      if (source[0] != null) source[0].getProperties().removeListener(accent);
+      if (source[0] != null) source[0].getProperties().removeListener(theme);
       source[0] = null;
     };
     popup.addEventHandler(WindowEvent.WINDOW_SHOWING, event -> {
       detach.run();
       if (owner != null && owner.getScene() != null) {
         source[0] = owner.getScene().getRoot();
-        source[0].getProperties().addListener(accent);
-        FxTheme.accent(root, FxTheme.accentOf(source[0]));
-      } else FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
+        source[0].getProperties().addListener(theme);
+      }
+      FxTheme.inherit(root, source[0]);
     });
     popup.addEventHandler(WindowEvent.WINDOW_SHOWN, event -> root.setVisible(true));
     popup.addEventHandler(WindowEvent.WINDOW_HIDDEN, event -> {

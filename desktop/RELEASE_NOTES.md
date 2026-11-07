@@ -1,6 +1,6 @@
-## diyalamp 1.3.3 · development
+## diyalamp 1.3.4 · development
 
-The dark-only macOS workspace combines AtlantaFX CupertinoDark controls, RichTextFX editing, and SmartGraph note navigation. These notes describe the 1.3.3 development build. See the README for the published downloads and measurements.
+The dark-only macOS workspace combines AtlantaFX CupertinoDark controls, RichTextFX editing, and SmartGraph note navigation. These notes describe the 1.3.4 development build. See the README for the published downloads and measurements.
 
 ### Connected notes
 
@@ -15,8 +15,9 @@ The dark-only macOS workspace combines AtlantaFX CupertinoDark controls, RichTex
 - Red `#EE0000` is the default accent. Blue, yellow, green, white, and custom hex are also available. The transition continues smoothly when a new choice interrupts it. The explicit reduced-motion option remains.
 - Workspace controls and prose use 16 px static Inter, and code uses 16 px Menlo. Rendered H1, H2, and H3 use 28, 23, and 19 px Inter Semibold. Blockquotes use an inset surface and an accent rule.
 - The slash-command menu has a Lucide icon for each block. Click outside or press Escape to dismiss it. Use the arrow keys and Enter to select a command.
-- The workspace uses a shared 8/16/24 spacing scale, `#111213` main surfaces, `#202122` raised surfaces, and `#333536` dividers. A continuous rule aligns the Files, tabs, and Connections bands.
-- The wordmark, toolbar controls, and tabs use 36 px control height and 8 px spacing. The files, tabs, and Connections bands share one 52 px row. The native toolbar combines the folder icon and workspace path in one control.
+- Main surfaces, dialogs, and popovers share `#111213` in Normal and `#000000` in Focus. Dividers and outlines delineate controls. A continuous rule aligns the Files, tabs, and Connections bands.
+- File and search rows have 8 px between highlights and at the list edges. The search header uses the same compact icon targets as file rows.
+- The wordmark and toolbar controls use 36 px control height and 8 px spacing. The Files, tabs, and Connections bands share one 52 px row, and the tabs fill their band up to its dividers. The native toolbar combines the folder icon and workspace path in one control.
 - The files sidebar includes new-folder and new-note actions. Each note row exposes split, inline rename, and recoverable delete, with an 8 px gap between row highlights.
 - Workspace search covers filenames and Markdown text, including unsaved changes. The options icon beside the query expands scope, case, whole-word, regex, and path filters. Text matches are grouped by note with clickable line previews.
 - Checklists use readable rounded boxes with the same row spacing as bullets and prose. Wrapped tasks align their box with the first line.

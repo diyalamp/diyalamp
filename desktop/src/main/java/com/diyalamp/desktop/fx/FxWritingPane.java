@@ -48,8 +48,7 @@ public final class FxWritingPane {
   private final ChangeListener<Number> focusProgressListener = (observable, previous, value) -> updateFocusProgress(value.doubleValue());
   private double focusProgress;
   private double lastFocusTop = Double.NaN, lastFocusBottom, lastFocusLine, lastFocusHeight;
-  private boolean lineHighlighterInstalled;
-  private final ContextMenu slash = new ContextMenu();
+  private final ContextMenu slash = FxTheme.contextMenu();
   private int slashCaret = -1;
   private final Subscription richSubscription, plainSubscription;
   private final FxMarkdown.Writer writer = new FxMarkdown.Writer();
@@ -139,7 +138,7 @@ public final class FxWritingPane {
       });
     });
     area.setContextMenu(contextMenu());
-    slash.getStyleClass().addAll("workspace-root", "slash-menu");
+    slash.getStyleClass().add("slash-menu");
     slash.setAutoHide(true);
     slash.setConsumeAutoHidingEvents(false);
     for (BlockCommand item : BLOCKS) {
@@ -183,12 +182,6 @@ public final class FxWritingPane {
     focusLineMask.setVisible(focusProgress > 0);
     focusLineMask.setOpacity(focusProgress);
     syncFocusLayoutListener();
-    if (focusProgress > 0 && !lineHighlighterInstalled) {
-      area.setLineHighlighterFill(Color.TRANSPARENT);
-      area.setLineHighlighterOn(true);
-      lineHighlighterInstalled = true;
-    }
-    if (lineHighlighterInstalled) area.setLineHighlighterFill(Color.color(1, 1, 1, .035 * focusProgress));
     updateFocusLine();
   }
 
@@ -744,7 +737,7 @@ public final class FxWritingPane {
   }
 
   private ContextMenu contextMenu() {
-    ContextMenu menu = new ContextMenu();
+    ContextMenu menu = FxTheme.contextMenu();
     item(menu, "Undo", this::undo); item(menu, "Redo", this::redo);
     menu.getItems().add(new SeparatorMenuItem());
     item(menu, "Cut", this::cut); item(menu, "Copy", this::copy); item(menu, "Paste", this::paste);

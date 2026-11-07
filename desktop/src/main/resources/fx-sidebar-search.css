@@ -1,4 +1,4 @@
-/* The workspace owns the 52px top band; the query and creation controls are each 36px. */
+/* The query fills the header beside a strip of compact file controls. */
 .sidebar-search-query {
   -fx-min-height: 36;
   -fx-pref-height: 36;
@@ -7,22 +7,7 @@
 .workspace-root .sidebar-search-query-field:search-icon { -fx-padding: 0 8 0 32; }
 .workspace-root .sidebar-search-query-field:clear-button { -fx-padding: 0 36 0 8; }
 .workspace-root .sidebar-search-query-field:search-icon:clear-button { -fx-padding: 0 36 0 32; }
-.sidebar-search-query .sidebar-search-toggle {
-  -fx-border-color: transparent;
-  -fx-border-radius: 8;
-  -fx-border-width: 1;
-}
-.sidebar-search-query .sidebar-search-toggle:compact {
-  -fx-min-width: 28;
-  -fx-pref-width: 28;
-  -fx-max-width: 28;
-  -fx-padding: 0;
-}
-.sidebar-search-query .sidebar-search-toggle:selected,
-.sidebar-search-query .sidebar-search-toggle:options-active { -fx-background-color: -diyalamp-accent-subtle; }
-.sidebar-search-query .sidebar-search-toggle:focused { -fx-border-color: -diyalamp-focus; }
-.sidebar-search-query .sidebar-search-toggle:selected .icon-stroke,
-.sidebar-search-query .sidebar-search-toggle:options-active .icon-stroke { -fx-stroke: -color-accent-fg; }
+.sidebar-search-toggle:options-active .icon-stroke { -fx-stroke: -color-accent-fg; }
 .sidebar-search-query .sidebar-search-clear {
   -fx-min-width: 28;
   -fx-pref-width: 28;
@@ -100,11 +85,8 @@
   -fx-background-insets: 0;
   -fx-border-width: 0;
 }
-.sidebar-search-results { -fx-padding: 0 8 8 8; }
 .sidebar-search-results .tree-cell {
   -fx-background-color: transparent;
-  -fx-background-insets: 4 0;
-  -fx-background-radius: 8;
   -fx-border-color: transparent;
   -fx-border-insets: 4 0;
   -fx-border-radius: 8;
