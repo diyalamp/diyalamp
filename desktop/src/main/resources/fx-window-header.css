@@ -3,3 +3,8 @@
   -fx-border-color: transparent transparent -color-border-default transparent;
   -fx-border-width: 0 0 1 0;
 }
+
+.workspace-window-header .workspace-toolbar {
+  /* HeaderBar already reserves the full native button area on the left. */
+  -fx-padding: 0 12 0 0;
+}

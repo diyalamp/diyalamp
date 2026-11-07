@@ -200,11 +200,21 @@ public final class FxShellTests {
           "The accent bubble must contain only the six approved muted presets");
       check(choices.stream().allMatch(button -> button.getFont().getName().equals("Inter Regular") && button.getFont().getSize() == 16),
           "Actual palette buttons must use the shared regular UI typography");
+      var widths = choices.stream().map(Button::getWidth).toList();
+      check(widths.getFirst() > 100 && widths.stream().allMatch(width -> Math.abs(width - widths.getFirst()) <= 1),
+          "The accent picker uses two stable equal-width columns");
       Button sage = choices.stream().filter(button -> button.getText().equals("Sage")).findFirst().orElseThrow(); sage.fire();
+      popup.getRoot().applyCss(); popup.getRoot().layout();
+      check(widths.equals(choices.stream().map(Button::getWidth).toList()),
+          "Selecting an accent must not resize its button or any other choice");
       check(sage.getAccessibleText().contains("selected") && sage.getText().contains("✓"),
           "Preset selection must have both a visible and accessible indicator");
       check(fixture.preferences.get("accent", "").equals("#7A9A85") && popup.isShowing(),
           "Choosing a preset must apply immediately while keeping the bubble available for another choice");
+      choices.stream().filter(button -> button.getText().equals("Lavender")).findFirst().orElseThrow().fire();
+      popup.getRoot().applyCss(); popup.getRoot().layout();
+      check(widths.equals(choices.stream().map(Button::getWidth).toList()),
+          "Selecting the longest accent label must leave the columns unchanged");
       check(popup.getContentNode().lookupAll(".label").stream().filter(node -> node instanceof Label)
           .noneMatch(node -> ((Label) node).getText().contains("#")), "The preset bubble must omit implementation-only color values");
       popup.hide(javafx.util.Duration.ZERO); stage.close();

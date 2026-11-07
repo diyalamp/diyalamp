@@ -61,8 +61,10 @@ public final class FxSidebarSearch extends VBox {
     getStylesheets().add(stylesheet);
     queryControl.getStylesheets().add(stylesheet);
     getStyleClass().add("sidebar-search");
-    setMinSize(0, 0);
+    setMinWidth(0);
     setFillWidth(true);
+    // The regular file tree can shrink; the option rows above it need their full height.
+    minHeightProperty().bind(Bindings.when(hasQuery).then(0.0).otherwise(USE_PREF_SIZE));
     maxHeightProperty().bind(Bindings.when(hasQuery).then(Double.MAX_VALUE).otherwise(USE_PREF_SIZE));
 
     buildQueryControl();

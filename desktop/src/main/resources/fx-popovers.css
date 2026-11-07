@@ -46,6 +46,7 @@
 }
 .diyalamp-popover .accent-choice {
   -fx-alignment: center-left;
+  -fx-padding: 8;
   -fx-background-color: transparent;
   -fx-border-color: transparent;
 }
@@ -70,6 +71,41 @@
 .diyalamp-popover:reduced-motion .accent-choice,
 .diyalamp-popover:reduced-motion .pomodoro-phase,
 .diyalamp-popover:reduced-motion .popover-action { transition-duration: 0s; }
+
+.workspace-root .pomodoro-control:timer-active {
+  -fx-min-width: 160; -fx-pref-width: 160; -fx-max-width: 160;
+  -fx-padding: 0 8; -fx-background-color: -color-bg-subtle;
+  -fx-border-color: -color-border-default; -fx-border-radius: 8; -fx-border-width: 1;
+}
+.workspace-root .pomodoro-control:timer-active:hover,
+.workspace-root .pomodoro-control:timer-active:focused { -fx-border-color: -diyalamp-focus; }
+.pomodoro-control .pomodoro-toolbar-phase {
+  -fx-min-width: 48; -fx-pref-width: 48; -fx-max-width: 48;
+  -fx-text-fill: -color-fg-default;
+}
+.pomodoro-control .pomodoro-toolbar-time {
+  -fx-min-width: 64; -fx-pref-width: 64; -fx-max-width: 64;
+  -fx-font-family: "Inter SemiBold"; -fx-text-fill: -color-fg-emphasis;
+}
+.pomodoro-control .pomodoro-toolbar-state {
+  -fx-min-width: 12; -fx-pref-width: 12; -fx-max-width: 12;
+  -fx-min-height: 12; -fx-pref-height: 12; -fx-max-height: 12;
+}
+.pomodoro-control .pomodoro-running-dot {
+  -fx-min-width: 8; -fx-pref-width: 8; -fx-max-width: 8;
+  -fx-min-height: 8; -fx-pref-height: 8; -fx-max-height: 8;
+  -fx-background-color: -color-accent-fg; -fx-background-radius: 99;
+}
+.pomodoro-bubble .pomodoro-phase { -fx-alignment: center; -fx-graphic-text-gap: 0; }
+.pomodoro-bubble .pomodoro-phase > .radio, .pomodoro-bubble .pomodoro-phase > .radio > .dot {
+  -fx-padding: 0; -fx-border-width: 0; -fx-background-color: transparent; -fx-opacity: 0;
+}
+.pomodoro-bubble .popover-action.accent .icon-stroke { -fx-stroke: -diyalamp-accent-contrast; }
+.pomodoro-bubble .separator > .line {
+  -fx-border-color: -color-border-default; -fx-border-width: 1 0 0 0;
+}
+.diyalamp-popover .pomodoro-error { -fx-text-fill: #F3A39E; }
+.diyalamp-popover .pomodoro-minutes:timer-invalid { -fx-border-color: #F3A39E; }
 
 .accent-bubble .accent-swatch {
   -fx-min-width: 16;

@@ -39,6 +39,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
+import javafx.beans.property.ReadOnlyDoubleWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.css.PseudoClass;
@@ -53,6 +54,7 @@ import javafx.scene.input.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -119,6 +121,7 @@ public final class FxDiyalamp extends Application {
   private NoteStore store;
   private PaneHost primary, secondary;
   private View active;
+  private final ObjectProperty<View> focusView = new SimpleObjectProperty<>();
   private NoteStore.Deleted lastDeleted;
   private boolean persistentFolder = true, refreshing, sidebarOpen = true;
   private Timeline sidebarAnimation;
@@ -128,7 +131,7 @@ public final class FxDiyalamp extends Application {
   private FxUpdates updates;
   private FxPomodoro pomodoro;
   private FxNoteGraph noteGraph;
-  private ToggleButton connectionsControl;
+  private ToggleButton filesControl, connectionsControl;
 
   public FxDiyalamp() { this(Preferences.userRoot().node("com/diyalamp/desktop")); }
   FxDiyalamp(Preferences preferences) {
@@ -157,12 +160,18 @@ public final class FxDiyalamp extends Application {
     final FxWritingPane editor;
     Tab tab;
     final BorderPane content = new BorderPane();
+    final ReadOnlyDoubleWrapper inactiveFocus = new ReadOnlyDoubleWrapper();
     PaneHost host;
     boolean disposed;
     View(Session session, PaneHost host) {
       this.session = session; this.host = host;
       editor = new FxWritingPane(session.text);
-      editor.setFocusLineProgress(zenProgressProperty());
+      var isCurrent = focusView.isEqualTo(this);
+      ReadOnlyDoubleWrapper lineFocus = new ReadOnlyDoubleWrapper();
+      lineFocus.bind(Bindings.when(isCurrent).then(zenProgress).otherwise(0.0));
+      editor.setFocusLineProgress(lineFocus.getReadOnlyProperty());
+      inactiveFocus.bind(Bindings.when(isCurrent).then(0.0).otherwise(zenProgress));
+      FxZenChrome.apply(inactiveFocus.getReadOnlyProperty(), content);
       tab = newTab(UUID.randomUUID().toString());
       content.getStyleClass().add("note-page");
       Node writing = editor.node();
@@ -209,7 +218,7 @@ public final class FxDiyalamp extends Application {
           container.setCenter(view.content); activate(view);
         } else {
           container.setCenter(emptyPage()); breadcrumb.setText("");
-          if (active != null && active.host == this) active = null;
+          if (active != null && active.host == this) setActive(null);
           updateStatus();
         }
       });
@@ -231,7 +240,7 @@ public final class FxDiyalamp extends Application {
       preferences.putBoolean("connectionsVisible", showing);
       if (sidebarLayoutReady) layoutSidebars(true);
     });
-    noteGraph.showingProperty().set(preferences.getBoolean("connectionsVisible", false));
+    noteGraph.showingProperty().set(preferences.getBoolean("connectionsVisible", true));
     stage.setTitle("diyalamp");
     stage.setMinWidth(820); stage.setMinHeight(560);
     boolean packagedMac = System.getProperty("os.name", "").startsWith("Mac")
@@ -247,7 +256,7 @@ public final class FxDiyalamp extends Application {
     configureSidebars();
     root.getStyleClass().add("workspace-root");
     root.setCenter(workspaceLayer);
-    pomodoro = new FxPomodoro(stage, status::setText);
+    pomodoro = new FxPomodoro(stage, status::setText, preferences);
     buildToolbar();
     MenuBar menu = buildMenu();
     root.setTop(new VBox(menu, FxWindowHeader.create(stage, menu, toolbarClip, toolbarDragHandle)));
@@ -255,6 +264,8 @@ public final class FxDiyalamp extends Application {
     footer.getChildren().setAll(status, spacer(), metrics);
     footer.getStyleClass().add("workspace-status");
     footer.setAlignment(Pos.CENTER_LEFT); root.setBottom(footerClip);
+    FxZenChrome.apply(zenProgressProperty(), toolbarClip, footerClip, explorer,
+        noteGraph.node(), primary.chromeClip, secondary.chromeClip);
     Scene scene = new Scene(root, 1180, 800);
     scene.getPreferences().setColorScheme(ColorScheme.DARK);
     scene.getStylesheets().add(FxDiyalamp.class.getResource("/fx-workspace.css").toExternalForm());
@@ -295,11 +306,21 @@ public final class FxDiyalamp extends Application {
   private ToolBar buildToolbar() {
     toolbar.getStyleClass().add("workspace-toolbar");
     Label name = new Label("diyalamp"); name.getStyleClass().add("workspace-brand-name");
-    var lamp = FxTheme.lamp(24);
+    var lamp = FxTheme.lamp(22);
     lamp.setTranslateY(2);
     HBox brand = new HBox(8, lamp, name);
+    brand.setMinWidth(Region.USE_PREF_SIZE);
     brand.setAlignment(Pos.CENTER_LEFT); brand.getStyleClass().add("workspace-brand");
-    Button files = FxTheme.iconButton("panel-left", "Toggle files sidebar", this::toggleSidebar);
+    ToggleButton files = new ToggleButton(null, FxTheme.icon("panel-left", 16));
+    filesControl = files;
+    files.getStyleClass().addAll("flat", "button-icon", "workspace-tool");
+    files.setAccessibleText("Toggle files sidebar");
+    Tooltip filesHelp = new Tooltip();
+    filesHelp.textProperty().bind(Bindings.when(files.selectedProperty())
+        .then("Hide files sidebar").otherwise("Show files sidebar"));
+    files.setTooltip(filesHelp);
+    files.setSelected(sidebarOpen);
+    files.setOnAction(event -> toggleSidebar());
     folderControl.getStyleClass().addAll("flat", "workspace-tool", "workspace-folder");
     folderControl.setAlignment(Pos.CENTER_LEFT);
     folderControl.setMinWidth(36);
@@ -325,20 +346,35 @@ public final class FxDiyalamp extends Application {
         .then("Hide right sidebar").otherwise("Show right sidebar"));
     connections.setTooltip(connectionHelp);
     if (noteGraph != null) connections.selectedProperty().bindBidirectional(noteGraph.showingProperty());
-    ToggleButton zen = new ToggleButton(null, FxTheme.icon("focus", 18));
+    ToggleButton zen = new ToggleButton(null, FxTheme.icon("moon", 18));
     zen.getStyleClass().addAll("flat", "button-icon", "workspace-tool", "zen-toggle");
     Tooltip zenHelp = new Tooltip();
     zenHelp.textProperty().bind(Bindings.when(zenMode).then("Exit line focus · ⇧⌘F").otherwise("Enter line focus · ⇧⌘F"));
     zen.setTooltip(zenHelp); zen.setAccessibleText("Zen mode");
-    zen.setAccessibleHelp("Keep the current line clear and gradually fade surrounding lines. Workspace controls stay visible.");
+    zen.setAccessibleHelp("Keep the current line clear while dimming surrounding text and workspace controls.");
     zen.selectedProperty().bindBidirectional(zenMode);
-    Button beside = FxTheme.iconButton("columns-2", "Open note side by side", this::splitActive);
-    toolbar.getItems().setAll(brand, files, folderControl, beside, toolbarDragHandle);
+    toolbar.getItems().setAll(brand, files, folderControl, toolbarDragHandle);
     if (pomodoro != null) toolbar.getItems().add(pomodoro.button());
-    Button reset = FxTheme.iconButton("refresh-cw", "Reset sidebar widths", this::resetSidebarWidths);
+    Button reset = FxTheme.iconButton("layout-template", "Reset sidebar widths", this::resetSidebarWidths);
     reset.setAccessibleHelp("Restore default left and right sidebar widths without changing visibility or notes.");
     toolbar.getItems().addAll(accentButton(), zen, reset, connections);
+    fitFolderControl();
     return toolbar;
+  }
+
+  private void fitFolderControl() {
+    Text path = new Text();
+    path.textProperty().bind(folderControl.textProperty());
+    path.fontProperty().bind(folderControl.fontProperty());
+    var timerWidth = pomodoro == null ? toolbar.widthProperty() : pomodoro.button().prefWidthProperty();
+    folderControl.prefWidthProperty().bind(Bindings.createDoubleBinding(() -> {
+      Insets insets = toolbar.getInsets();
+      // Match the toolbar's 4px item gaps and leave room for pixel rounding.
+      double reserved = insets.getLeft() + insets.getRight() + 4 * toolbar.getItems().size() + 8;
+      for (Node item : toolbar.getItems()) if (item != folderControl) reserved += item.prefWidth(-1);
+      double natural = path.getLayoutBounds().getWidth() + 40;
+      return Math.max(36, Math.min(natural, toolbar.getWidth() - reserved));
+    }, toolbar.widthProperty(), toolbar.insetsProperty(), path.layoutBoundsProperty(), timerWidth));
   }
 
   private void buildExplorer() {
@@ -415,12 +451,14 @@ public final class FxDiyalamp extends Application {
       if (renameInput != null && event.getTarget() instanceof Node target && !within(target, renameInput)) cancelEdit();
     };
 
+    FileCell() { setPrefWidth(0); }
+
     @Override protected void updateItem(Path path, boolean empty) {
       if (renameInput != null && (empty || !java.util.Objects.equals(getItem(), path))) cancelEdit();
       super.updateItem(path, empty);
       if (renameInput != null) return;
       row = null; title = null;
-      setText(null); setGraphic(null); setContextMenu(null);
+      setText(null); setGraphic(null); setContextMenu(null); setTooltip(null);
       setOnDragDetected(null); setOnMouseClicked(null);
       setOnDragOver(null); setOnDragExited(null); setOnDragDropped(null);
       pseudoClassStateChanged(DROP_TARGET, false);
@@ -432,8 +470,13 @@ public final class FxDiyalamp extends Application {
       Node kind = FxTheme.icon(directory ? "folder-open" : "file-text", 15);
       kind.getStyleClass().add("file-kind");
       row = new HBox(8, kind, title);
+      int depth = Math.max(0, tree.getTreeItemLevel(getTreeItem()) - 1);
+      // Leave the native disclosure gutter and keep the actions within the viewport.
+      row.setMinWidth(0);
+      row.prefWidthProperty().bind(Bindings.max(0, widthProperty().subtract(24 + 16 * depth)));
       row.setAlignment(Pos.CENTER_LEFT); row.setMaxWidth(Double.MAX_VALUE);
       if (!directory) row.getChildren().add(fileActions(path));
+      setTooltip(new Tooltip(path.getFileName().toString()));
       setGraphic(row); setAccessibleText(path.getFileName() + (directory ? ", folder" : ", Markdown note"));
       ContextMenu menu = new ContextMenu();
       if (directory) menu.getItems().addAll(item("New note", () -> newNote(path)), item("New folder…", () -> newFolder(path)));
@@ -648,10 +691,15 @@ public final class FxDiyalamp extends Application {
   private void activate(View view) {
     if (view.disposed) return;
     if (active != null && active != view && active.session.pendingView != null) flush(active.session);
-    active = view;
+    setActive(view);
     view.host.breadcrumb.setText(store.root().getFileName() + "  /  " + store.root().relativize(view.session.path));
     stage.setTitle(view.session.path.getFileName() + " · diyalamp");
     updateStatus();
+  }
+
+  private void setActive(View view) {
+    active = view;
+    focusView.set(view);
   }
 
   private void chooseFolder() {
@@ -753,7 +801,7 @@ public final class FxDiyalamp extends Application {
     if (source.disposed) return;
     Session session = source.session;
     boolean wasDirty = session.dirty;
-    session.dirty = true; session.pendingView = source; session.metrics = null; active = source;
+    session.dirty = true; session.pendingView = source; session.metrics = null; setActive(source);
     if (!wasDirty) for (View view : session.views) updateView(view);
     status.setText("Saving…");
     serialization.playFromStart(); autosave.playFromStart();
@@ -1021,7 +1069,7 @@ public final class FxDiyalamp extends Application {
     if (view.disposed) return;
     view.disposed = true; view.editor.dispose(); view.session.views.remove(view);
     if (view.session.views.isEmpty()) sessions.remove(view.session.path);
-    if (active == view) active = null;
+    if (active == view) setActive(null);
     if (view.host.tabs.getTabs().isEmpty()) {
       view.host.container.setCenter(emptyPage()); view.host.breadcrumb.setText("");
       if (view.host == secondary) split.getItems().remove(secondary.container);
@@ -1040,7 +1088,7 @@ public final class FxDiyalamp extends Application {
     for (Session session : sessions.values()) for (View view : session.views) {
       view.disposed = true; view.editor.dispose();
     }
-    sessions.clear(); active = null;
+    sessions.clear(); setActive(null);
   }
 
   private void showSecondary() {
@@ -1182,6 +1230,7 @@ public final class FxDiyalamp extends Application {
   private void toggleSidebar() {
     captureSidebarWidths();
     sidebarOpen = !sidebarOpen;
+    if (filesControl != null) filesControl.setSelected(sidebarOpen);
     preferences.putBoolean("filesVisible", sidebarOpen);
     layoutSidebars(true);
   }
@@ -1464,12 +1513,18 @@ public final class FxDiyalamp extends Application {
     Label title = new Label("Accent color"); title.getStyleClass().add("popover-title");
     GridPane choices = new GridPane(); choices.setHgap(8); choices.setVgap(8);
     choices.getStyleClass().add("accent-choices");
+    for (int i = 0; i < 2; i++) {
+      ColumnConstraints column = new ColumnConstraints();
+      column.setPercentWidth(50);
+      choices.getColumnConstraints().add(column);
+    }
     for (int i = 0; i < ACCENT_CHOICES.length; i++) {
       String name = ACCENT_CHOICES[i][0];
       Color value = Color.web(ACCENT_CHOICES[i][1]);
       Button choice = new Button(name, accentSwatch(new SimpleObjectProperty<>(value)));
       choice.setContentDisplay(ContentDisplay.LEFT);
       choice.getStyleClass().addAll(Styles.FLAT, "accent-choice");
+      choice.setMinWidth(0);
       choice.setMaxWidth(Double.MAX_VALUE);
       GridPane.setHgrow(choice, Priority.ALWAYS);
       Runnable state = () -> {

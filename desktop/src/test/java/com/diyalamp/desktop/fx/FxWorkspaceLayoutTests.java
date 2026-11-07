@@ -19,6 +19,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToolBar;
 import javafx.scene.control.TreeView;
 import javafx.scene.image.WritableImage;
@@ -80,7 +81,7 @@ public final class FxWorkspaceLayoutTests {
         "The workspace must use the maintained Cupertino Dark control theme");
     ToolBar toolbar = (ToolBar) field(fixture.app, "toolbar");
     check(toolbar.getHeight() >= 52 && toolbar.getHeight() <= 64, "The shared toolbar must have a single comfortable control row");
-    for (String name : new String[] {"Workspace accent color", "Pomodoro focus timer", "Zen mode", "Toggle right sidebar", "Open note side by side", "Open folder"}) {
+    for (String name : new String[] {"Workspace accent color", "Pomodoro focus timer", "Zen mode", "Toggle right sidebar", "Open folder"}) {
       check(toolbar.getItems().stream().filter(node -> name.equals(node.getAccessibleText())).count() == 1,
           "The shared toolbar must expose one accessible " + name + " control");
     }
@@ -98,8 +99,8 @@ public final class FxWorkspaceLayoutTests {
         && filesHeader.lookupAll(".button").stream().anyMatch(node -> "New folder".equals(node.getAccessibleText()))
         && filesHeader.lookupAll(".button").stream().anyMatch(node -> "New note".equals(node.getAccessibleText())),
         "Search and both creation actions live in the files sidebar");
-    check(toolbar.getItems().stream().noneMatch(node -> java.util.List.of("New folder", "New note", "Search notes")
-        .contains(String.valueOf(node.getAccessibleText()))), "Sidebar controls are not repeated on the top bar");
+    check(toolbar.getItems().stream().noneMatch(node -> java.util.List.of("New folder", "New note", "Search notes", "Open note side by side")
+        .contains(String.valueOf(node.getAccessibleText()))), "Sidebar controls, including Split View, are not repeated on the top bar");
     Region graphHeader = (Region) ((FxNoteGraph) field(fixture.app, "noteGraph")).node().lookup(".graph-heading-row");
     check(filesHeader.getHeight() == 52 && tabs.getHeight() == 52 && graphHeader.getHeight() == 52
         && filesHeader.localToScene(0, 0).getY() == tabs.localToScene(0, 0).getY()
@@ -136,6 +137,9 @@ public final class FxWorkspaceLayoutTests {
         "The approved lamp and diyalamp name must share one horizontal brand row");
     check(toolbar.getItems().getFirst() == brand && "Toggle files sidebar".equals(toolbar.getItems().get(1).getAccessibleText()),
         "The sidebar toggle follows the lamp and diyalamp name");
+    check(((ToggleButton) field(fixture.app, "filesControl")).isSelected()
+        && ((ToggleButton) field(fixture.app, "connectionsControl")).isSelected(),
+        "Both visible sidebars must have selected toolbar toggles");
     Button path = (Button) field(fixture.app, "folderControl");
     check(path.isVisible() && path.getText().equals(fixture.directory.toString())
         && path.getTooltip().getText().equals(path.getText()) && path.getGraphic() != null
@@ -200,6 +204,11 @@ public final class FxWorkspaceLayoutTests {
   private static void compactWidth(Fixture fixture) throws Exception {
     ((FxNoteGraph) field(fixture.app, "noteGraph")).showingProperty().set(false);
     call(fixture.app, "layoutSidebars", new Class<?>[] {boolean.class}, false);
+    Button folder = (Button) field(fixture.app, "folderControl");
+    String longPath = "/workspace" + "/long folder name".repeat(12);
+    folder.setText(longPath);
+    FxPomodoro pomodoro = (FxPomodoro) field(fixture.app, "pomodoro");
+    ((Button) pomodoro.popover().getContentNode().lookup("#pomodoro-start")).fire();
     fixture.stage.setWidth(820); fixture.layout();
     Region pane = (Region) field(field(fixture.app, "primary"), "container");
     check(pane.getWidth() >= 500, "The default closed inspector must leave a useful writing area at the minimum window width");
@@ -207,8 +216,20 @@ public final class FxWorkspaceLayoutTests {
         "The editor must stay within the native window rather than overflowing horizontally");
     Node toggle = (Node) field(fixture.app, "connectionsControl");
     var bounds = toggle.localToScene(toggle.getBoundsInLocal());
-    check(toggle.isVisible() && bounds.getMinX() >= 0 && bounds.getMaxX() <= fixture.stage.getScene().getWidth(),
-        "The persistent right-sidebar toggle must fit the top bar even at the minimum width");
+    Node overflow = ((ToolBar) field(fixture.app, "toolbar")).lookup(".tool-bar-overflow-button");
+    check(toggle.isVisible() && toggle.getScene() == fixture.stage.getScene()
+        && bounds.getMinX() >= 0 && bounds.getMaxX() <= fixture.stage.getScene().getWidth()
+        && (overflow == null || !overflow.isVisible()),
+        "The right-sidebar toggle stays on the bar at minimum width with a long folder and running timer");
+    check(folder.getTooltip().getText().equals(longPath),
+        "A shortened folder button still exposes the complete path");
+    String longFilename = "Long fictional name ".repeat(5).strip() + ".md";
+    Files.writeString(fixture.directory.resolve(longFilename), "Test note.");
+    call(fixture.app, "refreshTree", new Class<?>[0]); fixture.layout();
+    TreeView<?> tree = (TreeView<?>) field(fixture.app, "tree");
+    Button trash = action(tree, "Move " + longFilename + " to deleted notes");
+    check(trash.localToScene(trash.getWidth(), 0).getX() <= tree.localToScene(tree.getWidth(), 0).getX(),
+        "Long filenames must leave the rightmost row action in view");
     HBox metrics = (HBox) field(fixture.app, "metrics");
     var stats = metrics.localToScene(metrics.getBoundsInLocal());
     check(stats.getMinX() >= 0 && stats.getMaxX() <= fixture.stage.getScene().getWidth(),
@@ -272,7 +293,6 @@ public final class FxWorkspaceLayoutTests {
           + "## Local Markdown files\n\n- Keep the files on your Mac\n- Open two notes side by side\n- Start a focus session when you are ready\n\n"
           + "```java\nString idea = \"A small beginning\";\nSystem.out.println(idea);\n```\n");
       Files.writeString(directory.resolve("Reference.md"), "# Reference\n\nReturn to [[Draft]].\n");
-      preferences.putBoolean("connectionsVisible", true);
       app.start(stage);
       call(app, "setFolder", new Class<?>[] {Path.class}, directory);
       call(app, "open", new Class<?>[] {Path.class, boolean.class}, directory.resolve("Draft.md"), false);
