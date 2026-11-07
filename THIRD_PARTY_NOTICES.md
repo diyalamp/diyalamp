@@ -6,9 +6,9 @@
 
 - JavaFX 27 (OpenJFX), GPL v2 with the Classpath Exception and upstream additional notices. AtlantaFX 3.0.0, MIT. RichTextFX 0.11.7 and its ReactFX, UndoFX, Flowless, and WellBehavedFX dependencies retain their upstream license texts. Copies and source references are bundled under `desktop/src/main/resources/licenses/`. These libraries are not relicensed by this project.
 
-- FlatLaf 3.7.2, copyright FormDev Software GmbH, Apache License 2.0. Official project: https://github.com/JFormDesigner/FlatLaf. The pinned JAR retains its upstream notices. The dependency checksum is verified during the build.
+- FlatLaf 3.7.2, copyright FormDev Software GmbH, Apache License 2.0. Official project: https://github.com/JFormDesigner/FlatLaf. FlatLaf, FlatLaf Extras, and JSVG support legacy Swing builds and tests. The pinned JARs retain their upstream notices and their checksums are verified during the build.
 - CommonMark Java 0.32.0 (core and GFM strikethrough), copyright Atlassian Pty Ltd and contributors, BSD 2-Clause. Official project: https://github.com/commonmark/commonmark-java. The build pins both artifact checksums; upstream licenses are retained in the JARs and application resources.
-- FlatLaf Extras 3.7.2 (Apache 2.0) and JSVG 2.1.0 (MIT) render bundled SVG icons. Upstream JAR notices are retained.
+- FlatLaf Extras 3.7.2 (Apache 2.0) and JSVG 2.1.0 (MIT) render SVG icons in the legacy Swing interface. Upstream JAR notices are retained.
 - Lucide icons, ISC and Feather-derived MIT notices: bundled `Lucide-LICENSE.txt`. Source revision 1980e3d59b0fa1a2aeb566d5902b25ee98204001; Bold icon from official Lucide tag 0.468.0.
 - The self-contained macOS package includes an OpenJDK runtime. Its upstream notices are retained in `Contents/runtime/Contents/Home/legal`.
 - The approved lamp artwork is a project brand asset. It is not relicensed as original Apache-licensed artwork.

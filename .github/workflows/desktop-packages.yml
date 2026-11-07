@@ -1,6 +1,11 @@
 name: Package macOS editor
 on:
   workflow_dispatch:
+    inputs:
+      validate_only:
+        description: Build and test installers without staging a release
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -11,8 +16,10 @@ jobs:
         include:
           - os: macos-15
             arch: arm64
+            fx_platform: mac-aarch64
           - os: macos-15-intel
             arch: x86_64
+            fx_platform: mac
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
@@ -24,14 +31,41 @@ jobs:
       - id: version
         run: echo "version=$(sh desktop/version.sh)" >> "$GITHUB_OUTPUT"
       - run: sh desktop/package-macos.sh
-      - run: hdiutil verify desktop/build/release/diyalamp-${{ steps.version.outputs.version }}-macos-${{ matrix.arch }}.dmg
+      - name: Verify the mounted installer and bundled runtime
+        working-directory: desktop
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          ARCH: ${{ matrix.arch }}
+          FX_PLATFORM: ${{ matrix.fx_platform }}
+        run: |
+          name="diyalamp-$VERSION-macos-$ARCH.dmg"
+          (cd build/release && shasum -a 256 -c "$name.sha256")
+          hdiutil verify "build/release/$name"
+          mount=$(mktemp -d)
+          hdiutil attach -readonly -nobrowse -mountpoint "$mount" "build/release/$name"
+          trap 'hdiutil detach "$mount" >/dev/null' EXIT
+          app="$mount/diyalamp.app"
+          payload="$app/Contents/app"
+          java="$app/Contents/runtime/Contents/Home/bin/java"
+          codesign --verify --deep --strict "$app"
+          test "$(lipo -archs "$app/Contents/MacOS/diyalamp")" = "$ARCH"
+          test "$(lipo -archs "$java")" = "$ARCH"
+          test -z "$(find "$payload" -type f \( -name 'flatlaf-*.jar' -o -name 'jsvg-*.jar' \) -print)"
+          for suite in fx.FxWritingPaneTests update.UpdateTests; do
+            "$java" --module-path "$payload/fx-deps/$FX_PLATFORM" --add-modules javafx.controls \
+              --enable-native-access=javafx.graphics,ALL-UNNAMED -Djava.awt.headless=true \
+              -Dglass.platform=Headless -Dprism.order=sw \
+              -cp "$payload/diyalamp.jar:$PWD/build/test-classes" "com.diyalamp.desktop.$suite"
+          done
+          printf '%s %s bytes\n' "$name" "$(wc -c < "build/release/$name" | tr -d ' ')"
       - uses: actions/upload-artifact@v4
         with:
-          name: diyalamp-macos-${{ matrix.arch }}
+          name: ${{ inputs.validate_only && 'diyalamp-validation' || 'diyalamp' }}-macos-${{ matrix.arch }}
           path: desktop/build/release/*.dmg*
           if-no-files-found: error
   stage-release:
     needs: package
+    if: ${{ !inputs.validate_only }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

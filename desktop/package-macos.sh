@@ -33,8 +33,16 @@ APP_DEST="build/app-$VERSION"
 if [ -d "$APP_DEST/diyalamp.app" ]; then mv "$APP_DEST/diyalamp.app" "$APP_DEST/diyalamp-previous-$(date +%s).app"; fi
 "$JDK/bin/jpackage" --type app-image --name diyalamp --input build/input --main-jar diyalamp.jar --main-class com.diyalamp.desktop.DesktopLauncher --runtime-image "$RUNTIME" --app-version "$VERSION" --vendor diyalamp --description 'Local Markdown editor for macOS. No account required.' --mac-package-identifier com.diyalamp.desktop --icon build/diyalamp.icns --java-options "--module-path=\$APPDIR/fx-deps/$FX_PLATFORM" --java-options '--add-modules=javafx.controls' --java-options '--enable-native-access=javafx.graphics,ALL-UNNAMED' --java-options '-Dapple.awt.application.appearance=NSAppearanceNameDarkAqua' --dest "$APP_DEST"
 TARGET="build/release/diyalamp-${VERSION}-macos-${ARCH}.dmg"
-if [ -f "$TARGET" ]; then mv "$TARGET" "$TARGET.previous-$(date +%s)"; fi
 "$JDK/bin/jpackage" --type dmg --name diyalamp --app-image "$APP_DEST/diyalamp.app" --app-version "$VERSION" --vendor diyalamp --dest build/dmg
-mv "build/dmg/diyalamp-${VERSION}.dmg" "$TARGET"
+DMG="build/dmg/diyalamp-${VERSION}.dmg"
+COMPRESSED_DMG="build/dmg/diyalamp-${VERSION}-compressed.dmg"
+if hdiutil convert "$DMG" -format UDZO -imagekey zlib-level=9 -ov -o "$COMPRESSED_DMG" >/dev/null &&
+  [ "$(wc -c < "$COMPRESSED_DMG")" -lt "$(wc -c < "$DMG")" ]; then
+  mv "$COMPRESSED_DMG" "$DMG"
+else
+  rm -f "$COMPRESSED_DMG"
+fi
+if [ -f "$TARGET" ]; then mv "$TARGET" "$TARGET.previous-$(date +%s)"; fi
+mv "$DMG" "$TARGET"
 (cd build/release && shasum -a 256 "$(basename "$TARGET")") > "$TARGET.sha256"
 printf 'Ready: %s\n' "$TARGET"
