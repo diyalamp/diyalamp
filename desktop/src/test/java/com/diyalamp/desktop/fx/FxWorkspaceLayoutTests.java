@@ -348,8 +348,8 @@ public final class FxWorkspaceLayoutTests {
       list.getItems().setAll(fixture.directory.resolve("Draft.md"), fixture.directory.resolve("Reference.md"));
       fixture.layout();
       paintedRows(list, ".list-cell", 0);
-      check(((Region) list.getParent()).getPadding().equals(new Insets(8)),
-          "Connection lists retain their section's existing 8 px inset");
+      check(list.getPadding().equals(new Insets(0, 8, 0, 8)),
+          "Connection lists retain their 8 px side insets below full-width headings");
     } finally { list.getItems().setAll(original); }
   }
 
