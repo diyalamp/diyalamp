@@ -2,28 +2,35 @@
 
 Contributions improve the local Markdown editor, file safety, and macOS integration.
 
-## Start here
+## Test the Mac app
 
-The current product is a local macOS Markdown editor. See [product scope](docs/PRODUCT.md). The desktop application belongs in `desktop/`; the website has its own repository. Earlier agent orchestration, browser automation, database, and cloud prototypes are outside the current release.
+Install the current build using the [macOS install guide](docs/install.md). Pick one writing task, such as finding a note, closing a tab, or switching between split panes. Try it with the keyboard or VoiceOver in a folder of fictional notes. Report what you expected, what happened, and the app version from **Help → About diyalamp**. [Open VoiceOver review](https://github.com/diyalamp/diyalamp/issues/1)
 
-Before a large change, open an issue describing the writing problem and proposed behavior. Small documentation corrections and reproducible bug fixes can go straight to a pull request.
+For other issues, include your macOS version and whether the Mac uses Apple silicon or Intel. Share the smallest Markdown example that reproduces the problem. Keep private notes, credentials, and personal paths out of reports. For sensitive security reports, follow [SECURITY.md](SECURITY.md).
 
-## Development
+## Build from source
 
-Use JDK 25 or newer. Build with `sh desktop/build.sh`, run with `sh desktop/run.sh`, and test with `sh desktop/test.sh`. See [desktop development](desktop/README.md) for packaging details. Keep sample notes fictional and never commit your personal writing or credentials.
+Use JDK 25 or newer on a Mac. Run these commands from the root of your clone. The first build downloads and verifies pinned dependencies.
+
+```sh
+sh desktop/test.sh
+
+workspace=$(mktemp -d "${TMPDIR:-/tmp}/diyalamp-contribute.XXXXXX")
+printf '# Draft\n\nRead [[Reference]].\n' > "$workspace/Draft.md"
+printf '# Reference\n\nA fictional note for testing.\n' > "$workspace/Reference.md"
+sh desktop/run.sh --workspace "$workspace"
+```
+
+Open both notes and follow the link from Draft to Reference. The temporary workspace keeps tests away from your own files, and this launch does not replace the app's last-opened folder. App-wide preferences still apply. See [desktop development](desktop/README.md) for JDK selection and packaging, or [the installer size issue](https://github.com/diyalamp/diyalamp/issues/2) for runtime and package work.
 
 ## Pull requests
 
-Describe the user-visible problem, the resulting behavior, and how you checked it. Add focused tests for file safety, Markdown round trips, and other behavior that could lose writing. UI changes should include a screenshot and keyboard-access check. Keep unrelated formatting changes out of the patch.
+The desktop application lives in `desktop/` and the website has [its own repository](https://github.com/diyalamp/diyalamp.github.io). Check the [product scope](docs/PRODUCT.md) and open an issue before a large change. Small documentation corrections and reproducible bug fixes can go straight to a pull request.
+
+Describe the problem, the resulting behavior, and how you checked it. Add focused tests for changes that could affect file safety or Markdown round trips. For UI changes, include a screenshot and check the affected flow with the keyboard.
 
 ## Design
 
-Use the fixed lamp asset and lowercase **diyalamp** name. The desktop interface is light-only: soft-gray panels, quiet writing surfaces, and a selectable muted accent. Use static Inter Regular 16 for ordinary interface/prose, exact Inter SemiBold faces for headings/emphasis, and installed Menlo 16 for code. Keep the font license/provenance with the bundled static faces. Reuse AtlantaFX Cupertino controls and Popover components, RichTextFX editing behavior, and SmartGraph for note graphs. Maintain compact navigation, readable content, consistent spacing, and native macOS interactions. Avoid sign-in, telemetry, AI services, and paid dependencies in the local writing flow.
-
-## Reporting a problem
-
-Include your macOS version, Mac architecture (Apple silicon or Intel), application version, steps to reproduce, and what you expected. Attach a minimal fictional Markdown example when relevant. Do not include private notes, tokens, or personal file paths.
-
-For sensitive security reports, follow [SECURITY.md](SECURITY.md).
+Follow the [desktop design rules](desktop/README.md#interface-design). Reuse the shared spacing tokens and existing AtlantaFX controls, RichTextFX editor, and SmartGraph panel. Keep the local writing flow independent of sign-in, telemetry, and hosted services.
 
 Contributions are licensed under the repository's Apache 2.0 license.

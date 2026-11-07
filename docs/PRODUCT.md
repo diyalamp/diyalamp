@@ -6,7 +6,7 @@
 
 The public story leads with writing and ownership. Java is an implementation detail for contributors.
 
-## Desktop scope · 1.2.1 development
+## Desktop scope
 
 - No account or service connection required.
 - A folder of `.md` notes with create, rename, search, open, and recoverable delete.
@@ -21,7 +21,7 @@ Cloud storage, account backends, AI agents, embeddings, collaboration, databases
 
 ## Identity
 
-Lowercase **diyalamp**, the existing fixed lamp image, and “A tool for the mind.” The desktop app is dark-only, using maintained AtlantaFX CupertinoDark controls with the official VS Code 2026 Dark palette: editor `#121314`/`#BBBEBF`, chrome `#191A1B`, border `#2A2B2C`, text `#BFBFBF`, muted text `#8C8C8C`, input `#191A1B`/`#333536`, placeholder `#555555`, default blue `#297AA0`, and link blue `#48A0C7`. The interface and body text use 16 px, including graph labels, dialog headers, menus, popovers, and Pomodoro digits. Use static Inter Regular for ordinary interface text and prose, Inter SemiBold for Markdown headings, and installed Menlo for code. Markdown H1, H2, and H3 use 28, 23, and 19 px. H4–H6 use the body size. Quotes have a rounded inset and an accent rule. Static italic faces preserve Markdown emphasis. The font payload is a measured visual-quality tradeoff. Keep the dark appearance as the only mode. Use maintained Popover components and RichTextFX text layout. Keep Open Folder, file actions, and the accent picker discoverable. The app icon retains the approved lamp's size and position on a subtly shaded dark backplate. Packaged launches use the ICNS asset, and macOS controls Dock zoom. The website and browser prototype retain their separately approved dark presentation.
+Use lowercase **diyalamp** and the existing lamp image. Follow the [desktop design rules](../desktop/README.md#interface-design) for the shared dark surfaces, typography, spacing, and controls. The app icon keeps the approved lamp size and position on the dark backplate. Packaged launches use the ICNS asset. The product website uses its own dark presentation and shows screenshots of the Mac app.
 
 ## Release truth
 
@@ -37,8 +37,8 @@ Wiki links use `[[Note name]]` and remain in the saved Markdown. The right panel
 
 Zen is a visual current-line focus fade: text away from the caret line is subdued while all workspace chrome remains visible. Keep its toggle in the same position and let input pass through the visual overlay. Both sidebars use maintained JavaFX SplitPane dividers. Remember their pixel widths and visibility independently, clamp them to sensible bounds, and leave a usable writing pane. A top-toolbar reset restores the 272/304 px defaults without changing visibility, document state, or Zen.
 
-The dark toolbar shares a row with the native macOS window buttons. It shows the full workspace path and provides folder opening, search, note creation, folder creation, and split view. The files sidebar contains the note and folder tree. Pomodoro and accent use an icon and a color circle. The bottom bar shows character, word, and logical-line counts for rendered text and the current Markdown's UTF-8 byte size.
+The toolbar shares a row with the native macOS window buttons. The workspace path is also the folder picker. The files sidebar holds search, note and folder creation, and the folder tree. Each note row has split, inline rename, and recoverable delete actions. The toolbar also exposes the sidebar toggles, Pomodoro, accent, Focus, and layout reset. The status bar shows character, word, and logical-line counts for rendered text and the current Markdown's UTF-8 byte size.
 
-Accents transition between six choices with readable dark-surface foregrounds. Dialogs use the same AtlantaFX component styling. Pomodoro provides 25-minute focus sessions and 5-minute breaks through an animated popover with Start, Stop, and Reset. It starts explicitly and stops when the app quits; the icon tooltip and accessibility help expose changing time while its accessible name stays stable. Hover animation changes paint only, with no layout shift, lift, or zoom.
+Accents transition between five presets and a custom hex color. Dialogs use the shared AtlantaFX styling. Pomodoro shows the current phase and countdown in the toolbar. Its popover supports start, pause, reset, editable focus and break durations, and one-cycle or repeat schedules. It starts explicitly and stops when the app quits. The accessible name stays stable while the tooltip and accessibility help expose the changing time. Hover transitions preserve control geometry.
 
 Tab transfers retain their existing editor, selection and history. Folder moves preserve file bytes and reject collisions; moving a file does not rewrite folder-qualified links in other notes. Use stable note names or update explicit paths after reorganizing folders.
