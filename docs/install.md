@@ -52,13 +52,15 @@ This community release is **unsigned and not Apple-notarized**, so macOS may blo
 
 From version 1.1.1 onward, choose Help → **Check for updates**. Checking is explicit and does not download or install anything. If a newer stable release exists, choose **Download update**, then **Install and Restart** after verification completes. The app saves pending edits before quitting; a save conflict cancels installation so you can resolve it first.
 
-The updater uses only this project's GitHub release channel and the installer for your Mac architecture. It verifies the SHA-256 checksum, disk image, bundle identity/version, architecture, and staged app. It keeps the previous app as a hidden `.diyalamp-backup-….bundle` beside the installation, and attempts rollback if replacement or launch fails. It does not request administrator rights or change macOS security settings. If your Applications folder is not writable by your account, use the DMG method below.
+The updater uses only this project's GitHub release channel and the installer for your Mac architecture. It verifies the SHA-256 checksum, disk image, bundle identity/version, architecture, and staged app. It keeps the previous app as a hidden `.diyalamp-backup-….bundle` beside the installation, and attempts rollback if replacement or launch fails. It does not request administrator rights or change macOS security settings. If your Applications folder is not writable by your account, [update from a DMG](#update-from-a-dmg).
 
 Earlier versions without the updater need one manual replacement. These releases are unsigned; checksum verification is not publisher signature verification.
 
-## Start writing or update the app
+## Start writing
 
-Choose **Open folder…** in the sidebar or File menu (`⌘O`) to select your notes folder. Existing notes remain in their original folder; select that same folder to reopen them. The editor reads `.md` and `.markdown` files and saves changes locally. Start with a new or backed-up folder when trying the app for the first time.
+Choose File → **Open folder…** or press `⌘O` to select your notes folder. Existing notes remain in their original folder. Select that folder to reopen them. The editor reads `.md` and `.markdown` files and saves changes locally. Start with a new or backed-up folder when trying the app for the first time.
+
+## Update from a DMG
 
 To update, quit diyalamp, install the newer DMG, and replace the app in Applications. Notes live separately from the application bundle. Keep a backup of your notes before an update; reinstalling the app does not restore files you deleted from the notes folder.
 
