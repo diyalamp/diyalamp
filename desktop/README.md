@@ -37,7 +37,9 @@ On a Mac with JDK 25 or newer and Apple's command-line tools:
 sh desktop/package-macos.sh
 ```
 
-This produces a self-contained `.app`, a compressed DMG for the current processor architecture, and a SHA-256 file. The runtime is included; users do not need to install Java. The manual GitHub packaging workflow builds separate Apple silicon and Intel artifacts. Both the artifact names and draft release tag use the application version declared in `DesktopLauncher.VERSION`; published assets are never overwritten.
+This produces a self-contained `.app`, a compressed DMG for the current processor architecture, and a SHA-256 file. The runtime is included, so users can run the app directly. FlatLaf, FlatLaf Extras, and JSVG remain available to the source build and Swing tests. The packaging script uses stronger lossless DMG compression when it makes the download smaller.
+
+The manual GitHub packaging workflow builds separate Apple silicon and Intel artifacts and tests each bundled runtime from its mounted DMG. Select **Build and test installers without staging a release** to validate a branch. A release dispatch stages both verified installers in a draft using the version declared in `DesktopLauncher.VERSION`.
 
 This community release is unsigned and not Apple-notarized. Do not describe it as notarized or suppress macOS security checks. Signing requires the owner's Apple Developer identity and a separate notarization setup.
 

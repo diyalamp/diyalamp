@@ -7,10 +7,17 @@ VERSION=$(sh version.sh)
 ARCH=$(uname -m)
 rm -rf build/input
 mkdir -p build/input/deps build/input/fx-deps/common "build/input/fx-deps/$FX_PLATFORM" build/release build/icon.iconset
-cp build/diyalamp.jar build/input/
-cp build/deps/flatlaf-3.7.2.jar build/deps/commonmark-0.32.0.jar build/deps/commonmark-ext-gfm-strikethrough-0.32.0.jar build/deps/flatlaf-extras-3.7.2.jar build/deps/jsvg-2.1.0.jar build/input/deps/
+# The Mac launcher uses JavaFX. Keep the legacy Swing libraries in the
+# source build and test classpath, outside the shipped app.
+cp build/deps/commonmark-0.32.0.jar build/deps/commonmark-ext-gfm-strikethrough-0.32.0.jar build/input/deps/
 cp build/fx-deps/common/*.jar build/input/fx-deps/common/
 cp "build/fx-deps/$FX_PLATFORM/"*.jar "build/input/fx-deps/$FX_PLATFORM/"
+manifest_paths=''
+for dependency in build/input/deps/*.jar build/input/fx-deps/common/*.jar; do
+  manifest_paths="$manifest_paths ${dependency#build/input/}"
+done
+printf 'Class-Path:%s\n' "$manifest_paths" > build/package-manifest.mf
+"$JDK/bin/jar" --create --file build/input/diyalamp.jar --main-class com.diyalamp.desktop.DesktopLauncher --manifest build/package-manifest.mf -C build/classes .
 for size in 16 32 128 256 512; do
   sips -z "$size" "$size" src/main/resources/app-icon.png --out "build/icon.iconset/icon_${size}x${size}.png" >/dev/null
   double=$((size * 2))
@@ -26,8 +33,16 @@ APP_DEST="build/app-$VERSION"
 if [ -d "$APP_DEST/diyalamp.app" ]; then mv "$APP_DEST/diyalamp.app" "$APP_DEST/diyalamp-previous-$(date +%s).app"; fi
 "$JDK/bin/jpackage" --type app-image --name diyalamp --input build/input --main-jar diyalamp.jar --main-class com.diyalamp.desktop.DesktopLauncher --runtime-image "$RUNTIME" --app-version "$VERSION" --vendor diyalamp --description 'Local Markdown editor for macOS. No account required.' --mac-package-identifier com.diyalamp.desktop --icon build/diyalamp.icns --java-options "--module-path=\$APPDIR/fx-deps/$FX_PLATFORM" --java-options '--add-modules=javafx.controls' --java-options '--enable-native-access=javafx.graphics,ALL-UNNAMED' --java-options '-Dapple.awt.application.appearance=NSAppearanceNameDarkAqua' --dest "$APP_DEST"
 TARGET="build/release/diyalamp-${VERSION}-macos-${ARCH}.dmg"
-if [ -f "$TARGET" ]; then mv "$TARGET" "$TARGET.previous-$(date +%s)"; fi
 "$JDK/bin/jpackage" --type dmg --name diyalamp --app-image "$APP_DEST/diyalamp.app" --app-version "$VERSION" --vendor diyalamp --dest build/dmg
-mv "build/dmg/diyalamp-${VERSION}.dmg" "$TARGET"
+DMG="build/dmg/diyalamp-${VERSION}.dmg"
+COMPRESSED_DMG="build/dmg/diyalamp-${VERSION}-compressed.dmg"
+if hdiutil convert "$DMG" -format UDZO -imagekey zlib-level=9 -ov -o "$COMPRESSED_DMG" >/dev/null &&
+  [ "$(wc -c < "$COMPRESSED_DMG")" -lt "$(wc -c < "$DMG")" ]; then
+  mv "$COMPRESSED_DMG" "$DMG"
+else
+  rm -f "$COMPRESSED_DMG"
+fi
+if [ -f "$TARGET" ]; then mv "$TARGET" "$TARGET.previous-$(date +%s)"; fi
+mv "$DMG" "$TARGET"
 (cd build/release && shasum -a 256 "$(basename "$TARGET")") > "$TARGET.sha256"
 printf 'Ready: %s\n' "$TARGET"
