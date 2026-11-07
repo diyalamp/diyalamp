@@ -66,8 +66,9 @@ public final class FxDialogsTests {
     check(accept.getStyleClass().contains("accent"), "Affirmative actions must use the maintained AtlantaFX accent style");
     check(accept.getFont().getName().equals("Inter Regular") && accept.getFont().getSize() == 16,
         "Action text must use the shared Inter font and 16-point size");
-    check(input.getEditor().getFont().getSize() == 16 && input.getEditor().getHeight() >= 38,
-        "Text fields must use the shared readable size and control height");
+    check(input.getEditor().getFont().getSize() == 16 && input.getEditor().getHeight() == 36
+        && accept.getHeight() == 36,
+        "Dialog fields and actions must use the shared 36-pixel control height");
     check(input.getDialogPane().getGraphic() == null, "The dialog must not add an oversized icon above its content");
     check(input.getDialogPane().getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius() == 12,
         "Actual laid-out dialog surfaces must have the shared soft rounding");

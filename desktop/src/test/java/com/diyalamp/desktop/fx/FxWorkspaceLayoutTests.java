@@ -15,6 +15,7 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.animation.PauseTransition;
 import javafx.event.ActionEvent;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -119,22 +120,30 @@ public final class FxWorkspaceLayoutTests {
     check(!tabLabels.isEmpty() && tabLabels.stream().allMatch(node -> node.isVisible() && node.isManaged()
         && node.getLayoutBounds().getWidth() > 40),
         "The selected document filename must remain visible after the tab's reveal animation");
-    Node tab = tabs.lookup(".tab:selected");
+    Region tab = (Region) tabs.lookup(".tab:selected");
     var tabOrigin = tab.localToScene(0, 0).subtract(tabs.localToScene(0, 0));
-    check(Math.abs(tabOrigin.getX() - 8) <= 1 && Math.abs(tabOrigin.getY() - 8) <= 1,
-        "The first document tab uses the same 8 px top and left inset: " + tabOrigin);
+    check(Math.abs(tabOrigin.getX() - 8) <= 1 && Math.abs(tabOrigin.getY() - 8) <= 1 && tab.getHeight() == 36,
+        "The first document tab uses the same 36 px height and 8 px inset: " + tabOrigin);
     Region explorer = (Region) field(fixture.app, "explorerClip");
     Region pane = (Region) field(primary, "container");
     check(explorer.localToScene(0, 0).getX() == 0 && Math.abs(pane.localToScene(0, 0).getX() - explorer.getWidth()) <= 7,
         "The single files sidebar must lead directly into the editor without a second activity rail");
+    Label brand = (Label) toolbar.lookup(".workspace-brand");
+    double center = brand.localToScene(0, brand.getHeight() / 2).getY();
+    Region previous = null;
     for (Node node : toolbar.getItems()) {
-      if (!(node instanceof javafx.scene.control.ButtonBase button)) continue;
-      check(button.getHeight() >= 32 && button.getWidth() >= 32,
-          "Every global toolbar action must retain a comfortable click target");
+      if (!(node instanceof javafx.scene.control.Labeled control)) { previous = null; continue; }
+      check(control.getHeight() == 36 && control.getPadding().equals(new Insets(8))
+          && control.getFont().getSize() == 16 && control.getFont().getName().equals("Inter Regular")
+          && Math.abs(control.localToScene(0, 18).getY() - center) <= 1,
+          "The wordmark and toolbar controls share exact height, inset, type and center: " + control);
+      if (previous != null) check(Math.abs(control.localToScene(0, 0).getX()
+          - previous.localToScene(previous.getWidth(), 0).getX() - 8) <= 1,
+          "Neighboring controls have an 8 px gap");
+      previous = control;
     }
-    var brand = toolbar.lookupAll(".workspace-brand").stream().findFirst().orElseThrow();
-    check(brand instanceof HBox && ((HBox) brand).getChildren().size() == 2,
-        "The approved lamp and diyalamp name must share one horizontal brand row");
+    check(brand.getGraphic() != null && brand.getText().equals("diyalamp"),
+        "The lamp and name must use one inline labeled control");
     check(toolbar.getItems().getFirst() == brand && "Toggle files sidebar".equals(toolbar.getItems().get(1).getAccessibleText()),
         "The sidebar toggle follows the lamp and diyalamp name");
     check(((ToggleButton) field(fixture.app, "filesControl")).isSelected()

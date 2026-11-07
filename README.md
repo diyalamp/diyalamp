@@ -13,9 +13,9 @@ diyalamp is a desktop Markdown editor with rendered formatting and local file st
 
 The application opens a folder of `.md` or `.markdown` files. Editing does not require an account, subscription, server, database, or internet connection. Notes remain readable by other Markdown tools.
 
-## Development features · 1.3.1
+## Development features · 1.3.2
 
-This describes the 1.3.1 development workspace. See macOS downloads below for the published release.
+This describes the 1.3.2 development workspace. See macOS downloads below for the published release.
 
 - Dark-only macOS workspace using maintained AtlantaFX CupertinoDark controls and the official VS Code 2026 Dark palette, with a file explorer, note tabs, and flat Lucide icons.
 - One 16 px text size throughout: static Inter for interface/prose and headings, with weight indicating headings or emphasis; installed Menlo for code.

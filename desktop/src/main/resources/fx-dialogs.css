@@ -29,19 +29,11 @@
 .diyalamp-dialog .dialog-action,
 .diyalamp-dialog .text-field,
 .diyalamp-dialog .combo-box-base {
-  -fx-min-height: 40;
-  -fx-background-insets: 0;
-  -fx-background-radius: 8;
   -fx-border-insets: 0;
-  -fx-border-radius: 8;
   -fx-border-width: 1;
-  -fx-effect: null;
-  transition-property: -fx-background-color, -fx-border-color;
-  transition-duration: 180ms;
-  transition-timing-function: ease-out;
 }
 .diyalamp-dialog .dialog-action {
-  -fx-padding: 8 16;
+  -fx-padding: 0 8;
   -fx-background-color: -color-bg-subtle;
   -fx-border-color: -color-border-default;
   -fx-text-fill: -color-fg-default;
@@ -64,11 +56,8 @@
   -fx-highlight-fill: -diyalamp-selection;
   -fx-highlight-text-fill: -color-fg-emphasis;
 }
-.diyalamp-dialog .text-field { -fx-padding: 8 16; }
+.diyalamp-dialog .text-field { -fx-padding: 0 8; }
 .diyalamp-dialog .dialog-action:focused,
 .diyalamp-dialog .dialog-action.accent:focused,
 .diyalamp-dialog .text-field:focused,
 .diyalamp-dialog .combo-box-base:focused { -fx-border-color: -diyalamp-focus; }
-.diyalamp-dialog:reduced-motion .dialog-action,
-.diyalamp-dialog:reduced-motion .text-field,
-.diyalamp-dialog:reduced-motion .combo-box-base { transition-duration: 0s; }

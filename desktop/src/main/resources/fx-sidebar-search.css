@@ -36,9 +36,6 @@
   -fx-border-width: 1;
   -fx-effect: null;
   -fx-alignment: center;
-  transition-property: -fx-background-color, -fx-border-color, -fx-text-fill;
-  transition-duration: 180ms;
-  transition-timing-function: ease-out;
 }
 .sidebar-search-mode {
   -fx-min-height: 28;
@@ -113,5 +110,3 @@
   -fx-fill: -color-fg-muted;
 }
 .sidebar-search-highlight { -fx-font-family: "Inter SemiBold"; -fx-fill: -color-accent-fg; }
-.workspace-root:reduced-motion .sidebar-search-mode,
-.workspace-root:reduced-motion .sidebar-search-option { transition-duration: 0s; }
