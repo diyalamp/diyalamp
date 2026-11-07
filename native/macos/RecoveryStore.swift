@@ -44,7 +44,7 @@ struct RecoveryStore {
     static func applicationSupport() throws -> RecoveryStore {
         let support = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
             appropriateFor: nil, create: true)
-        let directory = support.appendingPathComponent("com.diyalamp.preview.nativeworkspace", isDirectory: true)
+        let directory = support.appendingPathComponent("diyalamp/native", isDirectory: true)
         return RecoveryStore(fileURL: directory.appendingPathComponent("recovery.plist"))
     }
 

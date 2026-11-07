@@ -8,7 +8,7 @@ trap 'rm -rf "$scratch"' EXIT
 
 xcrun swiftc -parse-as-library -Osize -whole-module-optimization \
   -target "$architecture-apple-macos15.0" -I "$upstream/include-full" \
-  WritingTests.swift CmarkPatch.swift \
+  WritingTests.swift CmarkPatch.swift NoteLinks.swift FolderWorkspace.swift \
   "$upstream/$architecture/libcmark-gfm-extensions.a" "$upstream/$architecture/libcmark-gfm.a" \
   -o "$scratch/writing"
 "$scratch/writing"
@@ -24,3 +24,10 @@ xcrun swiftc -parse-as-library -target "$architecture-apple-macos15.0" \
 xcrun swiftc -parse-as-library -target "$architecture-apple-macos15.0" \
   FolderWorkspace.swift WorkspaceSearch.swift WorkspaceSearchTests.swift -o "$scratch/search"
 "$scratch/search"
+
+xcrun swiftc -parse-as-library -Osize -whole-module-optimization \
+  -target "$architecture-apple-macos15.0" -I "$upstream/include-full" \
+  NoteLinksTests.swift NoteLinks.swift FolderWorkspace.swift \
+  "$upstream/$architecture/libcmark-gfm-extensions.a" "$upstream/$architecture/libcmark-gfm.a" \
+  -o "$scratch/links"
+"$scratch/links"

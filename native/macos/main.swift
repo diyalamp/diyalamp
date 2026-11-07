@@ -82,12 +82,16 @@ private final class WorkspaceFilesTable: NSTableView {
 @MainActor
 final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWindowDelegate,
     NSMenuItemValidation, NSTableViewDataSource, NSTableViewDelegate {
-    private let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 620),
+    private let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1160, height: 620),
         styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
     private let editorScroll = NSTextView.scrollableTextView()
     private let previewScroll = NSTextView.scrollableTextView()
     private let folderTable = WorkspaceFilesTable()
     private lazy var searchControls = WorkspaceSearchControls()
+    private lazy var connectionsView = ConnectionsView()
+    private let workspaceSplit = NSSplitView()
+    private var connectionsPane: NSView?
+    private var connectionsWidth: CGFloat = 230
     private var editor: NSTextView { editorScroll.documentView as! NSTextView }
     private var preview: NSTextView { previewScroll.documentView as! NSTextView }
     private let status = NSTextField(labelWithString: "Open a Markdown note")
@@ -107,6 +111,10 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
     private var searchTask: Task<Void, Never>?
     private var searchRows: [WorkspaceSearch.Match]?
     private var openWhenSearchCompletes = false
+    private var linkSnapshot: NoteLinks.Snapshot?
+    private var linkIndexTask: Task<Void, Never>?
+    private var activeLinksTask: Task<Void, Never>?
+    private var displayedConnectionsPath: String?
     private var windowIsClosing = false
     private let fixture: URL?
     private let recoveryStore: RecoveryStore?
@@ -163,7 +171,10 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         let bar = NSMenu()
         let appItem = NSMenuItem()
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "Quit DiyaLamp Native Editor Probe", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "About diyalamp", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
+                        keyEquivalent: "")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Quit diyalamp", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
         bar.addItem(appItem)
         let fileItem = NSMenuItem()
@@ -197,8 +208,8 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
     }
 
     private func configureWindow() {
-        window.title = "DiyaLamp Native Editor Probe"
-        window.minSize = NSSize(width: 640, height: 380)
+        window.title = "diyalamp"
+        window.minSize = NSSize(width: 760, height: 380)
         window.isReleasedWhenClosed = false
         window.delegate = self
         for view in [editor, preview] {
@@ -219,49 +230,88 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         preview.delegate = self
         preview.setAccessibilityLabel("Rendered Markdown editor")
 
-        let split = NSSplitView()
+        let split = workspaceSplit
+        if let bounds = window.contentView?.bounds { split.frame = bounds }
         split.isVertical = true
         split.dividerStyle = .thin
         searchControls.onChange = { [weak self] in self?.refreshSearch() }
         searchControls.onSubmit = { [weak self] in self?.openFirstSearchHit() }
         searchControls.setFolderAvailable(false)
-        split.addArrangedSubview(pane("Files", makeFolderList(), controls: searchControls))
-        split.addArrangedSubview(pane("Markdown source", editorScroll))
-        split.addArrangedSubview(pane("Rendered editor", previewScroll))
+        let files = pane("Files", makeFolderList(), controls: searchControls)
+        let raw = pane("Markdown source", editorScroll)
+        let rendered = pane("Rendered editor", previewScroll)
+        connectionsView.onOpen = { [weak self] path in self?.openConnection(path) }
+        let refresh = toolbarIcon("arrow.clockwise", label: "Refresh connections", action: #selector(rescanConnections))
+        let connections = pane("Connections", connectionsView, headingAction: refresh)
+        connectionsPane = connections
+        let filesWidth: CGFloat = 220
+        let editorWidth = (split.bounds.width - filesWidth - connectionsWidth - split.dividerThickness * 3) / 2
+        var origin: CGFloat = 0
+        for (pane, width) in [(files, filesWidth), (raw, editorWidth), (rendered, editorWidth),
+                              (connections, connectionsWidth)] {
+            pane.frame = NSRect(x: origin, y: 0, width: width, height: split.bounds.height)
+            split.addArrangedSubview(pane)
+            origin += width + split.dividerThickness
+        }
         split.setHoldingPriority(.defaultHigh, forSubviewAt: 0)
+        split.setHoldingPriority(.defaultHigh, forSubviewAt: 3)
         let new = NSButton(title: "New Note…", target: self, action: #selector(newNote))
         let open = NSButton(title: "Open Note…", target: self, action: #selector(openNote))
         let folderButton = NSButton(title: "Open Folder…", target: self, action: #selector(openFolder))
         let save = NSButton(title: "Save", target: self, action: #selector(saveNote))
         let spacer = NSView()
         spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        let toolbar = NSStackView(views: [folderButton, new, open, save, spacer, status])
+        let toggle = toolbarIcon("sidebar.right", label: "Hide Connections", action: #selector(toggleConnections(_:)))
+        status.lineBreakMode = .byTruncatingMiddle
+        status.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        toggle.setContentCompressionResistancePriority(.required, for: .horizontal)
+        let toolbar = NSStackView(views: [folderButton, new, open, save, spacer, status, toggle])
         toolbar.edgeInsets = NSEdgeInsets(top: 8, left: 12, bottom: 8, right: 12)
 
         let content = NSView()
-        let column = NSStackView(views: [toolbar, split])
-        column.orientation = .vertical
-        column.spacing = 0
-        column.alignment = .width
-        column.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(column)
+        toolbar.translatesAutoresizingMaskIntoConstraints = false
+        split.translatesAutoresizingMaskIntoConstraints = false
+        content.addSubview(toolbar)
+        content.addSubview(split)
         NSLayoutConstraint.activate([
-            column.leadingAnchor.constraint(equalTo: content.leadingAnchor),
-            column.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            column.topAnchor.constraint(equalTo: content.topAnchor),
-            column.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            toolbar.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            toolbar.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            toolbar.topAnchor.constraint(equalTo: content.topAnchor),
+            split.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            split.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            split.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
+            split.bottomAnchor.constraint(equalTo: content.bottomAnchor),
         ])
         window.contentView = content
-        split.setPosition(220, ofDividerAt: 0)
-        split.setPosition(590, ofDividerAt: 1)
+        window.layoutIfNeeded()
+        split.adjustSubviews()
+        updateConnections()
     }
 
-    private func pane(_ title: String, _ scroll: NSScrollView, controls: NSView? = nil) -> NSView {
+    private func toolbarIcon(_ symbol: String, label: String, action: Selector) -> NSButton {
+        let button = NSButton(image: NSImage(systemSymbolName: symbol, accessibilityDescription: nil) ?? NSImage(),
+                              target: self, action: action)
+        button.bezelStyle = .rounded
+        button.toolTip = label
+        button.setAccessibilityLabel(label)
+        return button
+    }
+
+    private func pane(_ title: String, _ content: NSView, controls: NSView? = nil,
+                      headingAction: NSView? = nil) -> NSView {
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = noteFont(13, strong: true)
         let heading = NSStackView(views: [titleLabel])
-        heading.edgeInsets = NSEdgeInsets(top: 9, left: 16, bottom: 9, right: 16)
-        let pane = NSStackView(views: [heading, controls, scroll].compactMap { $0 })
+        if let headingAction {
+            let spacer = NSView()
+            spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+            heading.addArrangedSubview(spacer)
+            heading.addArrangedSubview(headingAction)
+        }
+        heading.alignment = .centerY
+        heading.edgeInsets = NSEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
+        heading.heightAnchor.constraint(equalToConstant: 42).isActive = true
+        let pane = NSStackView(views: [heading, controls, content].compactMap { $0 })
         pane.orientation = .vertical
         pane.alignment = .width
         pane.spacing = 0
@@ -284,6 +334,7 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         window.isDocumentEdited = false
         syncFolderSelection()
         if discardedOverlay { refreshTextSearch() }
+        updateConnections()
     }
 
     @objc private func openNote() {
@@ -377,6 +428,8 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         folderTable.toolTip = folder.root.path
         searchControls.setFolderAvailable(true)
         refreshSearch()
+        invalidateConnections()
+        updateConnections()
     }
 
     private func syncFolderSelection() {
@@ -389,6 +442,153 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         } else {
             folderTable.deselectAll(nil)
         }
+    }
+
+    @objc private func toggleConnections(_ sender: NSButton) {
+        guard let connectionsPane, workspaceSplit.arrangedSubviews.count >= 3 else { return }
+        let rendered = workspaceSplit.arrangedSubviews[2]
+        let rightEdge = workspaceSplit.bounds.maxX
+        let wasOpen = connectionsPane.superview === workspaceSplit
+        if wasOpen {
+            if connectionsPane.frame.width > 0 { connectionsWidth = connectionsPane.frame.width }
+            workspaceSplit.removeArrangedSubview(connectionsPane)
+            connectionsPane.removeFromSuperview()
+            rendered.frame.size.width = rightEdge - rendered.frame.minX
+        } else {
+            let divider = workspaceSplit.dividerThickness
+            let available = rightEdge - rendered.frame.minX
+            let width = min(connectionsWidth, max(0, available - divider - 100))
+            rendered.frame.size.width = available - divider - width
+            connectionsPane.frame = NSRect(x: rendered.frame.maxX + divider, y: 0, width: width,
+                                           height: workspaceSplit.bounds.height)
+            workspaceSplit.addArrangedSubview(connectionsPane)
+            workspaceSplit.setHoldingPriority(.defaultHigh, forSubviewAt: 3)
+        }
+        workspaceSplit.adjustSubviews()
+        let label = wasOpen ? "Show Connections" : "Hide Connections"
+        sender.toolTip = label
+        sender.setAccessibilityLabel(label)
+        updateConnections()
+    }
+
+    @objc private func rescanConnections() {
+        invalidateConnections()
+        updateConnections(refreshFolder: true)
+    }
+
+    private func invalidateConnections() {
+        linkIndexTask?.cancel()
+        linkIndexTask = nil
+        activeLinksTask?.cancel()
+        activeLinksTask = nil
+        linkSnapshot = nil
+        displayedConnectionsPath = nil
+    }
+
+    private func updateConnections(refreshFolder: Bool = false) {
+        activeLinksTask?.cancel()
+        activeLinksTask = nil
+        guard connectionsPane?.superview === workspaceSplit else { return }
+        guard let folder, let note, let row = folder.index(of: note.url) else {
+            displayedConnectionsPath = nil
+            connectionsView.setMessage("Open a note in the folder to see connections")
+            return
+        }
+        let path = folder.notes[row].relativePath
+        guard let snapshot = linkSnapshot else {
+            connectionsView.setMessage("Finding connected notes…")
+            startLinkIndex(in: folder, refreshFolder: refreshFolder)
+            return
+        }
+        let previousPath = displayedConnectionsPath
+        displayedConnectionsPath = path
+        guard hasUnsavedChanges else {
+            connectionsView.show(incoming: snapshot.incoming(path), outgoing: snapshot.outgoing(path),
+                                 unresolved: snapshot.unresolved(path), partial: snapshot.partial)
+            return
+        }
+        if previousPath != path { connectionsView.setMessage("Updating connections…") }
+        let overlay = NoteLinks.Overlay(url: note.url, text: source)
+        activeLinksTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .milliseconds(240))
+                let worker = Task.detached(priority: .utility) {
+                    try NoteLinks.activeLinks(overlay, in: folder, isCancelled: { Task.isCancelled })
+                }
+                let result = try await withTaskCancellationHandler {
+                    try await worker.value
+                } onCancel: { worker.cancel() }
+                try Task.checkCancellation()
+                guard let self else { return }
+                self.activeLinksTask = nil
+                var incoming = snapshot.incoming(path).filter { $0 != path }
+                if result.paths.contains(path) { incoming.append(path); incoming.sort() }
+                self.connectionsView.show(incoming: incoming, outgoing: result.paths,
+                                          unresolved: result.unresolved, partial: snapshot.partial || result.partial)
+            } catch is CancellationError {
+                return
+            } catch {
+                if !Task.isCancelled { self?.connectionsView.setMessage(error.localizedDescription) }
+            }
+        }
+    }
+
+    private func startLinkIndex(in folder: FolderWorkspace, refreshFolder: Bool) {
+        guard linkIndexTask == nil else { return }
+        linkIndexTask = Task { [weak self] in
+            do {
+                let worker = Task.detached(priority: .utility) {
+                    let workspace = try refreshFolder ? folder.refreshed(isCancelled: { Task.isCancelled }) : folder
+                    let snapshot = try NoteLinks.scan(workspace, isCancelled: { Task.isCancelled })
+                    return (workspace, snapshot)
+                }
+                let (workspace, snapshot) = try await withTaskCancellationHandler {
+                    try await worker.value
+                } onCancel: { worker.cancel() }
+                try Task.checkCancellation()
+                guard let self else { return }
+                self.linkIndexTask = nil
+                self.linkSnapshot = snapshot
+                if refreshFolder {
+                    self.folder = workspace
+                    if self.searchRows == nil { self.showSearchRows(nil, message: "") }
+                    else { self.refreshSearch() }
+                }
+                self.updateConnections()
+            } catch is CancellationError {
+                return
+            } catch {
+                if !Task.isCancelled {
+                    self?.linkIndexTask = nil
+                    self?.connectionsView.setMessage(error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    private func openConnection(_ path: String) {
+        do { try activateConnection(path) } catch { present(error) }
+    }
+
+    private func activateConnection(_ path: String, deciding: (() -> EditDecision)? = nil) throws {
+        guard let folder, let index = folder.notes.firstIndex(where: { $0.relativePath == path }) else {
+            status.stringValue = "Linked note is no longer in the folder"
+            return
+        }
+        let destination = try folder.checkedURL(for: folder.notes[index])
+        try activateFolderNote(index, in: folder, deciding: deciding)
+        if note?.url == destination { window.makeFirstResponder(preview.isEditable ? preview : editor) }
+    }
+
+    func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {
+        guard textView === preview, let destination = RenderedWikiLink.destination(from: link) else { return false }
+        if let folder, let note,
+           let entry = NoteLinks.resolve(.init(destination: destination, wiki: true), from: note.url, in: folder) {
+            openConnection(entry.relativePath)
+        } else {
+            status.stringValue = "Linked note not found in this folder"
+        }
+        return true
     }
 
     @objc private func focusFilenameSearch() { focusSearch(.filenames) }
@@ -432,7 +632,12 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
                 try Task.checkCancellation()
                 guard let self else { return }
                 self.searchTask = nil
+                let folderChanged = self.folder?.notes.map(\.relativePath) != refreshed.notes.map(\.relativePath)
                 self.folder = refreshed
+                if folderChanged {
+                    self.invalidateConnections()
+                    self.updateConnections()
+                }
                 let count = result.matches.count
                 var message = count == 0 ? "No matches" : "\(count) match\(count == 1 ? "" : "es")"
                 if result.truncated { message += " · Refine search for more" }
@@ -565,6 +770,7 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
     }
 
     private func saveCurrentNote(selectingCopy: (() -> URL?)? = nil) throws -> Bool {
+        let changed = hasUnsavedChanges
         if let note {
             try note.save(source)
         } else if let draft = recoveryCopy {
@@ -586,6 +792,10 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         window.isDocumentEdited = false
         do { try recoveryStore?.clear() }
         catch { status.stringValue = "Saved · recovery copy could not be cleared" }
+        if changed {
+            invalidateConnections()
+            updateConnections()
+        }
         return true
     }
 
@@ -688,6 +898,7 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
             catch { status.stringValue = "Recovery copy could not be cleared" }
         }
         refreshTextSearch()
+        updateConnections()
     }
 
     private func scheduleRecovery() {
@@ -942,6 +1153,7 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
             try verifyContinuousWriting(in: url.deletingLastPathComponent())
             try verifyFolderNavigation(in: url.deletingLastPathComponent())
             try await verifyWorkspaceSearch(in: url.deletingLastPathComponent())
+            try await verifyConnections(in: url.deletingLastPathComponent())
             print("PASS Native editor styled rendering, exact rendered and source edits, mixed undo/redo, save/reopen, and external-edit rejection.")
             window.performClose(nil)
         } catch {
@@ -1231,6 +1443,82 @@ final class Workspace: NSObject, NSApplicationDelegate, NSTextViewDelegate, NSWi
         searchControls.onChange?()
         expect(searchRows == nil && folderTable.numberOfRows == 0)
         print("PASS Native workspace search, unsaved note matching, safe navigation, and stale result cancellation.")
+    }
+
+    private func verifyConnections(in directory: URL) async throws {
+        let root = directory.appendingPathComponent("Linked Notes", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        let origin = root.appendingPathComponent("Origin.md")
+        let reference = root.appendingPathComponent("Reference.md")
+        let alternate = root.appendingPathComponent("Alternate.md")
+        let backlink = root.appendingPathComponent("Backlink.md")
+        let wiki = "[[Reference#heading|read it]]"
+        let original = "# Origin\n\n\(wiki)\n\n`[[Alternate]]` is code.\n"
+        try Data(original.utf8).write(to: origin)
+        try Data("# Reference\n".utf8).write(to: reference)
+        try Data("# Alternate\n".utf8).write(to: alternate)
+        try Data("[Open the origin](Origin.md)\n".utf8).write(to: backlink)
+
+        showFolder(try FolderWorkspace(opening: root))
+        try load(origin.resolvingSymlinksInPath())
+        await linkIndexTask?.value
+        guard let scroll = connectionsView.arrangedSubviews.first(where: { $0 is NSScrollView }) as? NSScrollView,
+              let outline = scroll.documentView as? NSOutlineView else { throw CocoaError(.fileReadUnknown) }
+        func rowLabels() -> [String] {
+            (0..<outline.numberOfRows).compactMap { row in
+                (outline.view(atColumn: 0, row: row, makeIfNecessary: true) as? NSTextField)?.stringValue
+            }
+        }
+        expect(rowLabels() == ["Incoming · 1", "Backlink.md", "Outgoing · 1", "Reference.md"],
+               "Connections must show the local Markdown backlink and real wiki destination")
+        let linkedText = range(of: wiki, in: preview)
+        guard let token = preview.textStorage?.attribute(.link, at: linkedText.location, effectiveRange: nil) else {
+            throw CocoaError(.fileReadUnknown)
+        }
+        preview.clicked(onLink: token, at: linkedText.location)
+        expect(note?.url.lastPathComponent == "Reference.md", "Clicking a rendered wiki link did not open its note")
+        guard let returnRow = rowLabels().firstIndex(of: "Origin.md") else { throw CocoaError(.fileReadUnknown) }
+        outline.selectRowIndexes(IndexSet(integer: returnRow), byExtendingSelection: false)
+        expect(connectionsView.openSelected() && note?.url.lastPathComponent == "Origin.md",
+               "Activating a backlink did not reopen its source")
+
+        window.makeFirstResponder(editor)
+        let wikiSource = (editor.string as NSString).range(of: wiki)
+        editor.insertText("[[Alternate]]", replacementRange: wikiSource)
+        expect(linkIndexTask == nil && linkSnapshot != nil, "An unsaved edit should reuse the folder index")
+        await activeLinksTask?.value
+        expect(rowLabels() == ["Incoming · 1", "Backlink.md", "Outgoing · 1", "Alternate.md"],
+               "Connections must reflect the unsaved active note")
+        expect(tryBytes(origin) == Data(original.utf8), "Indexing modified the source file")
+        try activateConnection("Alternate.md", deciding: { .cancel })
+        expect(note?.url.lastPathComponent == "Origin.md" && hasUnsavedChanges)
+        try activateConnection("Alternate.md", deciding: { .save })
+        await linkIndexTask?.value
+        expect(note?.url.lastPathComponent == "Alternate.md" && !hasUnsavedChanges)
+        expect(rowLabels().contains("Origin.md"), "Saving a linked note did not update backlinks")
+        let saved = original.replacingOccurrences(of: wiki, with: "[[Alternate]]")
+        expect(tryBytes(origin) == Data(saved.utf8))
+
+        try FileManager.default.removeItem(at: origin)
+        rescanConnections()
+        await linkIndexTask?.value
+        expect(rowLabels() == ["Incoming · 0", "Outgoing · 0"], "Refreshing retained a deleted note")
+        let button = NSButton()
+        let renderedPane = workspaceSplit.arrangedSubviews[2]
+        let openedRightEdge = renderedPane.frame.maxX
+        let openedSplitWidth = workspaceSplit.bounds.width
+        expect((connectionsPane?.frame.width ?? 0) > 100, "Connections must have visible space when open")
+        toggleConnections(button)
+        window.layoutIfNeeded()
+        expect(connectionsPane?.superview == nil && renderedPane.frame.maxX > openedRightEdge
+            && workspaceSplit.bounds.width == openedSplitWidth,
+               "Closing Connections must return space to the editor (\(openedRightEdge) → \(renderedPane.frame.maxX), split \(workspaceSplit.bounds.width))")
+        toggleConnections(button)
+        window.layoutIfNeeded()
+        expect(connectionsPane?.superview === workspaceSplit && rowLabels() == ["Incoming · 0", "Outgoing · 0"])
+        expect(abs(renderedPane.frame.maxX - openedRightEdge) <= 2,
+               "Reopening Connections must restore its previous width")
+        print("PASS Native linked notes, rendered navigation, live backlinks, and safe unsaved switching.")
     }
 
     private func expect(_ condition: @autoclosure () -> Bool, _ message: String = "Assertion failed", line: Int = #line) {

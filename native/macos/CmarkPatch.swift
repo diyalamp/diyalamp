@@ -16,6 +16,11 @@ struct MarkdownRun {
     let style: MarkdownStyle
 }
 
+struct RenderedWikiRun {
+    let range: NSRange
+    let destination: String
+}
+
 struct CmarkDocument {
     struct VerifiedEdit {
         let document: CmarkDocument
@@ -61,6 +66,7 @@ struct CmarkDocument {
 
     let source: String
     let visible: String
+    let wikiRuns: [RenderedWikiRun]
     private let events: [Event]
     private let spans: [Span]
     private let prose: Prose?
@@ -69,8 +75,8 @@ struct CmarkDocument {
 
     init?(source: String) {
         // GFM extension parsers update a shared inline scanner table.
-        Self.parserLock.lock()
-        defer { Self.parserLock.unlock() }
+        NoteLinks.parserLock.lock()
+        defer { NoteLinks.parserLock.unlock() }
         var source = source
         source.makeContiguousUTF8()
         let bytes = Array(source.utf8)
@@ -82,6 +88,7 @@ struct CmarkDocument {
         let lines = Self.lineRanges(in: bytes)
         var events: [Event] = []
         var spans: [Span] = []
+        var wikiRuns: [RenderedWikiRun] = []
         var visible = ""
         var displayOffset = 0
         var previousSourceEnd = 0
@@ -145,11 +152,27 @@ struct CmarkDocument {
                           let text = String(data: literal, encoding: .utf8) else { return nil }
                     event.literal = literal
                     var range: Range<Int>?
-                    if type == CMARK_NODE_TEXT {
-                        range = Self.exactRange(node, matching: literal, lines: lines, bytes: bytes)
-                        if let range {
-                            guard range.lowerBound >= previousSourceEnd else { return nil }
-                            previousSourceEnd = range.upperBound
+                    if type == CMARK_NODE_TEXT,
+                       let exact = Self.exactTextRange(node, matching: literal, lines: lines, bytes: bytes) {
+                        let physical = lines[Int(cmark_node_get_start_line(node)) - 1]
+                        if physical.hasWikiOpening {
+                            if Self.isWikiText(node) {
+                                var rawOffset = exact.lowerBound
+                                var visibleOffset = displayOffset
+                                for wiki in WikiLinkSyntax.links(in: bytes, range: exact) {
+                                    visibleOffset += String(decoding: bytes[rawOffset..<wiki.range.lowerBound],
+                                                            as: UTF8.self).utf16.count
+                                    let count = String(decoding: bytes[wiki.range], as: UTF8.self).utf16.count
+                                    wikiRuns.append(RenderedWikiRun(range: NSRange(location: visibleOffset, length: count),
+                                                                   destination: wiki.destination))
+                                    visibleOffset += count
+                                    rawOffset = wiki.range.upperBound
+                                }
+                            }
+                        } else if Self.hasStableLinkSyntax(node, range: exact, line: physical.bytes, bytes: bytes) {
+                            guard exact.lowerBound >= previousSourceEnd else { return nil }
+                            previousSourceEnd = exact.upperBound
+                            range = exact
                         }
                     }
                     if type == CMARK_NODE_CODE_BLOCK { event.title = Self.data(cmark_node_get_fence_info(node)) }
@@ -204,6 +227,7 @@ struct CmarkDocument {
            let prefixEnd = Range(NSRange(location: 0, length: start.display), in: visible)?.upperBound {
             visible = String(visible[..<prefixEnd])
             spans.removeLast(spans.count - start.spans)
+            wikiRuns.removeAll { NSMaxRange($0.range) > start.display }
             displayOffset = start.display
             if displayOffset > 0 { append("\n\n") }
             prose = Prose(rawStart: start.raw, displayStart: displayOffset, eventStart: start.events)
@@ -219,6 +243,7 @@ struct CmarkDocument {
 
         self.source = source
         self.visible = visible
+        self.wikiRuns = wikiRuns
         self.events = events
         self.spans = spans
         self.prose = prose
@@ -392,7 +417,6 @@ struct CmarkDocument {
         return style
     }
 
-    private static let parserLock = NSLock()
     private static let registered: Void = cmark_gfm_core_extensions_ensure_registered()
 
     private static func parse(_ bytes: [UInt8]) -> OpaquePointer? {
@@ -424,6 +448,15 @@ struct CmarkDocument {
 
     private static func exactRange(_ node: OpaquePointer, matching literal: Data, lines: [Line],
                                    bytes: [UInt8]) -> Range<Int>? {
+        guard let range = exactTextRange(node, matching: literal, lines: lines, bytes: bytes) else { return nil }
+        let physical = lines[Int(cmark_node_get_start_line(node)) - 1]
+        guard !physical.hasWikiOpening,
+              hasStableLinkSyntax(node, range: range, line: physical.bytes, bytes: bytes) else { return nil }
+        return range
+    }
+
+    private static func exactTextRange(_ node: OpaquePointer, matching literal: Data, lines: [Line],
+                                       bytes: [UInt8]) -> Range<Int>? {
         let line = Int(cmark_node_get_start_line(node))
         let column = Int(cmark_node_get_start_column(node))
         let endColumn = Int(cmark_node_get_end_column(node))
@@ -434,11 +467,19 @@ struct CmarkDocument {
         let range = (physical.bytes.lowerBound + column - 1)..<(physical.bytes.lowerBound + endColumn)
         // Tabs may be expanded in container prefixes. A BOM may be skipped by the parser.
         guard (physical.firstTab ?? physical.bytes.upperBound) >= range.upperBound,
-              !physical.hasWikiOpening,
               line > 1 || !bytes.starts(with: [0xEF, 0xBB, 0xBF]),
-              bytes[range].elementsEqual(literal),
-              hasStableLinkSyntax(node, range: range, line: physical.bytes, bytes: bytes) else { return nil }
+              bytes[range].elementsEqual(literal) else { return nil }
         return range
+    }
+
+    private static func isWikiText(_ node: OpaquePointer) -> Bool {
+        var ancestor = cmark_node_parent(node)
+        while let parent = ancestor {
+            let type = cmark_node_get_type(parent)
+            if type == CMARK_NODE_LINK || type == CMARK_NODE_IMAGE { return false }
+            ancestor = cmark_node_parent(parent)
+        }
+        return true
     }
 
     private static func hasStableLinkSyntax(_ node: OpaquePointer, range: Range<Int>, line: Range<Int>,

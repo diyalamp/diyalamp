@@ -1,8 +1,9 @@
 #!/bin/sh
 set -eu
 
-dmg=${1:?Path to DiyaLamp-Native-Preview.dmg}
+dmg=${1:?Path to DiyaLamp-macOS.dmg}
 upstream_license=${2:-}
+source_dir=$(cd "$(dirname "$0")" && pwd)
 report=$(mktemp -d /private/tmp/diyalamp-native-editor-verification.XXXXXX)
 mount="$report/image"
 mkdir "$mount"
@@ -26,10 +27,16 @@ trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-app="$mount/DiyaLamp Native Preview.app"
-binary="$app/Contents/MacOS/DiyaLampNativeProbe"
+app="$mount/diyalamp.app"
+binary="$app/Contents/MacOS/diyalamp"
 license="$app/Contents/Resources/cmark-gfm-LICENSE.txt"
 codesign --verify --deep --strict --all-architectures "$app"
+plist="$app/Contents/Info.plist"
+test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist")" = com.diyalamp.desktop
+test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")" = "$(cat "$source_dir/version.txt")"
+test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$plist")" = 15.0
+test "$(readlink "$mount/Applications")" = /Applications
+cmp "$source_dir/../../LICENSE" "$app/Contents/Resources/LICENSE.txt"
 lipo "$binary" -verify_arch arm64 x86_64
 otool -arch all -L "$binary" > "$report/dependencies.txt"
 cat "$report/dependencies.txt"
@@ -96,6 +103,8 @@ if not any(line.startswith('PASS Native folder') for line in stdout.splitlines()
     raise SystemExit(f'{architecture}: native folder success marker missing')
 if not any(line.startswith('PASS Native workspace search') for line in stdout.splitlines()):
     raise SystemExit(f'{architecture}: native search success marker missing')
+if not any(line.startswith('PASS Native linked notes') for line in stdout.splitlines()):
+    raise SystemExit(f'{architecture}: native links success marker missing')
 print(f'{architecture}: exited normally')
 
 def recovery_command(phase, note, store):
