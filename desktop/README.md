@@ -1,6 +1,6 @@
 # diyalamp desktop
 
-A focused, local Markdown writing app for macOS. The 1.3.0 development interface uses JavaFX 27, maintained AtlantaFX CupertinoDark controls, RichTextFX rendered editing, bundled static Inter text, and installed Menlo for code. No backend, model provider, database, or account is required.
+A focused, local Markdown writing app for macOS. The 1.3.1 development interface uses JavaFX 27, maintained AtlantaFX CupertinoDark controls, RichTextFX rendered editing, bundled static Inter text, and installed Menlo for code. No backend, model provider, database, or account is required.
 
 ## Build and run
 

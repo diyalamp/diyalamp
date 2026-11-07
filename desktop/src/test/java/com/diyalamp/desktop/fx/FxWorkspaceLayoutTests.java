@@ -80,7 +80,7 @@ public final class FxWorkspaceLayoutTests {
         "The workspace must use the maintained Cupertino Dark control theme");
     ToolBar toolbar = (ToolBar) field(fixture.app, "toolbar");
     check(toolbar.getHeight() >= 52 && toolbar.getHeight() <= 64, "The shared toolbar must have a single comfortable control row");
-    for (String name : new String[] {"Workspace accent color", "Pomodoro focus timer", "Zen mode", "Toggle right sidebar", "Open note side by side", "Open folder"}) {
+    for (String name : new String[] {"Workspace accent color", "Pomodoro focus timer", "Zen mode", "Toggle right sidebar", "Open folder"}) {
       check(toolbar.getItems().stream().filter(node -> name.equals(node.getAccessibleText())).count() == 1,
           "The shared toolbar must expose one accessible " + name + " control");
     }
@@ -98,8 +98,8 @@ public final class FxWorkspaceLayoutTests {
         && filesHeader.lookupAll(".button").stream().anyMatch(node -> "New folder".equals(node.getAccessibleText()))
         && filesHeader.lookupAll(".button").stream().anyMatch(node -> "New note".equals(node.getAccessibleText())),
         "Search and both creation actions live in the files sidebar");
-    check(toolbar.getItems().stream().noneMatch(node -> java.util.List.of("New folder", "New note", "Search notes")
-        .contains(String.valueOf(node.getAccessibleText()))), "Sidebar controls are not repeated on the top bar");
+    check(toolbar.getItems().stream().noneMatch(node -> java.util.List.of("New folder", "New note", "Search notes", "Open note side by side")
+        .contains(String.valueOf(node.getAccessibleText()))), "Sidebar controls, including Split View, are not repeated on the top bar");
     Region graphHeader = (Region) ((FxNoteGraph) field(fixture.app, "noteGraph")).node().lookup(".graph-heading-row");
     check(filesHeader.getHeight() == 52 && tabs.getHeight() == 52 && graphHeader.getHeight() == 52
         && filesHeader.localToScene(0, 0).getY() == tabs.localToScene(0, 0).getY()

@@ -1,6 +1,6 @@
-## diyalamp 1.3.0 · development
+## diyalamp 1.3.1 · development
 
-The dark-only macOS workspace combines AtlantaFX CupertinoDark controls with the official VS Code 2026 Dark palette, RichTextFX editing, and SmartGraph note navigation. These notes describe the 1.3.0 development build. See the README for the published downloads and measurements.
+The dark-only macOS workspace combines AtlantaFX CupertinoDark controls with the official VS Code 2026 Dark palette, RichTextFX editing, and SmartGraph note navigation. These notes describe the 1.3.1 development build. See the README for the published downloads and measurements.
 
 ### Connected notes
 

@@ -332,8 +332,7 @@ public final class FxDiyalamp extends Application {
     zen.setTooltip(zenHelp); zen.setAccessibleText("Zen mode");
     zen.setAccessibleHelp("Keep the current line clear and gradually fade surrounding lines. Workspace controls stay visible.");
     zen.selectedProperty().bindBidirectional(zenMode);
-    Button beside = FxTheme.iconButton("columns-2", "Open note side by side", this::splitActive);
-    toolbar.getItems().setAll(brand, files, folderControl, beside, toolbarDragHandle);
+    toolbar.getItems().setAll(brand, files, folderControl, toolbarDragHandle);
     if (pomodoro != null) toolbar.getItems().add(pomodoro.button());
     Button reset = FxTheme.iconButton("refresh-cw", "Reset sidebar widths", this::resetSidebarWidths);
     reset.setAccessibleHelp("Restore default left and right sidebar widths without changing visibility or notes.");
