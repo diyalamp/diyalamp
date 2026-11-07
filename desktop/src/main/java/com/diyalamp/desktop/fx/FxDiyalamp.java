@@ -14,7 +14,6 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +26,7 @@ import javafx.animation.Interpolator;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.application.ColorScheme;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ObjectProperty;
@@ -63,31 +63,38 @@ public final class FxDiyalamp extends Application {
   private static final PseudoClass DROP_TARGET = PseudoClass.getPseudoClass("drop-target");
   private static final PseudoClass ACCENT_SELECTED = PseudoClass.getPseudoClass("selected");
   private static final double SIDEBAR_WIDTH = 272;
+  private static final double CONNECTIONS_WIDTH = 304;
+  private static final double MIN_WRITING_WIDTH = 240;
+  private static final double SIDEBAR_DIVIDER_WIDTH = 6;
   private static final String[][] ACCENT_CHOICES = {
-      {"Sage", "#7A9A85"}, {"Blue", "#7B8FB7"}, {"Lavender", "#A497BD"},
+      {"Sage", "#7A9A85"}, {"Blue", "#297AA0"}, {"Lavender", "#A497BD"},
       {"Rose", "#BA929B"}, {"Amber", "#B5A073"}, {"Slate", "#8A929F"}
   };
   private final Preferences preferences;
   private final Map<Path, Session> sessions = new LinkedHashMap<>();
   private final TreeView<Path> tree = new TreeView<>();
   private final TextField search = new TextField();
-  private final Label folderLabel = new Label("Files"), status = new Label("Local Markdown files"),
-      words = new Label();
+  private final BooleanProperty searching = new SimpleBooleanProperty(false);
+  private final Label folderLabel = new Label("No folder open"), status = new Label("Local Markdown files");
+  private final Label characters = metricLabel("type", "Characters in the note text (Unicode code points)"),
+      words = metricLabel("square-pen", "Words in the note text"),
+      lines = metricLabel("list", "Logical text lines; wrapping does not change this count"),
+      fileSize = metricLabel("file-text", "UTF-8 size of the current Markdown, including unsaved edits");
+  private final HBox metrics = new HBox(16, characters, words, lines, fileSize);
   private final VBox explorer = new VBox();
   private final StackPane explorerClip = new StackPane(explorer);
-  private final HBox body = new HBox();
+  private final SplitPane body = new SplitPane();
   private final StackPane workspaceLayer = new StackPane(body);
   private final SplitPane split = new SplitPane();
   private final BorderPane root = new BorderPane();
   private final ToolBar toolbar = new ToolBar();
   private final StackPane toolbarClip = clipped(toolbar);
+  private final Region toolbarDragHandle = new Region();
   private final HBox footer = new HBox();
   private final StackPane footerClip = clipped(footer);
-  private final Button exitZen = new Button("Exit Zen", FxTheme.icon("focus", 15));
   private final BooleanProperty zenMode = new SimpleBooleanProperty(false);
   private final DoubleProperty zenProgress = new SimpleDoubleProperty(0);
   private Timeline zenAnimation;
-  private boolean preZenSidebarOpen = true;
   private final PauseTransition autosave = new PauseTransition(Duration.millis(650));
   private final PauseTransition serialization = new PauseTransition(Duration.millis(120));
   private final ObjectProperty<Color> accent = new SimpleObjectProperty<>(FxTheme.DEFAULT_ACCENT);
@@ -102,9 +109,13 @@ public final class FxDiyalamp extends Application {
   private NoteStore.Deleted lastDeleted;
   private boolean persistentFolder = true, refreshing, sidebarOpen = true;
   private Timeline sidebarAnimation;
+  private final PauseTransition sidebarSave = new PauseTransition(Duration.millis(180));
+  private double filesWidth = SIDEBAR_WIDTH, connectionsWidth = CONNECTIONS_WIDTH;
+  private boolean sidebarLayoutReady, sidebarLayoutChanging, sidebarLayoutQueued;
   private FxUpdates updates;
   private FxPomodoro pomodoro;
   private FxNoteGraph noteGraph;
+  private ToggleButton connectionsControl;
 
   public FxDiyalamp() { this(Preferences.userRoot().node("com/diyalamp/desktop")); }
   FxDiyalamp(Preferences preferences) {
@@ -119,6 +130,8 @@ public final class FxDiyalamp extends Application {
     Path path;
     String text, fingerprint, error;
     boolean dirty;
+    String metricsSource;
+    NoteMetrics metrics;
     View blockedView, pendingView;
     final List<View> views = new ArrayList<>();
     Session(Path path, NoteStore.Loaded loaded) {
@@ -136,6 +149,7 @@ public final class FxDiyalamp extends Application {
     View(Session session, PaneHost host) {
       this.session = session; this.host = host;
       editor = new FxWritingPane(session.text);
+      editor.setFocusLineProgress(zenProgressProperty());
       tab = newTab(UUID.randomUUID().toString());
       content.getStyleClass().add("note-page");
       Node writing = editor.node();
@@ -169,11 +183,6 @@ public final class FxDiyalamp extends Application {
       tabs.setTabResizePolicy(Tab.ResizePolicy.COMPUTED_WIDTH);
       tabs.setTabMinWidth(110);
       tabs.setAnimated(true);
-      Button add = FxTheme.iconButton("plus", "New note", () -> newNote(null));
-      Button beside = FxTheme.iconButton("columns-2", "Open note side by side", FxDiyalamp.this::splitActive);
-      HBox tools = new HBox(8, add, beside);
-      tools.setAlignment(Pos.CENTER); tools.getStyleClass().add("tab-tools");
-      tabs.setRightNode(tools);
       HBox location = new HBox(breadcrumb);
       location.setAlignment(Pos.CENTER_LEFT);
       location.getStyleClass().add("document-location");
@@ -202,36 +211,38 @@ public final class FxDiyalamp extends Application {
     updates = new FxUpdates(stage, () -> saveAll(true), Platform::exit, status::setText);
     FxTheme.setup();
     noteGraph = new FxNoteGraph(path -> open(path, false), status::setText);
-    noteGraph.bindZen(zenProgressProperty());
+    filesWidth = sidebarWidth("filesWidth", SIDEBAR_WIDTH, 160);
+    connectionsWidth = sidebarWidth("connectionsWidth", CONNECTIONS_WIDTH, 200);
+    sidebarOpen = preferences.getBoolean("filesVisible", true);
+    noteGraph.showingProperty().addListener((observable, previous, showing) -> {
+      preferences.putBoolean("connectionsVisible", showing);
+      if (sidebarLayoutReady) layoutSidebars(true);
+    });
+    noteGraph.showingProperty().set(preferences.getBoolean("connectionsVisible", false));
     stage.setTitle("diyalamp");
     stage.setMinWidth(820); stage.setMinHeight(560);
-    var icon = FxTheme.image("app-icon.png");
     boolean packagedMac = System.getProperty("os.name", "").startsWith("Mac")
         && !System.getProperty("jpackage.app-path", "").isBlank();
-    if (icon != null && !packagedMac) stage.getIcons().add(icon);
+    if (!packagedMac) {
+      var icon = FxTheme.image("app-icon.png");
+      if (icon != null) stage.getIcons().add(icon);
+    }
     primary = new PaneHost(); secondary = new PaneHost();
     split.getItems().add(primary.container);
     split.getStyleClass().add("writing-split");
     buildExplorer();
-    body.getChildren().addAll(explorerClip, split, noteGraph.node());
-    HBox.setHgrow(split, Priority.ALWAYS);
+    configureSidebars();
     root.getStyleClass().add("workspace-root");
     root.setCenter(workspaceLayer);
-    exitZen.getStyleClass().add("zen-exit");
-    exitZen.setAccessibleText("Exit Zen mode");
-    exitZen.setTooltip(new Tooltip("Exit Zen mode · ⇧⌘F"));
-    exitZen.setOnAction(event -> toggleZen());
-    exitZen.setVisible(false); exitZen.setManaged(false); exitZen.setOpacity(0);
-    StackPane.setAlignment(exitZen, Pos.BOTTOM_RIGHT);
-    StackPane.setMargin(exitZen, new Insets(16));
-    workspaceLayer.getChildren().add(exitZen);
     pomodoro = new FxPomodoro(stage, status::setText);
     buildToolbar();
-    root.setTop(new VBox(buildMenu(), toolbarClip));
-    footer.getChildren().setAll(status, spacer(), words);
+    root.setTop(new VBox(buildMenu(), FxWindowHeader.create(stage, toolbarClip, toolbarDragHandle)));
+    metrics.getStyleClass().add("note-metrics"); metrics.setAlignment(Pos.CENTER_RIGHT);
+    footer.getChildren().setAll(status, spacer(), metrics);
     footer.getStyleClass().add("workspace-status");
     footer.setAlignment(Pos.CENTER_LEFT); root.setBottom(footerClip);
     Scene scene = new Scene(root, 1180, 800);
+    scene.getPreferences().setColorScheme(ColorScheme.DARK);
     scene.getStylesheets().add(FxDiyalamp.class.getResource("/fx-workspace.css").toExternalForm());
     initializeAccent();
     scene.focusOwnerProperty().addListener((observable, previous, focused) -> {
@@ -244,7 +255,9 @@ public final class FxDiyalamp extends Application {
     serialization.setOnFinished(event -> {
       for (Session session : new ArrayList<>(sessions.values())) flush(session);
     });
+    MacDockIcon.restoreBundledIcon();
     stage.show();
+    queueSidebarLayout();
     String requested = null;
     List<String> arguments = getParameters() == null ? List.of() : getParameters().getRaw();
     if (arguments.size() == 2 && arguments.getFirst().equals("--workspace")) {
@@ -267,47 +280,96 @@ public final class FxDiyalamp extends Application {
 
   private ToolBar buildToolbar() {
     toolbar.getStyleClass().add("workspace-toolbar");
-    Button files = FxTheme.iconButton("panel-left", "Toggle files sidebar", this::toggleSidebar);
     Label name = new Label("diyalamp"); name.getStyleClass().add("workspace-brand-name");
-    HBox brand = new HBox(8, FxTheme.lamp(24), name);
+    var lamp = FxTheme.lamp(24);
+    lamp.setTranslateY(2);
+    HBox brand = new HBox(8, lamp, name);
     brand.setAlignment(Pos.CENTER_LEFT); brand.getStyleClass().add("workspace-brand");
+    Button files = FxTheme.iconButton("panel-left", "Toggle files sidebar", this::toggleSidebar);
     Button folder = FxTheme.iconButton("folder-open", "Open folder…", this::chooseFolder);
-    Label workspace = new Label(); workspace.textProperty().bind(folderLabel.textProperty());
-    workspace.getStyleClass().add("workspace-folder"); workspace.setMinWidth(0); workspace.setMaxWidth(160);
-    HBox identity = new HBox(8, brand, folder, workspace); identity.setAlignment(Pos.CENTER_LEFT);
-    ToggleButton connections = new ToggleButton(null, FxTheme.icon("network", 18));
+    folderLabel.getStyleClass().add("workspace-folder");
+    folderLabel.setAlignment(Pos.CENTER_LEFT);
+    folderLabel.setMinWidth(0);
+    folderLabel.setMaxWidth(Double.MAX_VALUE);
+    folderLabel.setTextOverrun(OverrunStyle.LEADING_ELLIPSIS);
+    Tooltip folderPath = new Tooltip();
+    folderPath.textProperty().bind(folderLabel.textProperty());
+    folderLabel.setTooltip(folderPath);
+    ToggleButton find = new ToggleButton(null, FxTheme.icon("search", 16));
+    find.getStyleClass().addAll("flat", "button-icon", "workspace-tool");
+    find.setAccessibleText("Search notes");
+    find.setTooltip(new Tooltip("Search notes · ⌘P"));
+    find.selectedProperty().bindBidirectional(searching);
+    var noWorkspace = Bindings.createBooleanBinding(() -> store == null, tree.rootProperty());
+    find.disableProperty().bind(noWorkspace);
+    search.setPromptText("Find a note…");
+    search.setAccessibleText("Find a note by name");
+    search.getStyleClass().addAll(Styles.ROUNDED, "note-search-field");
+    search.setMinWidth(0);
+    search.visibleProperty().bind(searching);
+    search.managedProperty().bind(searching);
+    folderLabel.visibleProperty().bind(searching.not());
+    folderLabel.managedProperty().bind(searching.not());
+    StackPane location = new StackPane(folderLabel, search);
+    location.setMinWidth(32);
+    location.setPrefWidth(32);
+    location.maxWidthProperty().bind(Bindings.createDoubleBinding(
+        () -> searching.get() ? 320 : Math.max(32, folderLabel.prefWidth(-1)),
+        searching, folderLabel.textProperty(), folderLabel.fontProperty()));
+    HBox.setHgrow(location, Priority.ALWAYS);
+    toolbarDragHandle.setMinWidth(24);
+    HBox.setHgrow(toolbarDragHandle, Priority.SOMETIMES);
+    search.textProperty().addListener((observable, previous, query) -> refreshTree());
+    searching.addListener((observable, previous, enabled) -> {
+      if (enabled) {
+        if (!sidebarOpen) toggleSidebar();
+        Platform.runLater(search::requestFocus);
+      } else search.clear();
+    });
+    search.setOnKeyPressed(event -> {
+      if (event.getCode() == KeyCode.ESCAPE) {
+        searching.set(false);
+        find.requestFocus();
+        event.consume();
+      }
+    });
+    search.setOnAction(event -> openFirstSearchResult());
+    ToggleButton connections = new ToggleButton(null, FxTheme.icon("panel-right", 16));
+    connectionsControl = connections;
     connections.getStyleClass().addAll("flat", "button-icon", "workspace-tool");
-    connections.setAccessibleText("Show note connections");
-    connections.setTooltip(new Tooltip("Show note connections"));
+    connections.setAccessibleText("Toggle right sidebar");
+    connections.setAccessibleHelp("Show or hide incoming and outgoing note connections. The state is remembered.");
+    Tooltip connectionHelp = new Tooltip();
+    connectionHelp.textProperty().bind(Bindings.when(connections.selectedProperty())
+        .then("Hide right sidebar").otherwise("Show right sidebar"));
+    connections.setTooltip(connectionHelp);
     if (noteGraph != null) connections.selectedProperty().bindBidirectional(noteGraph.showingProperty());
     ToggleButton zen = new ToggleButton(null, FxTheme.icon("focus", 18));
     zen.getStyleClass().addAll("flat", "button-icon", "workspace-tool", "zen-toggle");
-    zen.setTooltip(new Tooltip("Zen mode · ⇧⌘F")); zen.setAccessibleText("Zen mode");
+    Tooltip zenHelp = new Tooltip();
+    zenHelp.textProperty().bind(Bindings.when(zenMode).then("Exit line focus · ⇧⌘F").otherwise("Enter line focus · ⇧⌘F"));
+    zen.setTooltip(zenHelp); zen.setAccessibleText("Zen mode");
+    zen.setAccessibleHelp("Keep the current line clear and gradually fade surrounding lines. Workspace controls stay visible.");
     zen.selectedProperty().bindBidirectional(zenMode);
-    toolbar.getItems().setAll(files, identity, spacer());
+    Button create = FxTheme.iconButton("plus", "New note", () -> newNote(null));
+    Button createFolder = FxTheme.iconButton("folder-plus", "New folder", () -> newFolder(null));
+    createFolder.disableProperty().bind(noWorkspace);
+    Button beside = FxTheme.iconButton("columns-2", "Open note side by side", this::splitActive);
+    toolbar.getItems().setAll(brand, files, folder, location, find, create, createFolder, beside, toolbarDragHandle);
     if (pomodoro != null) toolbar.getItems().add(pomodoro.button());
-    toolbar.getItems().addAll(accentButton(), connections, zen);
+    Button reset = FxTheme.iconButton("refresh-cw", "Reset sidebar widths", this::resetSidebarWidths);
+    reset.setAccessibleHelp("Restore default left and right sidebar widths without changing visibility or notes.");
+    toolbar.getItems().addAll(accentButton(), zen, reset, connections);
     return toolbar;
   }
 
   private void buildExplorer() {
     explorer.getStyleClass().add("file-explorer");
-    explorer.setMinWidth(0); explorer.setPrefWidth(SIDEBAR_WIDTH);
-    explorerClip.setMinWidth(0); explorerClip.setPrefWidth(SIDEBAR_WIDTH); explorerClip.setMaxWidth(SIDEBAR_WIDTH);
+    explorer.setMinWidth(0); explorer.setPrefWidth(filesWidth); explorer.setMaxWidth(Double.MAX_VALUE);
+    explorerClip.setMinWidth(0); explorerClip.setPrefWidth(filesWidth); explorerClip.setMaxWidth(Double.MAX_VALUE);
     Rectangle clipping = new Rectangle();
     clipping.widthProperty().bind(explorerClip.widthProperty());
     clipping.heightProperty().bind(explorerClip.heightProperty()); explorerClip.setClip(clipping);
-    Button add = FxTheme.iconButton("plus", "New note", () -> newNote(null));
-    Button folderAdd = FxTheme.iconButton("folder-plus", "New folder", () -> newFolder(null));
-    add.disableProperty().bind(Bindings.createBooleanBinding(() -> store == null, tree.rootProperty()));
-    folderAdd.disableProperty().bind(add.disableProperty());
-    Label files = new Label("Files"); files.getStyleClass().add("explorer-title");
-    HBox heading = new HBox(8, files, spacer(), folderAdd, add);
-    heading.setAlignment(Pos.CENTER_LEFT); heading.getStyleClass().add("explorer-heading");
-    search.setPromptText("Find a note…"); search.setAccessibleText("Find a note by name");
-    search.getStyleClass().addAll(Styles.ROUNDED, "explorer-search");
-    search.textProperty().addListener((observable, previous, query) -> refreshTree());
-    VBox searchBox = new VBox(search); searchBox.getStyleClass().add("explorer-search-box");
     tree.setShowRoot(false); tree.setAccessibleText("Markdown files and folders");
     tree.setCellFactory(view -> new FileCell());
     tree.getStyleClass().add("file-tree");
@@ -324,8 +386,7 @@ public final class FxDiyalamp extends Application {
           && !store.isDirectory(selected.getValue())) open(selected.getValue(), false);
     });
     VBox.setVgrow(tree, Priority.ALWAYS);
-    explorer.getChildren().setAll(heading, searchBox, tree);
-    showExplorerEmpty();
+    explorer.getChildren().setAll(tree);
   }
 
   private final class FileCell extends TreeCell<Path> {
@@ -338,13 +399,8 @@ public final class FxDiyalamp extends Application {
       if (empty || path == null || store == null) return;
       boolean directory = store.isDirectory(path);
       Label title = new Label(path.getFileName().toString());
-      title.setMaxWidth(Double.MAX_VALUE); HBox.setHgrow(title, Priority.ALWAYS);
-      Button action = FxTheme.iconButton(directory ? "plus" : "trash-2",
-          directory ? "New note in " + path.getFileName() : "Move " + path.getFileName() + " to deleted notes",
-          () -> { if (directory) newNote(path); else delete(path); });
-      action.getStyleClass().add("file-row-action");
-      action.visibleProperty().bind(hoverProperty().or(selectedProperty()).or(focusedProperty()));
-      HBox row = new HBox(7, FxTheme.icon(directory ? "folder-open" : "file-text", 15), title, action);
+      title.setMinWidth(0); title.setMaxWidth(Double.MAX_VALUE); HBox.setHgrow(title, Priority.ALWAYS);
+      HBox row = new HBox(7, FxTheme.icon(directory ? "folder-open" : "file-text", 15), title);
       row.setAlignment(Pos.CENTER_LEFT); row.setMaxWidth(Double.MAX_VALUE);
       setGraphic(row); setAccessibleText(path.getFileName() + (directory ? ", folder" : ", Markdown note"));
       ContextMenu menu = new ContextMenu();
@@ -402,7 +458,7 @@ public final class FxDiyalamp extends Application {
   }
 
   private void refreshTree() {
-    if (store == null) { showExplorerEmpty(); return; }
+    if (store == null) return;
     if (noteGraph != null) noteGraph.filesChanged();
     Path selected = selectedPath();
     refreshing = true;
@@ -413,7 +469,7 @@ public final class FxDiyalamp extends Application {
         rootItem.populate(); rootItem.setExpanded(true); tree.setRoot(rootItem);
       } else {
         TreeItem<Path> rootItem = new TreeItem<>(store.root()); rootItem.setExpanded(true);
-        Map<Path, TreeItem<Path>> folders = new HashMap<>(); folders.put(store.root(), rootItem);
+        Map<Path, TreeItem<Path>> folders = new LinkedHashMap<>(); folders.put(store.root(), rootItem);
         for (Path path : store.notes()) {
           if (!store.root().relativize(path).toString().toLowerCase(java.util.Locale.ROOT).contains(query)) continue;
           TreeItem<Path> parent = ensureSearchFolder(path.getParent(), folders);
@@ -422,15 +478,6 @@ public final class FxDiyalamp extends Application {
         tree.setRoot(rootItem);
       }
       if (selected != null) selectTree(tree.getRoot(), selected);
-      if (tree.getRoot().getChildren().isEmpty()) {
-        VBox empty = explorerEmpty(query.isEmpty() ? "No notes yet" : "No matching notes",
-            query.isEmpty() ? "Create a Markdown note in this folder." : "Try another filename.");
-        if (query.isEmpty()) {
-          Button create = new Button("New note"); create.setOnAction(event -> newNote(store.root()));
-          empty.getChildren().add(create);
-        }
-        VBox.setVgrow(empty, Priority.ALWAYS); explorer.getChildren().set(2, empty);
-      } else if (!explorer.getChildren().contains(tree)) explorer.getChildren().set(2, tree);
     } catch (IOException e) { error("Notes could not be listed", e); }
     finally { refreshing = false; }
   }
@@ -442,19 +489,16 @@ public final class FxDiyalamp extends Application {
     parent.getChildren().add(item); folders.put(path, item); return item;
   }
 
-  private void showExplorerEmpty() {
-    if (explorer.getChildren().size() < 3) return;
-    VBox empty = explorerEmpty("Open a folder", "Your Markdown files stay on your Mac.");
-    Button open = new Button("Open folder…"); open.getStyleClass().add("accent");
-    open.setOnAction(event -> chooseFolder()); empty.getChildren().add(open);
-    VBox.setVgrow(empty, Priority.ALWAYS); explorer.getChildren().set(2, empty);
-  }
-
-  private VBox explorerEmpty(String title, String description) {
-    Label heading = new Label(title), detail = new Label(description);
-    heading.getStyleClass().add("empty-heading"); detail.getStyleClass().add("empty-detail");
-    detail.setWrapText(true); VBox box = new VBox(10, heading, detail);
-    box.getStyleClass().add("explorer-empty"); return box;
+  private void openFirstSearchResult() {
+    if (store == null || search.getText().isBlank()) return;
+    for (int row = 0; row < tree.getExpandedItemCount(); row++) {
+      Path path = tree.getTreeItem(row).getValue();
+      if (path == null || store.isDirectory(path)) continue;
+      searching.set(false);
+      open(path, false);
+      if (active != null) active.editor.focus();
+      return;
+    }
   }
 
   private Node emptyPage() {
@@ -519,9 +563,8 @@ public final class FxDiyalamp extends Application {
       primary.tabs.getTabs().clear(); secondary.tabs.getTabs().clear();
       split.getItems().setAll(primary.container);
       primary.container.setCenter(emptyPage()); secondary.container.setCenter(emptyPage());
-      folderLabel.setText(store.root().getFileName().toString());
-      folderLabel.setTooltip(new Tooltip(store.root().toString()));
-      search.clear(); refreshTree(); updateStatus();
+      folderLabel.setText(store.root().toString());
+      searching.set(false); refreshTree(); updateStatus();
       if (persistentFolder) preferences.put("folder", store.root().toString());
     } catch (IOException e) { error("Folder could not be opened", e); }
   }
@@ -538,7 +581,7 @@ public final class FxDiyalamp extends Application {
     if (name.isEmpty()) return;
     try {
       Path created = store.create(directory, name.get(), "");
-      search.clear(); refreshTree(); open(created, false);
+      searching.set(false); refreshTree(); open(created, false);
       if (active != null) active.editor.focus();
     } catch (IOException e) { error("Note could not be created", e); }
   }
@@ -551,7 +594,7 @@ public final class FxDiyalamp extends Application {
     input("New folder", "Folder name", "New folder").showAndWait().ifPresent(name -> {
       try {
         Path folder = store.createFolder(directory, name);
-        search.clear(); refreshTree(); selectTree(tree.getRoot(), folder);
+        searching.set(false); refreshTree(); selectTree(tree.getRoot(), folder);
         tree.requestFocus(); status.setText("Folder created");
       } catch (IOException error) { error("Folder could not be created", error); }
     });
@@ -600,7 +643,7 @@ public final class FxDiyalamp extends Application {
     if (source.disposed) return;
     Session session = source.session;
     boolean wasDirty = session.dirty;
-    session.dirty = true; session.pendingView = source; active = source;
+    session.dirty = true; session.pendingView = source; session.metrics = null; active = source;
     if (!wasDirty) for (View view : session.views) updateView(view);
     status.setText("Saving…");
     serialization.playFromStart(); autosave.playFromStart();
@@ -687,15 +730,33 @@ public final class FxDiyalamp extends Application {
   private void updateStatus() {
     if (noteGraph != null) noteGraph.select(active == null ? null : active.session.path);
     if (active == null) {
-      words.setText(""); status.setText(store == null ? "Choose a folder to start writing" : "Local Markdown files");
+      metrics.setVisible(false); metrics.setManaged(false); status.setText(store == null ? "Choose a folder to start writing" : "Local Markdown files");
       if (stage != null) stage.setTitle("diyalamp"); return;
     }
     Session session = active.session;
-    String plain = session.text.strip();
-    words.setText((plain.isEmpty() ? 0 : plain.split("\\s+").length) + " words");
+    metrics.setVisible(true); metrics.setManaged(true);
+    if (session.metrics == null || session.metricsSource != session.text) {
+      session.metrics = NoteMetrics.count(active.editor.recoveryText(), session.text);
+      session.metricsSource = session.text;
+    }
+    NoteMetrics count = session.metrics;
+    characters.setText(count.characters() + " chars");
+    words.setText(count.words() + " words");
+    lines.setText(count.lines() + " lines");
+    fileSize.setText(count.fileSize());
+    fileSize.getTooltip().setText(count.utf8Bytes() + " UTF-8 bytes of "
+        + (session.blockedView == null ? "current Markdown, including unsaved edits" : "last safely serialized Markdown"));
     status.setText(session.blockedView != null ? "Not saved · undo, simplify formatting, or export visible text"
         : session.error != null ? "Not saved · export or reload to continue"
         : session.dirty ? "Saving…" : "All changes saved");
+  }
+
+  private static Label metricLabel(String icon, String description) {
+    Label label = new Label("", FxTheme.icon(icon, 16));
+    label.getStyleClass().add("note-metric");
+    label.setTooltip(new Tooltip(description)); label.setAccessibleHelp(description);
+    label.setMinWidth(Region.USE_PREF_SIZE);
+    return label;
   }
 
   private void export(Session session) {
@@ -989,25 +1050,120 @@ public final class FxDiyalamp extends Application {
   }
 
   private void toggleSidebar() {
-    if (zenMode.get()) { toggleZen(); return; }
+    captureSidebarWidths();
     sidebarOpen = !sidebarOpen;
+    if (!sidebarOpen) searching.set(false);
+    preferences.putBoolean("filesVisible", sidebarOpen);
+    layoutSidebars(true);
+  }
+
+  private double sidebarWidth(String key, double fallback, double minimum) {
+    double value = preferences.getDouble(key, fallback);
+    return !Double.isFinite(value) || value <= 0 ? fallback : Math.max(minimum, Math.min(600, value));
+  }
+
+  private void configureSidebars() {
+    sidebarLayoutChanging = true;
+    body.getStyleClass().addAll("writing-split", "workspace-sidebars"); body.setMinWidth(0);
+    explorerClip.setMinWidth(160); explorerClip.setMaxWidth(600);
+    ((Region) noteGraph.node()).setMinWidth(200); ((Region) noteGraph.node()).setMaxWidth(600);
+    split.setMinWidth(MIN_WRITING_WIDTH);
+    SplitPane.setResizableWithParent(explorerClip, false);
+    SplitPane.setResizableWithParent(noteGraph.node(), false);
+    body.getItems().add(split);
+    if (sidebarOpen) body.getItems().addFirst(explorerClip);
+    if (noteGraph.showingProperty().get()) body.getItems().add(noteGraph.node());
+    explorerClip.setVisible(sidebarOpen); explorerClip.setManaged(sidebarOpen);
+    explorer.setOpacity(sidebarOpen ? 1 : 0);
+    sidebarSave.setOnFinished(event -> persistSidebarWidths());
+    explorerClip.widthProperty().addListener((observable, previous, width) -> captureSidebarWidths());
+    noteGraph.node().layoutBoundsProperty().addListener((observable, previous, bounds) -> captureSidebarWidths());
+    body.widthProperty().addListener((observable, previous, width) -> queueSidebarLayout());
+    split.getItems().addListener((javafx.collections.ListChangeListener<Node>) change -> queueSidebarLayout());
+    sidebarLayoutReady = true;
+  }
+
+  private void captureSidebarWidths() {
+    if (!sidebarLayoutReady || sidebarLayoutChanging || body.getWidth() <= 0) return;
+    if (sidebarOpen && body.getItems().contains(explorerClip) && explorerClip.getWidth() >= 160)
+      filesWidth = Math.min(600, explorerClip.getWidth());
+    if (noteGraph.showingProperty().get() && body.getItems().contains(noteGraph.node())
+        && noteGraph.node().getLayoutBounds().getWidth() >= 200)
+      connectionsWidth = Math.min(600, noteGraph.node().getLayoutBounds().getWidth());
+    sidebarSave.playFromStart();
+  }
+
+  private void persistSidebarWidths() {
+    preferences.putDouble("filesWidth", filesWidth);
+    preferences.putDouble("connectionsWidth", connectionsWidth);
+  }
+
+  private void queueSidebarLayout() {
+    if (!sidebarLayoutReady || sidebarLayoutQueued) return;
+    sidebarLayoutQueued = true; sidebarLayoutChanging = true;
+    Platform.runLater(() -> { sidebarLayoutQueued = false; if (sidebarLayoutReady) layoutSidebars(false); });
+  }
+
+  private void resetSidebarWidths() {
+    filesWidth = SIDEBAR_WIDTH; connectionsWidth = CONNECTIONS_WIDTH;
+    persistSidebarWidths(); layoutSidebars(true);
+  }
+
+  /** Native SplitPane owns divider dragging; only visibility toggles animate its existing dividers. */
+  private void layoutSidebars(boolean animate) {
+    if (!sidebarLayoutReady || body.getWidth() <= 0) return;
     if (sidebarAnimation != null) sidebarAnimation.stop();
-    explorerClip.setManaged(true); explorerClip.setVisible(true);
-    double end = sidebarOpen ? SIDEBAR_WIDTH : 0;
-    if (Boolean.getBoolean("diyalamp.reduceMotion")) {
-      explorerClip.setPrefWidth(end); explorerClip.setMaxWidth(end);
-      explorer.setOpacity(sidebarOpen ? 1 : 0);
-      explorerClip.setManaged(sidebarOpen); explorerClip.setVisible(sidebarOpen); return;
+    sidebarLayoutChanging = true;
+    double oldLeft = body.getItems().contains(explorerClip) ? explorerClip.getWidth() : 0;
+    double oldRight = body.getItems().contains(noteGraph.node()) ? noteGraph.node().getLayoutBounds().getWidth() : 0;
+    if (sidebarOpen && !body.getItems().contains(explorerClip)) {
+      explorerClip.setVisible(true); explorerClip.setManaged(true); body.getItems().addFirst(explorerClip);
     }
-    sidebarAnimation = new Timeline(new KeyFrame(Duration.millis(240),
-        new KeyValue(explorerClip.prefWidthProperty(), end, Interpolator.EASE_BOTH),
-        new KeyValue(explorerClip.maxWidthProperty(), end, Interpolator.EASE_BOTH),
-        new KeyValue(explorer.opacityProperty(), sidebarOpen ? 1 : 0, Interpolator.EASE_BOTH)));
-    sidebarAnimation.setOnFinished(event -> {
-      explorerClip.setManaged(sidebarOpen); explorerClip.setVisible(sidebarOpen);
-      if (!sidebarOpen && active != null) active.editor.focus();
-    });
-    sidebarAnimation.play();
+    if (noteGraph.showingProperty().get() && !body.getItems().contains(noteGraph.node())) body.getItems().add(noteGraph.node());
+    explorerClip.setMinWidth(0); ((Region) noteGraph.node()).setMinWidth(0);
+    double width = body.getWidth();
+    double writingMinimum = Math.max(MIN_WRITING_WIDTH, split.getItems().size() * 200.0
+        + Math.max(0, split.getItems().size() - 1));
+    split.setMinWidth(writingMinimum);
+    double left = sidebarOpen ? filesWidth : 0, right = noteGraph.showingProperty().get() ? connectionsWidth : 0;
+    double available = Math.max(0, width - writingMinimum - body.getDividers().size() * SIDEBAR_DIVIDER_WIDTH);
+    if (left + right > available) {
+      double factor = available / (left + right); left *= factor; right *= factor;
+    }
+    double[] start = sidebarPositions(oldLeft, oldRight, width), target = sidebarPositions(left, right, width);
+    if (animate && !Boolean.getBoolean("diyalamp.reduceMotion") && target.length > 0) {
+      body.setDividerPositions(start);
+      ArrayList<KeyValue> values = new ArrayList<>();
+      for (int i = 0; i < target.length; i++)
+        values.add(new KeyValue(body.getDividers().get(i).positionProperty(), target[i], Interpolator.EASE_BOTH));
+      values.add(new KeyValue(explorer.opacityProperty(), sidebarOpen ? 1 : 0, Interpolator.EASE_BOTH));
+      sidebarAnimation = new Timeline(new KeyFrame(Duration.millis(180), values.toArray(KeyValue[]::new)));
+      sidebarAnimation.setOnFinished(event -> finishSidebarLayout()); sidebarAnimation.play();
+    } else {
+      body.setDividerPositions(target); explorer.setOpacity(sidebarOpen ? 1 : 0); finishSidebarLayout();
+    }
+  }
+
+  private double[] sidebarPositions(double left, double right, double width) {
+    boolean hasLeft = body.getItems().contains(explorerClip), hasRight = body.getItems().contains(noteGraph.node());
+    double half = SIDEBAR_DIVIDER_WIDTH / 2;
+    if (hasLeft && hasRight) return new double[] {(left + half) / width, 1 - (right + half) / width};
+    if (hasLeft) return new double[] {(left + half) / width};
+    if (hasRight) return new double[] {1 - (right + half) / width};
+    return new double[0];
+  }
+
+  private void finishSidebarLayout() {
+    if (!sidebarOpen) body.getItems().remove(explorerClip);
+    if (!noteGraph.showingProperty().get()) body.getItems().remove(noteGraph.node());
+    explorerClip.setVisible(sidebarOpen); explorerClip.setManaged(sidebarOpen);
+    explorerClip.setMinWidth(160); ((Region) noteGraph.node()).setMinWidth(200);
+    sidebarAnimation = null;
+    body.applyCss(); body.layout();
+    body.setDividerPositions(sidebarPositions(sidebarOpen ? Math.min(filesWidth, explorerClip.getWidth()) : 0,
+        noteGraph.showingProperty().get() ? Math.min(connectionsWidth, noteGraph.node().getLayoutBounds().getWidth()) : 0,
+        body.getWidth()));
+    body.layout(); sidebarLayoutChanging = false; persistSidebarWidths();
   }
 
   private static StackPane clipped(Region child) {
@@ -1021,82 +1177,20 @@ public final class FxDiyalamp extends Application {
 
   private void toggleZen() { zenMode.set(!zenMode.get()); }
 
-  /** Animate only workspace chrome; the writer, document, caret, and split panes stay mounted. */
+  /** Line focus shares one reversible clock; workspace chrome never moves or disappears. */
   private void animateZen(boolean enabled) {
-    if (primary == null || secondary == null) return;
     if (zenAnimation != null) zenAnimation.stop();
-    if (sidebarAnimation != null) sidebarAnimation.stop();
-    if (enabled && zenProgress.get() < .0001) preZenSidebarOpen = sidebarOpen;
-    normalizeWidth(explorerClip);
-    normalizeHeight(toolbarClip); normalizeHeight(primary.chromeClip); normalizeHeight(secondary.chromeClip); normalizeHeight(footerClip);
-    for (Region chrome : List.of(toolbarClip, explorerClip, primary.chromeClip, secondary.chromeClip, footerClip)) {
-      chrome.setManaged(true); chrome.setVisible(true); chrome.setMouseTransparent(enabled);
+    double current = zenProgress.get(), target = enabled ? 1 : 0;
+    if (Boolean.getBoolean("diyalamp.reduceMotion") || current == target) {
+      zenProgress.set(target); zenAnimation = null; return;
     }
-    exitZen.setManaged(true); exitZen.setVisible(true);
-    List<KeyValue> values = new ArrayList<>();
-    width(values, explorerClip, enabled || !preZenSidebarOpen ? 0 : SIDEBAR_WIDTH);
-    height(values, toolbarClip, enabled ? 0 : toolbar.prefHeight(-1));
-    height(values, primary.chromeClip, enabled ? 0 : primary.chrome.prefHeight(-1));
-    height(values, secondary.chromeClip, enabled ? 0 : secondary.chrome.prefHeight(-1));
-    height(values, footerClip, enabled ? 0 : footer.prefHeight(-1));
-    for (Region chrome : List.of(toolbarClip, primary.chromeClip, secondary.chromeClip, footerClip))
-      values.add(new KeyValue(chrome.opacityProperty(), enabled ? 0 : 1, Interpolator.EASE_BOTH));
-    values.add(new KeyValue(explorerClip.opacityProperty(), enabled || !preZenSidebarOpen ? 0 : 1, Interpolator.EASE_BOTH));
-    values.add(new KeyValue(explorer.opacityProperty(), enabled || !preZenSidebarOpen ? 0 : 1, Interpolator.EASE_BOTH));
-    values.add(new KeyValue(exitZen.opacityProperty(), enabled ? 1 : 0, Interpolator.EASE_BOTH));
-    values.add(new KeyValue(zenProgress, enabled ? 1 : 0, Interpolator.EASE_BOTH));
-    if (Boolean.getBoolean("diyalamp.reduceMotion")) {
-      finishZen(enabled);
-    } else {
-      double distance = Math.abs((enabled ? 1 : 0) - zenProgress.get());
-      zenAnimation = new Timeline(new KeyFrame(Duration.millis(340 * Math.max(.25, distance)),
-          values.toArray(KeyValue[]::new)));
-      zenAnimation.setOnFinished(event -> finishZen(enabled));
-      zenAnimation.play();
-    }
-    if (active != null) active.editor.focus();
-  }
-
-  private static void normalizeWidth(Region region) {
-    double width = region.getPrefWidth() >= 0 ? region.getPrefWidth() : region.getWidth();
-    if (width <= 0 && region.isManaged()) width = Math.max(0, region.prefWidth(-1));
-    region.setPrefWidth(width); region.setMaxWidth(width);
-  }
-
-  private static void normalizeHeight(Region region) {
-    double height = region.getPrefHeight() >= 0 ? region.getPrefHeight() : region.getHeight();
-    if (height <= 0 && region.isManaged()) height = Math.max(0, region.prefHeight(-1));
-    region.setPrefHeight(height); region.setMaxHeight(height);
-  }
-
-  private static void width(List<KeyValue> values, Region region, double width) {
-    values.add(new KeyValue(region.prefWidthProperty(), width, Interpolator.EASE_BOTH));
-    values.add(new KeyValue(region.maxWidthProperty(), width, Interpolator.EASE_BOTH));
-  }
-
-  private static void height(List<KeyValue> values, Region region, double height) {
-    values.add(new KeyValue(region.prefHeightProperty(), height, Interpolator.EASE_BOTH));
-    values.add(new KeyValue(region.maxHeightProperty(), height, Interpolator.EASE_BOTH));
-  }
-
-  private void finishZen(boolean enabled) {
-    zenProgress.set(enabled ? 1 : 0);
-    explorerClip.setPrefWidth(enabled || !preZenSidebarOpen ? 0 : SIDEBAR_WIDTH);
-    explorerClip.setMaxWidth(enabled || !preZenSidebarOpen ? 0 : SIDEBAR_WIDTH);
-    for (Region chrome : List.of(toolbarClip, primary.chromeClip, secondary.chromeClip, footerClip)) {
-      chrome.setPrefHeight(enabled ? 0 : Region.USE_COMPUTED_SIZE);
-      chrome.setMaxHeight(enabled ? 0 : Region.USE_PREF_SIZE);
-    }
-    for (Region chrome : List.of(toolbarClip, primary.chromeClip, secondary.chromeClip, footerClip)) {
-      chrome.setManaged(!enabled); chrome.setVisible(!enabled); chrome.setOpacity(enabled ? 0 : 1);
-      chrome.setMouseTransparent(enabled);
-    }
-    explorerClip.setManaged(!enabled && preZenSidebarOpen);
-    explorerClip.setVisible(!enabled && preZenSidebarOpen);
-    explorerClip.setOpacity(enabled || !preZenSidebarOpen ? 0 : 1);
-    explorer.setOpacity(enabled || !preZenSidebarOpen ? 0 : 1);
-    explorerClip.setMouseTransparent(enabled);
-    exitZen.setVisible(enabled); exitZen.setManaged(enabled); exitZen.setOpacity(enabled ? 1 : 0);
+    Timeline transition = new Timeline(
+        new KeyFrame(Duration.ZERO, new KeyValue(zenProgress, current)),
+        new KeyFrame(Duration.millis(280 * Math.max(.2, Math.abs(target - current))),
+            new KeyValue(zenProgress, target, Interpolator.EASE_BOTH)));
+    zenAnimation = transition;
+    transition.setOnFinished(event -> { zenProgress.set(target); zenAnimation = null; });
+    transition.play();
   }
 
   private MenuBar buildMenu() {
@@ -1120,7 +1214,8 @@ public final class FxDiyalamp extends Application {
         shortcut("Copy", KeyCode.C, false, () -> edit("copy")),
         shortcut("Paste", KeyCode.V, false, () -> edit("paste")),
         shortcut("Select all", KeyCode.A, false, () -> edit("select")),
-        new SeparatorMenuItem(), shortcut("Find in note…", KeyCode.F, false, this::findInNote));
+        new SeparatorMenuItem(), shortcut("Find in note…", KeyCode.F, false, this::findInNote),
+        shortcut("Search notes…", KeyCode.P, false, () -> { if (store != null) searching.set(!searching.get()); }));
     format.getItems().addAll(shortcut("Bold", KeyCode.B, false, () -> format("bold")),
         shortcut("Italic", KeyCode.I, false, () -> format("italic")),
         shortcut("Inline code", KeyCode.BACK_QUOTE, false, () -> format("code")),
@@ -1144,7 +1239,7 @@ public final class FxDiyalamp extends Application {
     view.getItems().addAll(new SeparatorMenuItem(), item("Pomodoro…", () -> { if (pomodoro != null) pomodoro.show(); }));
     help.getItems().addAll(item("Check for updates…", () -> updates.check()), new SeparatorMenuItem(),
         item("Keyboard shortcuts", () -> information("Keyboard shortcuts",
-        "⌘N  New note\n⌘O  Open folder\n⌘S  Save\n⌘W  Close note\n⌘K  Insert or edit link\n"
+        "⌘N  New note\n⌘O  Open folder\n⌘P  Search notes\n⌘S  Save\n⌘W  Close note\n⌘K  Insert or edit link\n"
         + "⇧⌘Enter  Toggle checklist\n⇧⌘B  Toggle sidebar\n⌘\\  Side by side\n\n"
         + "Type / on a new line for blocks. Drag a note to the right edge to open it beside your writing.\n"
         + "Deleted notes can be restored from the File menu.")),
@@ -1192,18 +1287,23 @@ public final class FxDiyalamp extends Application {
 
   private Button accentButton() {
     if (accentControl != null) return accentControl;
-    accentControl = new Button("Accent", accentSwatch(displayedAccent));
+    accentControl = new Button(null, accentSwatch(displayedAccent));
     accentControl.setContentDisplay(ContentDisplay.RIGHT);
     accentControl.setTooltip(new Tooltip("Workspace accent color"));
     accentControl.setAccessibleText("Workspace accent color");
     accentControl.setAccessibleHelp("Choose from six muted accent colors. Changes apply immediately.");
-    accentControl.getStyleClass().add("workspace-accent-button");
+    accentControl.getStyleClass().addAll("workspace-tool", "workspace-accent-button");
     accentControl.setOnAction(event -> chooseAccent());
     return accentControl;
   }
 
   private void initializeAccent() {
-    try { accent.set(Color.web(preferences.get("accent", FxTheme.hex(FxTheme.DEFAULT_ACCENT)))); }
+    try {
+      String chosen = preferences.get("accent", FxTheme.hex(FxTheme.DEFAULT_ACCENT));
+      if (chosen.equalsIgnoreCase("#7B8FB7") || chosen.equalsIgnoreCase("#0078D4"))
+        chosen = FxTheme.hex(FxTheme.DEFAULT_ACCENT);
+      accent.set(Color.web(chosen));
+    }
     catch (IllegalArgumentException e) { accent.set(FxTheme.DEFAULT_ACCENT); }
     displayedAccent.set(accent.get());
     FxTheme.accent(root, displayedAccent.get());
@@ -1307,6 +1407,9 @@ public final class FxDiyalamp extends Application {
 
   /** Native application quit can bypass a window close request. Preserve any blocked edits. */
   @Override public void stop() {
+    sidebarLayoutReady = false;
+    if (sidebarAnimation != null) sidebarAnimation.stop();
+    sidebarSave.stop(); persistSidebarWidths();
     if (accentAnimation != null) accentAnimation.stop();
     if (pomodoro != null) pomodoro.close();
     if (zenAnimation != null) zenAnimation.stop();

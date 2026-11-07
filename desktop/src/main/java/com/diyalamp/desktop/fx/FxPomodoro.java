@@ -31,8 +31,8 @@ final class FxPomodoro implements AutoCloseable {
 
   FxPomodoro(Window owner, Consumer<String> notice, PomodoroClock clock) {
     this.owner = owner; this.notice = notice; this.clock = clock;
-    control.setGraphic(FxTheme.icon("timer", 15));
-    control.getStyleClass().addAll("flat", "pomodoro-control");
+    control.setGraphic(FxTheme.icon("timer", FxTheme.TEXT_SIZE));
+    control.getStyleClass().addAll("flat", "workspace-tool", "pomodoro-control");
     control.setAccessibleText("Pomodoro focus timer");
     control.setTooltip(new Tooltip("Focus timer"));
     control.setOnAction(event -> show());
@@ -84,7 +84,10 @@ final class FxPomodoro implements AutoCloseable {
     long seconds = clock.seconds();
     String remaining = String.format(Locale.ROOT, "%02d:%02d", seconds / 60, seconds % 60);
     time.setText(remaining);
-    control.setText(clock.phase().label + " · " + remaining);
+    control.setText(null);
+    String state = clock.phase().label + " · " + remaining + (clock.running() ? " · Running" : " · Stopped");
+    control.getTooltip().setText(state);
+    control.setAccessibleHelp(state);
     start.setText(clock.running() ? "Stop" : "Start");
     focus.setSelected(clock.phase() == PomodoroClock.Phase.FOCUS);
     rest.setSelected(clock.phase() == PomodoroClock.Phase.BREAK);

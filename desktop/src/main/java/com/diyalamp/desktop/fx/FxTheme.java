@@ -1,6 +1,6 @@
 package com.diyalamp.desktop.fx;
 
-import atlantafx.base.theme.CupertinoLight;
+import atlantafx.base.theme.CupertinoDark;
 import java.io.InputStream;
 import java.util.Locale;
 import java.util.HashMap;
@@ -21,16 +21,22 @@ import javafx.scene.text.Font;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Element;
 
-/** AtlantaFX light controls, pinned static Inter faces, and the existing Lucide SVG assets. */
+/** AtlantaFX dark controls, pinned static Inter faces, and the existing Lucide SVG assets. */
 public final class FxTheme {
-  public static final Color DEFAULT_ACCENT = Color.web("#7B8FB7");
+  public static final double TEXT_SIZE = 16;
+  public static final Color DEFAULT_ACCENT = Color.web("#297AA0");
+  public static final Color EDITOR_BACKGROUND = Color.web("#121314");
+  public static final Color CHROME_BACKGROUND = Color.web("#191A1B");
+  private static final Color DEFAULT_LINK = Color.web("#48A0C7");
+  private static final Color DEFAULT_FOCUS = Color.web("#3994BCB3");
+  private static final Color DEFAULT_SELECTION = Color.web("#276782DD");
   static final String DISPLAYED_ACCENT = "diyalamp.displayedAccent";
   private static final Map<String, String> TEXT_FACES = new HashMap<>();
   private static final Map<String, Font> TEXT_FONTS = new HashMap<>();
 
   public static void setup() {
     loadTextFonts();
-    Application.setUserAgentStylesheet(new CupertinoLight().getUserAgentStylesheet());
+    Application.setUserAgentStylesheet(new CupertinoDark().getUserAgentStylesheet());
   }
 
   private static synchronized void loadTextFonts() {
@@ -38,7 +44,7 @@ public final class FxTheme {
     Map<String, String> loaded = new HashMap<>();
     for (String face : new String[] {"Regular", "Italic", "SemiBold", "SemiBoldItalic"}) {
       try (InputStream input = FxTheme.class.getResourceAsStream("/fonts/Inter-" + face + ".ttf")) {
-        Font font = input == null ? null : Font.loadFont(input, 16);
+        Font font = input == null ? null : Font.loadFont(input, TEXT_SIZE);
         String expected = "Inter " + face.replace("SemiBoldItalic", "SemiBold Italic");
         if (font == null || !font.getName().equals(expected)) throw new IllegalStateException("Could not load the bundled Inter " + face + " face");
         loaded.put(face, font.getName());
@@ -57,16 +63,35 @@ public final class FxTheme {
   }
 
   public static void accent(Parent root, Color color) {
+    root.pseudoClassStateChanged(javafx.css.PseudoClass.getPseudoClass("reduced-motion"),
+        Boolean.getBoolean("diyalamp.reduceMotion"));
     root.getProperties().put(DISPLAYED_ACCENT, color);
-    Color readable = color;
-    // Preserve the chosen hue while ensuring controls remain visible on the light surface.
-    for (int i = 1; contrastOnWhite(readable) < 4.5 && i <= 100; i++)
-      readable = color.interpolate(Color.BLACK, i / 100.0);
-    String hex = hex(readable);
-    Color subtle = color.interpolate(Color.WHITE, .90);
-    root.setStyle("-color-accent-emphasis: " + hex + "; -color-accent-fg: " + hex
-        + "; -color-accent-subtle: " + hex(subtle) + "; -diyalamp-accent: " + hex
-        + "; -diyalamp-accent-subtle: " + hex(subtle) + ";");
+    // Apply the same continuous hue/saturation/brightness transform at every animation
+    // frame. Its default endpoint is VS Code's Dark 2026 link color, without a last-frame jump.
+    Color readable = accentTone(color, DEFAULT_LINK);
+    for (int i = 1; contrast(readable, EDITOR_BACKGROUND) < 4.5 && i <= 100; i++)
+      readable = readable.interpolate(Color.WHITE, .02);
+    Color foreground = contrast(Color.WHITE, color) >= 4.5 ? Color.WHITE : CHROME_BACKGROUND;
+    Color focus = accentTone(color, DEFAULT_FOCUS);
+    Color subtle = new Color(focus.getRed(), focus.getGreen(), focus.getBlue(), 0x26 / 255.0);
+    Color drop = new Color(focus.getRed(), focus.getGreen(), focus.getBlue(), 0x1A / 255.0);
+    root.setStyle("-color-accent-emphasis: " + hex(color) + "; -color-accent-fg: " + hex(readable)
+        + "; -color-accent-subtle: " + cssColor(subtle) + "; -diyalamp-accent: " + hex(color)
+        + "; -diyalamp-link: " + hex(readable) + "; -diyalamp-accent-contrast: " + hex(foreground)
+        + "; -diyalamp-accent-subtle: " + cssColor(subtle) + "; -diyalamp-focus: " + cssColor(focus)
+        + "; -diyalamp-selection: " + cssColor(accentTone(color, DEFAULT_SELECTION))
+        + "; -diyalamp-drop: " + cssColor(drop) + ";");
+  }
+
+  private static Color accentTone(Color color, Color target) {
+    return Color.hsb(color.getHue() + target.getHue() - DEFAULT_ACCENT.getHue(),
+        Math.min(1, color.getSaturation() * target.getSaturation() / DEFAULT_ACCENT.getSaturation()),
+        Math.max(0, Math.min(1, color.getBrightness() + target.getBrightness() - DEFAULT_ACCENT.getBrightness())),
+        target.getOpacity());
+  }
+
+  private static String cssColor(Color color) {
+    return color.getOpacity() == 1 ? hex(color) : hex(color) + String.format(Locale.ROOT, "%02X", Math.round(color.getOpacity() * 255));
   }
 
   public static Color accentOf(Parent root) {
@@ -74,10 +99,13 @@ public final class FxTheme {
     return color instanceof Color value ? value : DEFAULT_ACCENT;
   }
 
-  private static double contrastOnWhite(Color color) {
-    double luminance = .2126 * linear(color.getRed()) + .7152 * linear(color.getGreen())
-        + .0722 * linear(color.getBlue());
-    return 1.05 / (luminance + .05);
+  static double contrast(Color first, Color second) {
+    double a = luminance(first), b = luminance(second);
+    return (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
+  }
+
+  private static double luminance(Color color) {
+    return .2126 * linear(color.getRed()) + .7152 * linear(color.getGreen()) + .0722 * linear(color.getBlue());
   }
 
   private static double linear(double component) {
@@ -159,7 +187,7 @@ public final class FxTheme {
         };
         if (shape == null) continue;
         shape.setFill(Color.TRANSPARENT);
-        shape.setStroke(Color.web("#777984"));
+        shape.setStroke(Color.web("#8C8C8C"));
         shape.setStrokeWidth(1.7);
         shape.setStrokeLineCap(StrokeLineCap.ROUND);
         shape.setStrokeLineJoin(StrokeLineJoin.ROUND);

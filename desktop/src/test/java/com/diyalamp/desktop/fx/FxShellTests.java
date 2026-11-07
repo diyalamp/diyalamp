@@ -146,17 +146,14 @@ public final class FxShellTests {
       Object view = ((java.util.List<?>) field(fixture.session, "views")).getFirst();
       Object host = field(view, "host");
       TabLine tabs = (TabLine) field(host, "tabs");
-      HBox tools = (HBox) tabs.getRightNode();
-      check(tools.getChildren().size() == 2 && tools.getChildren().get(0).getAccessibleText().equals("New note")
-          && tools.getChildren().get(1).getAccessibleText().equals("Open note side by side"),
-          "Per-pane controls must remain focused on adjacent new-note and split actions");
+      check(tabs.getRightNode() == null, "New/Split actions belong outside the note view");
       Stage stage = new Stage(); set(fixture.app, "stage", stage);
       call(fixture.app, "buildExplorer", new Class<?>[0]); call(fixture.app, "refreshTree", new Class<?>[0]);
       var toolbar = (javafx.scene.control.ToolBar) call(fixture.app, "buildToolbar", new Class<?>[0]);
       Button accent = (Button) call(fixture.app, "accentButton", new Class<?>[0]);
-      check(toolbar.getItems().contains(accent) && accent.getText().equals("Accent")
+      check(toolbar.getItems().contains(accent) && (accent.getText() == null || accent.getText().isEmpty())
           && accent.getAccessibleText().equals("Workspace accent color") && accent.getAccessibleRole() == AccessibleRole.BUTTON,
-          "A labelled accessible Accent button belongs in the global toolbar");
+          "The global accent circle must retain an accessible name without a visible label");
       BorderPane root = (BorderPane) field(fixture.app, "root");
       root.setTop(toolbar);
       root.setCenter(new HBox((VBox) field(fixture.app, "explorer"), (Region) field(host, "container")));
@@ -167,14 +164,14 @@ public final class FxShellTests {
       call(fixture.app, "initializeAccent", new Class<?>[0]);
       tabs.getTabs().add((Tab) field(view, "tab")); tabs.getSelectionModel().selectFirst();
       stage.setScene(new Scene(root, 1100, 600)); stage.show(); root.applyCss(); root.layout();
-      check(accent.getHeight() >= 36 && accent.getWidth() > 80 && accent.getWidth() < 160,
+      check(accent.getHeight() >= 36 && accent.getWidth() >= 36 && accent.getWidth() <= 48,
           "The global Accent control must have comfortable compact dimensions");
       Region swatch = (Region) accent.getGraphic();
       check(swatch.getWidth() == swatch.getHeight() && swatch.getWidth() >= 12
           && swatch.getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius() >= 6,
           "The current accent preview must render as a small circle");
       var uiFonts = new java.util.ArrayList<Font>();
-      uiFonts.add(((javafx.scene.control.TextField) field(fixture.app, "search")).getFont());
+      uiFonts.add(((Label) field(fixture.app, "folderLabel")).getFont());
       uiFonts.add(((Label) field(host, "breadcrumb")).getFont()); uiFonts.add(status.getFont()); uiFonts.add(accent.getFont());
       var fileLabels = root.lookupAll(".file-tree .tree-cell .label").stream()
           .filter(node -> node instanceof Label label && label.getText().equals(fixture.path.getFileName().toString()))

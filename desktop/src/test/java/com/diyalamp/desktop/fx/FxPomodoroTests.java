@@ -25,24 +25,26 @@ public final class FxPomodoroTests {
           check(popup.getRoot().getStyleClass().contains("diyalamp-popover") && popup.isAutoHide()
               && popup.isHideOnEscape() && popup.isAnimated(), "Timer uses the shared animated popover");
           check(timer.button().getGraphic() != null, "Timer has a flat Lucide graphic");
-          check(timer.button().getText().contains("25:00"), "Status starts with the focus duration");
+          check(timer.button().getText() == null && timer.button().getAccessibleText().equals("Pomodoro focus timer")
+              && timer.button().getAccessibleHelp().contains("25:00"),
+              "Icon-only toolbar timer exposes its focus duration to accessibility");
           Button start = (Button) popup.getContentNode().lookup("#pomodoro-start");
           Button reset = (Button) popup.getContentNode().lookup("#pomodoro-reset");
           start.fire(); check(clock.running() && start.getText().equals("Stop"), "Start begins the focus session");
           now.addAndGet(60_000_000_000L); timer.refresh();
-          check(timer.button().getText().contains("24:00"), "Status tracks elapsed time");
+          check(timer.button().getTooltip().getText().contains("24:00"), "Tooltip tracks elapsed time");
           start.fire(); check(!clock.running() && start.getText().equals("Start"), "Pause is reversible");
           now.addAndGet(60_000_000_000L); timer.refresh();
-          check(timer.button().getText().contains("24:00"), "Paused UI does not count down");
+          check(timer.button().getTooltip().getText().contains("24:00"), "Paused UI does not count down");
           start.fire(); now.addAndGet(1440_000_000_000L); timer.refresh();
-          check(!clock.running() && timer.button().getText().equals("Break · 05:00"), "Completion prepares a manual break");
+          check(!clock.running() && timer.button().getAccessibleHelp().contains("Break · 05:00"), "Completion prepares a manual break");
           check(notices.size() == 1 && notices.getFirst().contains("Focus session complete"), "Completion uses a single non-blocking notice");
           timer.refresh(); check(notices.size() == 1, "Further refreshes do not repeat the notice");
           var choices = popup.getContentNode().lookupAll(".toggle-button").stream().map(node -> (ToggleButton) node).toList();
           choices.stream().filter(node -> node.getText().startsWith("Focus")).findFirst().orElseThrow().fire();
           check(clock.phase() == PomodoroClock.Phase.FOCUS && clock.seconds() == 1500, "Mode choices select their fixed duration");
           start.fire(); now.addAndGet(20_000_000_000L); reset.fire();
-          check(!clock.running() && timer.button().getText().contains("25:00"), "Reset stops and restores the selected phase");
+          check(!clock.running() && timer.button().getTooltip().getText().contains("25:00"), "Reset stops and restores the selected phase");
         }
       } catch (Throwable error) { failed.set(error); } finally { finished.countDown(); }
     });
