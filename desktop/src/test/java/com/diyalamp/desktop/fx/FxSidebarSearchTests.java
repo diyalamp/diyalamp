@@ -13,6 +13,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.Labeled;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.TreeItem;
@@ -93,11 +94,33 @@ public final class FxSidebarSearchTests {
       workspace.applyCss();
       workspace.layout();
       TextField input = (TextField) panel.queryControl().lookup(".text-field");
+      ToggleButton advanced = (ToggleButton) panel.queryControl().lookup(".sidebar-search-toggle");
+      var options = panel.lookup(".sidebar-search-options");
       check(header.getHeight() == 52 && input.getHeight() == 36,
           "The query must fit alongside creation controls in the shared 52-pixel header");
+      check(advanced.getHeight() == 36 && advanced.getWidth() == 36
+              && advanced.getGraphic().lookup(".icon-stroke") != null
+              && "Search options".equals(advanced.getAccessibleText()),
+          "The options icon must share the toolbar size and have an accessible name");
+      check(!options.isVisible() && !options.isManaged(), "Advanced search must start collapsed");
       check(!panel.hasQuery() && files.isVisible(), "The empty query must leave the files view visible");
       panel.focusQuery();
+      input.setText("Original");
+      check(!options.isVisible() && request.get().scope() == FxWorkspaceSearch.Scope.FILENAMES,
+          "Focusing and typing in the collapsed field must perform basic filename search without expanding options");
+      input.clear();
+      advanced.fire();
+      check(advanced.isSelected() && "Hide search options".equals(advanced.getTooltip().getText()),
+          "The options icon must expose its expanded state");
       double compactTreeY = treeBelowOptions(workspace, panel, files);
+      var modeIcons = panel.lookupAll(".sidebar-search-mode");
+      var filterIcons = panel.lookupAll(".sidebar-search-option");
+      check(modeIcons.size() == 2 && filterIcons.size() == 4
+              && java.util.stream.Stream.concat(modeIcons.stream(), filterIcons.stream()).allMatch(node ->
+                  node instanceof Labeled item && (item.getText() == null || item.getText().isEmpty())
+                      && item.getGraphic() != null
+                      && item.getGraphic().lookup(".icon-stroke") != null && item.getAccessibleText() != null),
+          "All scope and filter controls must have an icon and an accessible name");
       toggle(panel, "Include and exclude files").fire();
       check(treeBelowOptions(workspace, panel, files) > compactTreeY + 36,
           "Expanding the include and exclude fields must make room above the files view");
@@ -137,6 +160,23 @@ public final class FxSidebarSearchTests {
           "Only file group rows may get note actions");
       check(panel.lookup(".sidebar-search-highlight") != null,
           "A rendered line preview must expose its highlighted segment");
+      var activeRequest = request.get();
+      var activeResults = results.getRoot();
+      advanced.fire();
+      workspace.applyCss();
+      workspace.layout();
+      check(!options.isVisible() && !options.isManaged() && request.get() == activeRequest
+              && results.isVisible() && results.getRoot() == activeResults && input.getText().equals("Original"),
+          "Collapsing advanced options must preserve the query, settings, and current results");
+      check(!advanced.isSelected() && "Show search options".equals(advanced.getTooltip().getText())
+              && advanced.getAccessibleHelp().contains("are active"),
+          "The collapsed options icon must communicate that advanced settings remain active");
+      advanced.fire();
+      check(options.isVisible() && toggle(panel, "Use regular expression").isSelected()
+              && field(panel, "Include files").getText().equals("Research/**")
+              && field(panel, "Exclude files").getText().equals("Drafts/**"),
+          "Reopening must retain the advanced settings");
+      advanced.fire();
       press(input, KeyCode.ENTER);
       check(new FxSidebarSearch.OpenResult(notePath, match).equals(opened.get()),
           "Enter from the query must open the first exact text match");
@@ -166,6 +206,15 @@ public final class FxSidebarSearchTests {
       input.setText(" ");
       check(panel.hasQuery() && request.get().text().equals(" "),
           "Literal spaces must remain searchable");
+      workspace.resize(200, workspace.getHeight());
+      workspace.layout();
+      workspace.applyCss();
+      workspace.layout();
+      check(input.getWidth() >= 56 && advanced.getWidth() == 28
+              && advanced.localToScene(advanced.getBoundsInLocal()).getMaxX()
+                  < header.localToScene(header.getBoundsInLocal()).getMaxX(),
+          "At 200 pixels the options button must compact without removing the search field or creation controls: "
+              + input.getWidth() + " / " + advanced.getWidth());
     } finally {
       stage.close();
     }

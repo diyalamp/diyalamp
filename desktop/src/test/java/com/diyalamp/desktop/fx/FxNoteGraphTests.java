@@ -68,7 +68,7 @@ public final class FxNoteGraphTests {
         check(graph.getBackground().getFills().getLast().getFill().equals(FxTheme.EDITOR_BACKGROUND),
             "Actual graph canvas must use the VS Code default dark editor color");
         javafx.scene.layout.VBox inspector = (javafx.scene.layout.VBox) field(chosen, "content");
-        check(inspector.getBackground().getFills().getLast().getFill().equals(FxTheme.CHROME_BACKGROUND),
+        check(inspector.getBackground().getFills().getLast().getFill().equals(FxTheme.EDITOR_BACKGROUND),
             "Actual inspector must use the VS Code default dark sidebar color");
         var graphLabels = graph.lookupAll(".vertex-label").stream()
             .filter(node -> node instanceof javafx.scene.text.Text).toList();

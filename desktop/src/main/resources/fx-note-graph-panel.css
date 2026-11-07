@@ -1,8 +1,7 @@
 /* A quiet inspector beside the writing surface. Geometry follows the shared 8-point scale. */
 .note-graph-panel {
   -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal;
-  -fx-background-color: #191A1B;
-  -fx-border-color: transparent transparent transparent #2A2B2C; -fx-border-width: 0 0 0 1;
+  -fx-background-color: -color-bg-inset;
 }
 .graph-heading { -fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #BFBFBF; }
 .graph-summary { -fx-padding: 8 16; }
@@ -10,10 +9,10 @@
 .graph-detail { -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #8C8C8C; }
 .tooltip { -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; }
 .graph-sections { -fx-background-color: transparent; -fx-padding: 0; }
-.graph-sections > .split-pane-divider { -fx-padding: .5 0; -fx-background-color: #2A2B2C; }
-.graph-canvas { -fx-background-color: #121314; -fx-padding: 16; }
+.graph-sections > .split-pane-divider { -fx-padding: .5 0; -fx-background-color: -diyalamp-divider; }
+.graph-canvas { -fx-background-color: -color-bg-default; -fx-padding: 16; }
 .note-graph-zoom, .note-graph-zoom > .viewport {
-  -fx-background-color: #121314; -fx-background-insets: 0; -fx-padding: 0; -fx-border-width: 0;
+  -fx-background-color: -color-bg-default; -fx-background-insets: 0; -fx-padding: 0; -fx-border-width: 0;
 }
 .graph-link-section { -fx-padding: 8; }
 .graph-list-heading { -fx-padding: 0 8; -fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #8C8C8C; }

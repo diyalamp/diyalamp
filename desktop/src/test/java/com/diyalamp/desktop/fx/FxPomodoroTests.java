@@ -56,15 +56,18 @@ public final class FxPomodoroTests {
         check(popup.getStyleClass().contains("diyalamp-popover") && popup.isAutoHide() && popup.isHideOnEscape(),
             "Timer uses the shared anchored popover");
         check(timer.button().getGraphic() != null && timer.button().getText() == null
-                && timer.button().getAccessibleText().equals("Pomodoro focus timer")
+                && timer.button().getAccessibleText().equals("Pomodoro timer, Focus, Ready")
                 && timer.button().getAccessibleHelp().contains("25:00"),
-            "Idle timer exposes the default duration without widening its button");
+            "Ready timer exposes its phase and default duration");
         Button start = (Button) popup.getContentNode().lookup("#pomodoro-start");
         Button reset = (Button) popup.getContentNode().lookup("#pomodoro-reset");
         TextField focus = (TextField) popup.getContentNode().lookup("#pomodoro-focus-minutes");
         TextField rest = (TextField) popup.getContentNode().lookup("#pomodoro-break-minutes");
         check(focus.getAccessibleText().equals("Focus minutes") && rest.getAccessibleText().equals("Break minutes"),
             "Both editable durations must have distinct names");
+        for (String label : new String[] {"Focus", "Break", "One cycle", "Repeat"})
+          check(!choice(popup, label).getGraphic().lookupAll(".icon-stroke").isEmpty(),
+              label + " must have a visible icon");
         focus.setText("181");
         check(start.isDisabled() && clock.focusMinutes() == 25,
             "Out-of-range edits must prevent starting while preserving the prior duration");
@@ -137,12 +140,15 @@ public final class FxPomodoroTests {
       FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
       stage.setScene(new Scene(root, 820, 560));
       stage.show(); root.applyCss(); root.layout();
-      check(timer.button().getWidth() == 36, "Idle timer must keep the shared toolbar control width");
-      clock.start(); timer.refresh(); root.applyCss(); root.layout();
+      Label phase = (Label) timer.button().lookup(".pomodoro-toolbar-phase");
       Label countdown = (Label) timer.button().lookup(".pomodoro-toolbar-time");
-      check(timer.button().getWidth() == 160 && countdown.getText().equals("180:00")
-              && countdown.getFont().getSize() == 16,
-          "Three-digit durations must fit the active control at the shared font size");
+      check(timer.button().getWidth() == 160 && phase.getText().equals("Focus")
+              && countdown.getText().equals("180:00") && countdown.getFont().getSize() == 16,
+          "Ready timer must show its phase and three-digit duration with the shared font");
+      check(!timer.popover().isShowing(), "The phase and duration must remain visible with the popover closed");
+      clock.start(); timer.refresh(); root.applyCss(); root.layout();
+      check(timer.button().getWidth() == 160 && countdown.getText().equals("180:00"),
+          "Starting the timer must preserve the width and duration");
       double activeWidth = timer.button().getWidth();
       now.addAndGet(89 * SECOND); timer.refresh(); clock.pause(); timer.refresh(); root.applyCss(); root.layout();
       check(timer.button().getWidth() == activeWidth && timer.button().getAccessibleText().contains("Paused"),
@@ -151,7 +157,22 @@ public final class FxPomodoroTests {
       check(timer.button().getWidth() == activeWidth && timer.button().getAccessibleText().contains("Break"),
           "Both phases must fit the same active width");
       clock.reset(); timer.refresh(); root.applyCss(); root.layout();
-      check(timer.button().getWidth() == 36, "Reset must restore the compact idle control");
+      check(timer.button().getWidth() == activeWidth && phase.getText().equals("Break")
+              && timer.button().getAccessibleText().equals("Pomodoro timer, Break, Ready"),
+          "A ready Break must remain visible and match the width of the running timer");
+      Popover popup = timer.popover();
+      popup.show(timer.button());
+      popup.getRoot().applyCss(); popup.getRoot().layout();
+      RadioButton focus = choice(popup, "Focus"), rest = choice(popup, "Break"),
+          once = choice(popup, "One cycle"), repeat = choice(popup, "Repeat");
+      check(focus.getWidth() > 0 && focus.getWidth() == rest.getWidth()
+              && once.getWidth() == repeat.getWidth() && focus.getWidth() == once.getWidth()
+              && focus.getHeight() == 36 && once.getHeight() == 36,
+          "Phase and schedule options use matching columns and the shared control height");
+      var focusField = (TextField) popup.getContentNode().lookup("#pomodoro-focus-minutes");
+      var breakField = (TextField) popup.getContentNode().lookup("#pomodoro-break-minutes");
+      check(focusField.getWidth() == focus.getWidth() && breakField.getWidth() == rest.getWidth(),
+          "Duration fields must align with the phase and schedule columns");
     } finally { stage.close(); }
   }
 }

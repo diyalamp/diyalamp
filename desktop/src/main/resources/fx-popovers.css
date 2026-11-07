@@ -1,6 +1,7 @@
 /* Use the AtlantaFX shape as the sole painted surface, including its rounded corners. */
-.diyalamp-popover {
+.workspace-root.diyalamp-popover {
   -fx-background-color: transparent;
+  -fx-background-insets: 0;
   -fx-effect: null;
 }
 .diyalamp-popover > .border {
@@ -42,12 +43,19 @@
 }
 .diyalamp-popover .accent-choice:hover,
 .diyalamp-popover .pomodoro-phase:hover,
-.diyalamp-popover .popover-action:hover { -fx-background-color: #313233; }
+.diyalamp-popover .popover-action:hover { -fx-background-color: -color-border-default; }
 .diyalamp-popover .accent-choice:pressed,
 .diyalamp-popover .pomodoro-phase:pressed,
-.diyalamp-popover .popover-action:pressed { -fx-background-color: #373839; }
+.diyalamp-popover .popover-action:pressed { -fx-background-color: -color-border-default; }
 .diyalamp-popover .accent-choice:selected,
 .diyalamp-popover .pomodoro-phase:selected { -fx-background-color: -diyalamp-accent-subtle; }
+.diyalamp-popover .accent-choice:selected { -fx-border-color: -diyalamp-focus; }
+.diyalamp-popover .accent-hex {
+  -fx-padding: 0 8;
+  -fx-border-width: 1;
+  -fx-highlight-fill: -diyalamp-selection;
+  -fx-highlight-text-fill: -color-fg-emphasis;
+}
 .diyalamp-popover .popover-action.accent {
   -fx-background-color: -diyalamp-accent;
   -fx-border-color: transparent;
@@ -59,8 +67,10 @@
 .diyalamp-popover .popover-action.accent:hover,
 .diyalamp-popover .popover-action.accent:pressed { -fx-border-color: -diyalamp-focus; }
 
-.workspace-root .pomodoro-control:timer-active {
+.workspace-root .pomodoro-control {
   -fx-min-width: 160; -fx-pref-width: 160; -fx-max-width: 160;
+}
+.workspace-root .pomodoro-control:timer-active {
   -fx-background-color: -color-border-default, -color-bg-subtle;
   -fx-background-insets: 0, 1; -fx-background-radius: 8, 7;
 }
@@ -83,10 +93,15 @@
   -fx-min-height: 8; -fx-pref-height: 8; -fx-max-height: 8;
   -fx-background-color: -color-accent-fg; -fx-background-radius: 99;
 }
-.pomodoro-bubble .pomodoro-phase { -fx-alignment: center; -fx-graphic-text-gap: 0; }
+.pomodoro-bubble .pomodoro-phase {
+  -fx-alignment: center-left; -fx-padding: 0 16; -fx-graphic-text-gap: 8;
+}
 .pomodoro-bubble .pomodoro-phase > .radio, .pomodoro-bubble .pomodoro-phase > .radio > .dot {
+  -fx-min-width: 0; -fx-pref-width: 0; -fx-max-width: 0;
+  -fx-min-height: 0; -fx-pref-height: 0; -fx-max-height: 0;
   -fx-padding: 0; -fx-border-width: 0; -fx-background-color: transparent; -fx-opacity: 0;
 }
+.pomodoro-bubble .pomodoro-phase:selected .icon-stroke { -fx-stroke: -color-accent-fg; }
 .pomodoro-bubble .popover-action.accent .icon-stroke { -fx-stroke: -diyalamp-accent-contrast; }
 .pomodoro-bubble .separator > .line {
   -fx-border-color: -color-border-default; -fx-border-width: 1 0 0 0;
@@ -102,4 +117,6 @@
   -fx-pref-height: 16;
   -fx-max-height: 16;
   -fx-background-radius: 99;
+  -fx-border-color: -color-fg-muted;
+  -fx-border-radius: 99;
 }

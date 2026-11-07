@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.SnapshotParameters;
@@ -61,25 +62,33 @@ public final class FxPopoverLifecycleTests {
   private static void motion(CountDownLatch done, AtomicReference<Throwable> failure) {
     Button anchor = new Button("Fictional preview");
     BorderPane root = new BorderPane(); root.setTop(anchor);
-    Stage owner = new Stage(); owner.setScene(new Scene(root, 500, 300)); owner.show(); root.applyCss(); root.layout();
+    root.getStyleClass().add("workspace-root");
+    Scene scene = new Scene(root, 500, 500);
+    scene.getStylesheets().add(FxTheme.class.getResource("/fx-workspace.css").toExternalForm());
+    Stage owner = new Stage(); owner.setScene(scene); owner.show(); root.applyCss(); root.layout();
     FxPomodoro timer = new FxPomodoro(owner, message -> {});
+    Runnable close = () -> { timer.close(); owner.close(); done.countDown(); };
     Popover popup = timer.popover();
     var surface = popup.getRoot();
-    FxPopovers.toggle(popup, anchor);
-    check(popup.isShowing() && surface.isVisible() && surface.getOpacity() == 0 && surface.getTranslateY() == -8,
-        "The actual skin must start transparent and offset toward its anchor");
-    double initialY = surface.localToScreen(surface.getLayoutBounds()).getMinY();
-    await(() -> surface.getOpacity() > 0 && surface.getOpacity() < 1, () -> {
-      check(surface.getTranslateY() > -8 && surface.getTranslateY() < 0,
-          "An animation pulse must visibly translate and fade the popup");
-      await(() -> surface.getOpacity() == 1, () -> {
+    try {
+      FxPopovers.toggle(popup, anchor);
+      check(popup.isShowing() && surface.isVisible() && surface.getOpacity() == 0 && surface.getTranslateY() == -8,
+          "The actual skin must start transparent and offset toward its anchor");
+      double initialY = surface.localToScreen(surface.getLayoutBounds()).getMinY();
+      Timeline opening = timeline(popup);
+      // Seek on the FX thread so a slow render pulse cannot skip the intermediate frame.
+      opening.jumpTo(opening.getTotalDuration().divide(2));
+      check(surface.getTranslateY() > -8 && surface.getTranslateY() < 0
+              && surface.getOpacity() > 0 && surface.getOpacity() < 1,
+          "The opening animation must visibly translate and fade the popup");
+      await("opening", () -> surface.getOpacity() == 1, () -> {
         check(surface.getTranslateY() == 0 && Math.abs(surface.localToScreen(surface.getLayoutBounds()).getMinY() - initialY - 8) < 1,
             "The dropdown must travel eight pixels on screen and settle at its AtlantaFX anchor");
         surface.applyCss(); surface.layout();
         check(surface.getStyleClass().contains("diyalamp-popover") && surface.getEffect() == null,
             "The actual AtlantaFX skin must retain workspace styling and have no drop shadow");
         Path border = (Path) surface.lookup(".border");
-        check(border.getStrokeWidth() == 1 && border.getStroke().equals(Color.web("#2A2B2C")),
+        check(border.getStrokeWidth() == 1 && border.getStroke().equals(Color.web("#333536")),
             "The rounded popup must use the shared one-pixel dialog border");
         SnapshotParameters parameters = new SnapshotParameters(); parameters.setFill(Color.TRANSPARENT);
         var image = surface.snapshot(parameters, null);
@@ -87,10 +96,15 @@ public final class FxPopoverLifecycleTests {
         check(pixels.getColor(0, 0).getOpacity() < .05
             && pixels.getColor((int) image.getWidth() / 2, 6).equals(Color.web("#202122")),
             "Rendered popup pixels must have a transparent corner and the dark dialog surface");
+        for (var node = surface.getParent(); node != null; node = node.getParent())
+          if (node instanceof javafx.scene.layout.Region region && region.getBackground() != null)
+            check(region.getBackground().getFills().stream()
+                .allMatch(fill -> Color.TRANSPARENT.equals(fill.getFill())),
+                "Popup wrappers must stay transparent outside the rounded skin");
         FxPopovers.toggle(popup, anchor);
         check(popup.isShowing() && surface.isVisible() && surface.getOpacity() == 1,
             "Toolbar dismissal must keep the skin visible while the closing motion begins");
-        await(() -> !popup.isShowing(), () -> {
+        await("dismissal", () -> !popup.isShowing(), () -> {
           String previous = System.getProperty("diyalamp.reduceMotion");
           try {
             System.setProperty("diyalamp.reduceMotion", "true");
@@ -103,24 +117,31 @@ public final class FxPopoverLifecycleTests {
             if (previous == null) System.clearProperty("diyalamp.reduceMotion");
             else System.setProperty("diyalamp.reduceMotion", previous);
           }
-          timer.close(); owner.close(); done.countDown();
-        }, done, failure);
-      }, done, failure);
-    }, done, failure);
+          close.run();
+        }, close, failure);
+      }, close, failure);
+    } catch (Throwable error) { failure.set(error); close.run(); }
   }
 
-  private static void await(BooleanSupplier condition, Runnable next, CountDownLatch done,
+  private static Timeline timeline(Popover popup) throws ReflectiveOperationException {
+    Object motion = popup.getProperties().get("diyalamp.popover.motion");
+    var animation = motion.getClass().getDeclaredField("animation");
+    animation.setAccessible(true);
+    return (Timeline) animation.get(motion);
+  }
+
+  private static void await(String name, BooleanSupplier condition, Runnable next, Runnable close,
       AtomicReference<Throwable> failure) {
-    poll(condition, next, done, failure, System.nanoTime() + TimeUnit.SECONDS.toNanos(3));
+    poll(name, condition, next, close, failure, System.nanoTime() + TimeUnit.SECONDS.toNanos(3));
   }
 
-  private static void poll(BooleanSupplier condition, Runnable next, CountDownLatch done,
+  private static void poll(String name, BooleanSupplier condition, Runnable next, Runnable close,
       AtomicReference<Throwable> failure, long deadline) {
     try {
       if (condition.getAsBoolean()) { next.run(); return; }
-      if (System.nanoTime() >= deadline) throw new AssertionError("Popup animation did not reach its expected state");
+      if (System.nanoTime() >= deadline) throw new AssertionError("Popup animation did not finish " + name);
       PauseTransition pulse = new PauseTransition(Duration.millis(15));
-      pulse.setOnFinished(event -> poll(condition, next, done, failure, deadline)); pulse.play();
-    } catch (Throwable error) { failure.set(error); done.countDown(); }
+      pulse.setOnFinished(event -> poll(name, condition, next, close, failure, deadline)); pulse.play();
+    } catch (Throwable error) { failure.set(error); close.run(); }
   }
 }

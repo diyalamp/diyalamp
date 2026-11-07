@@ -1,6 +1,6 @@
-## diyalamp 1.3.2 · development
+## diyalamp 1.3.3 · development
 
-The dark-only macOS workspace combines AtlantaFX CupertinoDark controls with the official VS Code 2026 Dark palette, RichTextFX editing, and SmartGraph note navigation. These notes describe the 1.3.2 development build. See the README for the published downloads and measurements.
+The dark-only macOS workspace combines AtlantaFX CupertinoDark controls, RichTextFX editing, and SmartGraph note navigation. These notes describe the 1.3.3 development build. See the README for the published downloads and measurements.
 
 ### Connected notes
 
@@ -11,20 +11,21 @@ The dark-only macOS workspace combines AtlantaFX CupertinoDark controls with the
 
 ### Focus and interface
 
-- Focus fades text around the active caret line and dims the workspace chrome and inactive split pane. Tabs, sidebars, and controls remain usable. Use the moon toolbar control, View menu, or Shift-Command-F.
-- Six accent choices with a blue default transition smoothly, including when a new choice interrupts a transition. Accessibility attachment no longer disables animations; the explicit reduced-motion option remains.
-- All text is 16 px, including headings, graph labels, dialog headers, tooltips, menus, popovers, and timer digits. Static Inter Regular is used for ordinary text; exact Inter SemiBold changes heading weight without enlarging it, and Menlo 16 is used for code. Static italic faces preserve emphasis. Font files add about 1.6 MiB, measured separately from the runtime.
-- The global toolbar, sidebar, tabs, graph, dialogs, and popovers use a shared 8/16/24 spacing scale and CupertinoDark controls. Editor `#121314`/`#BBBEBF`, chrome `#191A1B`, border `#2A2B2C`, text `#BFBFBF`, and muted text `#8C8C8C` follow 2026 Dark. Inputs use `#191A1B` with `#333536` borders and `#555555` placeholders; default action/link blues are `#297AA0` and `#48A0C7`.
+- Focus fades text to black around the active caret line and dims the workspace chrome, inactive split pane, and native macOS window buttons. Tabs, sidebars, and controls remain usable. Use the moon toolbar control, View menu, or Shift-Command-F.
+- Red `#EE0000` is the default accent. Blue, yellow, green, white, and custom hex are also available. The transition continues smoothly when a new choice interrupts it. The explicit reduced-motion option remains.
+- Workspace controls and prose use 16 px static Inter, and code uses 16 px Menlo. Rendered H1, H2, and H3 use 28, 23, and 19 px Inter Semibold. Blockquotes use an inset surface and an accent rule.
+- The slash-command menu has a Lucide icon for each block. Click outside or press Escape to dismiss it. Use the arrow keys and Enter to select a command.
+- The workspace uses a shared 8/16/24 spacing scale, `#111213` main surfaces, `#202122` raised surfaces, and `#333536` dividers. A continuous rule aligns the Files, tabs, and Connections bands.
 - The wordmark, toolbar controls, and tabs use 36 px control height and 8 px spacing. The files, tabs, and Connections bands share one 52 px row. The native toolbar combines the folder icon and workspace path in one control.
 - The files sidebar includes new-folder and new-note actions. Each note row exposes split, inline rename, and recoverable delete, with an 8 px gap between row highlights.
-- Workspace search covers filenames and Markdown text, including unsaved changes. Case, whole-word, regex, and path glob filters narrow results. Text matches are grouped by note with clickable line previews.
+- Workspace search covers filenames and Markdown text, including unsaved changes. The options icon beside the query expands scope, case, whole-word, regex, and path filters. Text matches are grouped by note with clickable line previews.
 - Checklists use readable rounded boxes with the same row spacing as bullets and prose. Wrapped tasks align their box with the first line.
 - Accent and Pomodoro use the same rounded AtlantaFX popup surface with a subtle border and short slide and fade. Selecting an accent keeps every option the same width.
 - App dialogs use a rounded dark surface, a consistent title and field layout, and a brief entrance transition.
 - The bottom status bar shows rendered character/word/logical-line counts and the current Markdown's UTF-8 byte size. Both sidebars have native draggable dividers and remember their pixel widths and visibility independently. The reset icon restores 272/304 px widths within window bounds without changing open notes, selection, visibility, or Zen.
 - Hover paint transitions do not lift, scale, or move controls. The explicit reduced-motion option removes those transitions.
-- Pomodoro displays a live Focus or Break countdown in the toolbar. Set both durations and choose one cycle or continuous repeat. Start, Pause, and Reset are available in the popover, and the timer stops when the app quits.
-- Move tabs between split panes and move notes into workspace folders by dragging. Folder moves preserve note bytes and reject overwrites or destinations outside the workspace.
+- Pomodoro shows Focus or Break in the toolbar with the popover closed. Set both durations and use the icon-labeled one-cycle or repeat controls. Start, Pause, and Reset are available in the popover, and the timer stops when the app quits.
+- Tabs show an insertion marker while dragging and move into place after dropping. Drag between split panes or move notes into workspace folders. Folder moves preserve note bytes and reject overwrites or destinations outside the workspace.
 - The dark icon keeps the approved lamp geometry. At launch, the app clears the JavaFX icon override so AppKit renders the bundled icon in the Dock for both running and closed states.
 
 ### Files and updates

@@ -82,12 +82,12 @@ public final class FxWorkspaceLayoutTests {
         "The workspace must use the maintained Cupertino Dark control theme");
     ToolBar toolbar = (ToolBar) field(fixture.app, "toolbar");
     check(toolbar.getHeight() >= 52 && toolbar.getHeight() <= 64, "The shared toolbar must have a single comfortable control row");
-    for (String name : new String[] {"Workspace accent color", "Pomodoro focus timer", "Zen mode", "Toggle right sidebar", "Open folder"}) {
+    for (String name : new String[] {"Workspace accent color", "Pomodoro timer, Focus, Ready", "Zen mode", "Toggle right sidebar", "Open folder"}) {
       check(toolbar.getItems().stream().filter(node -> name.equals(node.getAccessibleText())).count() == 1,
           "The shared toolbar must expose one accessible " + name + " control");
     }
     HBox footer = (HBox) field(fixture.app, "footer");
-    check(footer.getChildren().stream().noneMatch(node -> "Pomodoro focus timer".equals(node.getAccessibleText())),
+    check(footer.getChildren().stream().noneMatch(node -> "Pomodoro timer, Focus, Ready".equals(node.getAccessibleText())),
         "The focus timer must live in the top toolbar, rather than the save-status footer");
     Object primary = field(fixture.app, "primary");
     TabLine tabs = (TabLine) field(primary, "tabs");
@@ -107,6 +107,11 @@ public final class FxWorkspaceLayoutTests {
         && filesHeader.localToScene(0, 0).getY() == tabs.localToScene(0, 0).getY()
         && filesHeader.localToScene(0, 0).getY() == graphHeader.localToScene(0, 0).getY(),
         "Files, tabs and Connections start on one 52 px band");
+    var bandDivider = (javafx.scene.shape.Line) fixture.stage.getScene().lookup(".workspace-band-divider");
+    check(bandDivider.isMouseTransparent() && bandDivider.getStrokeWidth() == 1
+        && bandDivider.getEndX() == fixture.stage.getScene().getWidth()
+        && Math.abs(bandDivider.localToScene(0, 0).getY() - tabs.localToScene(0, 51.5).getY()) < .01,
+        "A single one-pixel rule spans the workspace without intercepting the sidebar dividers");
     HBox metrics = (HBox) field(fixture.app, "metrics");
     check(metrics.getChildren().size() == 4 && metrics.isVisible(), "An open note must expose all four live statistics");
     check(((javafx.scene.control.Label) field(fixture.app, "characters")).getText().endsWith(" chars")
@@ -134,7 +139,8 @@ public final class FxWorkspaceLayoutTests {
     for (Node node : toolbar.getItems()) {
       if (!(node instanceof javafx.scene.control.Labeled control)) { previous = null; continue; }
       check(control.getHeight() == 36 && control.getPadding().equals(new Insets(8))
-          && control.getFont().getSize() == 16 && control.getFont().getName().equals("Inter Regular")
+          && control.getFont().getSize() == 16
+          && control.getFont().getName().equals(control == brand ? "Inter SemiBold" : "Inter Regular")
           && Math.abs(control.localToScene(0, 18).getY() - center) <= 1,
           "The wordmark and toolbar controls share exact height, inset, type and center: " + control);
       if (previous != null) check(Math.abs(control.localToScene(0, 0).getX()
@@ -142,10 +148,10 @@ public final class FxWorkspaceLayoutTests {
           "Neighboring controls have an 8 px gap");
       previous = control;
     }
-    check(brand.getGraphic() != null && brand.getText().equals("diyalamp"),
+    check(brand.getGraphic() != null && brand.getGraphic().getTranslateY() == 2 && brand.getText().equals("diyalamp"),
         "The lamp and name must use one inline labeled control");
-    check(toolbar.getItems().getFirst() == brand && "Toggle files sidebar".equals(toolbar.getItems().get(1).getAccessibleText()),
-        "The sidebar toggle follows the lamp and diyalamp name");
+    check("Toggle files sidebar".equals(toolbar.getItems().getFirst().getAccessibleText()) && toolbar.getItems().get(1) == brand,
+        "The sidebar toggle precedes the lamp and diyalamp name");
     check(((ToggleButton) field(fixture.app, "filesControl")).isSelected()
         && ((ToggleButton) field(fixture.app, "connectionsControl")).isSelected(),
         "Both visible sidebars must have selected toolbar toggles");
@@ -217,13 +223,18 @@ public final class FxWorkspaceLayoutTests {
     String longPath = "/workspace" + "/long folder name".repeat(12);
     folder.setText(longPath);
     FxPomodoro pomodoro = (FxPomodoro) field(fixture.app, "pomodoro");
-    ((Button) pomodoro.popover().getContentNode().lookup("#pomodoro-start")).fire();
     fixture.stage.setWidth(820); fixture.layout();
+    Node toggle = (Node) field(fixture.app, "connectionsControl");
+    var readyBounds = toggle.localToScene(toggle.getBoundsInLocal());
+    check(pomodoro.button().getWidth() == 160 && toggle.isVisible()
+        && readyBounds.getMaxX() <= fixture.stage.getScene().getWidth(),
+        "Showing the ready phase and countdown must leave the right-sidebar toggle visible at minimum width");
+    ((Button) pomodoro.popover().getContentNode().lookup("#pomodoro-start")).fire();
+    fixture.layout();
     Region pane = (Region) field(field(fixture.app, "primary"), "container");
     check(pane.getWidth() >= 500, "The default closed inspector must leave a useful writing area at the minimum window width");
     check(pane.localToScene(pane.getWidth(), 0).getX() <= fixture.stage.getScene().getWidth() + 1,
         "The editor must stay within the native window rather than overflowing horizontally");
-    Node toggle = (Node) field(fixture.app, "connectionsControl");
     var bounds = toggle.localToScene(toggle.getBoundsInLocal());
     Node overflow = ((ToolBar) field(fixture.app, "toolbar")).lookup(".tool-bar-overflow-button");
     check(toggle.isVisible() && toggle.getScene() == fixture.stage.getScene()

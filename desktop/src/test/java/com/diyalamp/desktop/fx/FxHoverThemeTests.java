@@ -42,7 +42,7 @@ public final class FxHoverThemeTests {
         tool.addEventHandler(TransitionEvent.START, event -> starts.incrementAndGet());
         Robot pointer = new Robot();
         pointer.mouseMove(root.localToScreen(root.getWidth() / 2, root.getHeight() / 2));
-        Color target = Color.web("#242526");
+        Color target = Color.web("#202122");
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
         scene.addPostLayoutPulseListener(new Runnable() {
           private boolean hoverStarted;

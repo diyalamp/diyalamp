@@ -59,22 +59,22 @@ public final class FxDarkThemeTests {
     Label status = new Label("All changes saved"); HBox footer = new HBox(status); footer.getStyleClass().add("workspace-status"); root.setBottom(footer);
     Stage stage = new Stage(); stage.setScene(new Scene(root, 1000, 650)); stage.show(); layout(root);
     try (FxPomodoro timer = new FxPomodoro(stage, ignored -> {})) {
-      color(background(root), "#121314", "Workspace");
-      color(background(toolbar), "#191A1B", "Toolbar"); color(background(sidebar), "#191A1B", "Sidebar");
-      color(background(writing), "#121314", "Editor"); color(background(footer), "#191A1B", "Status bar");
-      color(background(input), "#242526", "Search field"); color((Color) css(input, "-fx-text-fill"), "#BFBFBF", "Input text");
+      color(background(root), "#111213", "Workspace");
+      color(background(toolbar), "#111213", "Toolbar"); color(background(sidebar), "#111213", "Sidebar");
+      color(background(writing), "#111213", "Editor"); color(background(footer), "#111213", "Status bar");
+      color(background(input), "#202122", "Search field"); color((Color) css(input, "-fx-text-fill"), "#BFBFBF", "Input text");
       color((Color) css(input, "-fx-prompt-text-fill"), "#8C8C8C", "Placeholder");
       color((Color) paragraph.getTextFill(), "#BFBFBF", "UI text");
-      color((Color) input.getBorder().getStrokes().getFirst().getTopStroke(), "#2A2B2C", "Input border");
+      color((Color) input.getBorder().getStrokes().getFirst().getTopStroke(), "#333536", "Input border");
       input.requestFocus(); layout(root);
-      color((Color) input.getBorder().getStrokes().getFirst().getTopStroke(), "#3994BCB3", "Input focus ring");
+      color((Color) input.getBorder().getStrokes().getFirst().getTopStroke(), "#FF5555B3", "Input focus ring");
       tools.requestFocus(); layout(root);
       color((Color) status.getTextFill(), "#8C8C8C", "Secondary text");
       for (Labeled label : List.of(brand, heading, paragraph, status)) font(label.getFont().getSize(), label.getText());
       font(input.getFont().getSize(), "Input");
       for (Node node : tabs.lookupAll(".tab .label")) font(((Label) node).getFont().getSize(), "Tab label");
-      for (Color choice : List.of(FxTheme.DEFAULT_ACCENT, Color.web("#7A9A85"), Color.web("#7B8FB7"),
-          Color.web("#A497BD"), Color.web("#BA929B"), Color.web("#B5A073"), Color.web("#8A929F"), Color.BLACK)) {
+      for (Color choice : List.of(Color.web("#EE0000"), Color.web("#489CFF"), Color.web("#F7C843"),
+          Color.web("#4CD980"), Color.WHITE, Color.web("#7B8FB7"), Color.BLACK)) {
         FxTheme.accent(root, choice);
         Hyperlink link = new Hyperlink("Local link"); link.setStyle("-fx-text-fill: -color-accent-fg;"); writing.getChildren().add(link);
         Button action = new Button("Action"); action.getStyleClass().add(Styles.ACCENT); writing.getChildren().add(action); layout(root);
@@ -82,7 +82,7 @@ public final class FxDarkThemeTests {
         check(FxTheme.contrast(linkInk, FxTheme.EDITOR_BACKGROUND) >= 4.5, "Each accent remains readable as dark-surface link text");
         check(FxTheme.contrast((Color) action.getTextFill(), background(action)) >= 4.5, "Each accent action has readable text");
         if (choice.equals(FxTheme.DEFAULT_ACCENT)) {
-          color(linkInk, "#48A0C7", "Default link"); color(background(action), "#297AA0", "Default action");
+          color(linkInk, "#FF6B6B", "Default link"); color(background(action), "#EE0000", "Default action");
         }
         writing.getChildren().removeAll(link, action);
       }
@@ -90,14 +90,17 @@ public final class FxDarkThemeTests {
       TextInputDialog dialog = new TextInputDialog("Fictional note"); dialog.setHeaderText("Rename note");
       FxDialogs.style(dialog, stage); dialog.show(); layout(dialog.getDialogPane());
       color(background(dialog.getDialogPane()), "#202122", "Dialog");
-      color(background(dialog.getEditor()), "#191A1B", "Dialog input");
+      color(background(dialog.getEditor()), "#111213", "Dialog input");
       for (Node node : dialog.getDialogPane().lookupAll(".label")) font(((Label) node).getFont().getSize(), "Dialog label/header");
       for (ButtonType type : dialog.getDialogPane().getButtonTypes()) font(((Button) dialog.getDialogPane().lookupButton(type)).getFont().getSize(), "Dialog action");
       dialog.close();
       toolbar.getChildren().add(timer.button()); layout(root); timer.popover().setAnimated(false); timer.show();
       layout(timer.popover().getRoot());
-      check(timer.button().getText() == null && timer.button().getAccessibleText().equals("Pomodoro focus timer")
-          && timer.button().getAccessibleHelp().contains("25:00"), "Timer stays icon-only with a stable name and accessible remaining time");
+      Label phase = (Label) timer.button().lookup(".pomodoro-toolbar-phase");
+      check(phase != null && phase.isVisible() && phase.getText().equals("Focus")
+              && timer.button().getAccessibleText().equals("Pomodoro timer, Focus, Ready")
+              && timer.button().getAccessibleHelp().contains("25:00"),
+          "The ready timer must display its selected phase and expose its phase, status, and remaining time");
       for (Node node : timer.popover().getRoot().lookupAll(".label")) font(((Label) node).getFont().getSize(), "Timer label/digits");
       for (Node node : timer.popover().getRoot().lookupAll(".button")) font(((Button) node).getFont().getSize(), "Timer action");
       for (Node node : timer.popover().getRoot().lookupAll(".toggle-button")) font(((ToggleButton) node).getFont().getSize(), "Timer phase");

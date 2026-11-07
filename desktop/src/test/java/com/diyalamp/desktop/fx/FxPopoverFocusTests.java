@@ -11,6 +11,7 @@ import java.util.prefs.Preferences;
 import java.util.function.BooleanSupplier;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
+import javafx.css.PseudoClass;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.input.KeyCode;
@@ -58,7 +59,8 @@ public final class FxPopoverFocusTests {
           && button.getStyleClass().contains("accent-choice"), "Accent's component-default control must receive focus", () -> {
         Button selected = colors.getContentNode().lookupAll(".accent-choice").stream().map(node -> (Button) node)
             .filter(button -> button.getAccessibleText().contains(", selected")).findFirst().orElseThrow();
-        check(selected.getText().contains("✓"), "The selected preset indicator must remain independent of default keyboard focus");
+        check(selected.getText().equals("Red") && selected.getPseudoClassStates().contains(PseudoClass.getPseudoClass("selected")),
+            "The styled selection must stay separate from the visible label and default keyboard focus");
         var focused = colors.getScene().getFocusOwner(); key(focused, KeyCode.TAB, false);
         check(colors.getScene().getFocusOwner() != focused && colors.getScene().getFocusOwner().getScene() == colors.getScene(),
             "Tab must stay in the actual Accent popup controls");

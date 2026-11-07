@@ -49,10 +49,12 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.SnapshotParameters;
 import javafx.scene.control.*;
 import javafx.scene.input.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
@@ -68,6 +70,7 @@ public final class FxDiyalamp extends Application {
   static final List<TransferMode> TAB_DRAG_MODES = List.of(TransferMode.MOVE);
   static TransferMode paneDropMode(boolean fromTab) { return fromTab ? TransferMode.MOVE : TransferMode.COPY; }
   private static final PseudoClass DROP_TARGET = PseudoClass.getPseudoClass("drop-target");
+  private static final PseudoClass TAB_DRAG_SOURCE = PseudoClass.getPseudoClass("drag-source");
   private static final PseudoClass ACCENT_SELECTED = PseudoClass.getPseudoClass("selected");
   private static final PseudoClass INVALID = PseudoClass.getPseudoClass("invalid");
   private static final double SIDEBAR_WIDTH = 272;
@@ -77,9 +80,10 @@ public final class FxDiyalamp extends Application {
   private static final double SIDEBAR_DIVIDER_WIDTH = 6;
   private static final double TOOLBAR_GAP = 8;
   private static final String[][] ACCENT_CHOICES = {
-      {"Sage", "#7A9A85"}, {"Blue", "#297AA0"}, {"Lavender", "#A497BD"},
-      {"Rose", "#BA929B"}, {"Amber", "#B5A073"}, {"Slate", "#8A929F"}
+      {"Red", "#EE0000"}, {"Blue", "#489CFF"}, {"Yellow", "#F7C843"},
+      {"Green", "#4CD980"}, {"White", "#FFFFFF"}
   };
+  private static final java.util.regex.Pattern ACCENT_HEX = java.util.regex.Pattern.compile("#?[0-9a-fA-F]{6}");
   private final Preferences preferences;
   private final Map<Path, Session> sessions = new LinkedHashMap<>();
   private final TreeView<Path> tree = new TreeView<>();
@@ -187,7 +191,6 @@ public final class FxDiyalamp extends Application {
     Tab newTab(String id) {
       Tab result = new Tab(id, session.path.getFileName().toString(), FxTheme.icon("file-text", 14));
       result.setUserData(this);
-      result.setTooltip(new Tooltip(session.path.getFileName().toString()));
       result.setOnCloseRequest(event -> { if (!save(session, true)) event.consume(); });
       result.setOnClosed(event -> removeView(this));
       return result;
@@ -253,6 +256,13 @@ public final class FxDiyalamp extends Application {
     primary = new PaneHost(); secondary = new PaneHost();
     split.getItems().add(primary.container);
     split.getStyleClass().add("writing-split");
+    Line bandDivider = new Line();
+    bandDivider.getStyleClass().add("workspace-band-divider");
+    bandDivider.endXProperty().bind(workspaceLayer.widthProperty());
+    bandDivider.translateYProperty().bind(primary.tabs.heightProperty().subtract(.5));
+    bandDivider.setManaged(false);
+    bandDivider.setMouseTransparent(true);
+    workspaceLayer.getChildren().add(bandDivider);
     buildExplorer();
     configureSidebars();
     root.getStyleClass().add("workspace-root");
@@ -260,12 +270,12 @@ public final class FxDiyalamp extends Application {
     pomodoro = new FxPomodoro(stage, status::setText, preferences);
     buildToolbar();
     MenuBar menu = buildMenu();
-    root.setTop(new VBox(menu, FxWindowHeader.create(stage, menu, toolbarClip, toolbarDragHandle)));
+    root.setTop(new VBox(menu, FxWindowHeader.create(stage, menu, toolbarClip, toolbarDragHandle, zenProgressProperty())));
     metrics.getStyleClass().add("note-metrics"); metrics.setAlignment(Pos.CENTER_RIGHT);
     footer.getChildren().setAll(status, spacer(), metrics);
     footer.getStyleClass().add("workspace-status");
     footer.setAlignment(Pos.CENTER_LEFT); root.setBottom(footerClip);
-    FxZenChrome.apply(zenProgressProperty(), toolbarClip, footerClip, explorer,
+    FxZenChrome.apply(zenProgressProperty(), toolbarClip, footerClip, bandDivider, explorer,
         noteGraph.node(), primary.chromeClip, secondary.chromeClip);
     Scene scene = new Scene(root, 1180, 800);
     scene.getPreferences().setColorScheme(ColorScheme.DARK);
@@ -306,7 +316,9 @@ public final class FxDiyalamp extends Application {
 
   private ToolBar buildToolbar() {
     toolbar.getStyleClass().add("workspace-toolbar");
-    Label brand = new Label("diyalamp", FxTheme.lamp(16));
+    Node lamp = FxTheme.lamp(16);
+    lamp.setTranslateY(2);
+    Label brand = new Label("diyalamp", lamp);
     brand.setMinWidth(Region.USE_PREF_SIZE);
     brand.setAlignment(Pos.CENTER_LEFT); brand.getStyleClass().add("workspace-brand");
     ToggleButton files = new ToggleButton(null, FxTheme.icon("panel-left", 16));
@@ -349,7 +361,7 @@ public final class FxDiyalamp extends Application {
     zen.setTooltip(zenHelp); zen.setAccessibleText("Zen mode");
     zen.setAccessibleHelp("Keep the current line clear while dimming surrounding text and workspace controls.");
     zen.selectedProperty().bindBidirectional(zenMode);
-    toolbar.getItems().setAll(brand, files, folderControl, toolbarDragHandle);
+    toolbar.getItems().setAll(files, brand, folderControl, toolbarDragHandle);
     if (pomodoro != null) toolbar.getItems().add(pomodoro.button());
     Button reset = FxTheme.iconButton("layout-template", "Reset sidebar widths", this::resetSidebarWidths);
     reset.setAccessibleHelp("Restore default left and right sidebar widths without changing visibility or notes.");
@@ -1156,35 +1168,38 @@ public final class FxDiyalamp extends Application {
       ClipboardContent content = new ClipboardContent();
       content.put(NOTE_DRAG, view.session.path.toString()); content.put(TAB_DRAG, view.tab.getId());
       board.setContent(content);
-      board.setDragView(skin.snapshot(null, null));
+      SnapshotParameters snapshot = new SnapshotParameters(); snapshot.setFill(Color.TRANSPARENT);
+      var hotspot = skin.sceneToLocal(event.getSceneX(), event.getSceneY());
+      board.setDragView(skin.snapshot(snapshot, null), hotspot.getX(), hotspot.getY());
+      skin.pseudoClassStateChanged(TAB_DRAG_SOURCE, true);
+      skin.setOnDragDone(done -> {
+        skin.pseudoClassStateChanged(TAB_DRAG_SOURCE, false);
+        primary.tabs.clearInsertion(); secondary.tabs.clearInsertion();
+        skin.setOnDragDone(null);
+      });
       candidate[0] = null; event.consume();
     });
     host.tabs.addEventFilter(MouseEvent.MOUSE_RELEASED, event -> candidate[0] = null);
     host.tabs.setOnDragOver(event -> {
-      if (event.getDragboard().hasContent(TAB_DRAG)
-          && draggedView((String) event.getDragboard().getContent(TAB_DRAG)) != null) {
-        event.acceptTransferModes(TransferMode.MOVE); event.consume();
-      }
-    });
-    host.tabs.setOnDragDropped(event -> {
       if (!event.getDragboard().hasContent(TAB_DRAG)) return;
       View view = draggedView((String) event.getDragboard().getContent(TAB_DRAG));
-      int insertion = tabInsertionIndex(host, event.getSceneX());
+      if (view == null) return;
+      int insertion = host.tabs.insertionAt(event.getSceneX());
+      int current = host.tabs.getTabs().indexOf(view.tab);
+      if (current >= 0 && (insertion == current || insertion == current + 1)) host.tabs.clearInsertion();
+      else host.tabs.showInsertion(insertion);
+      event.acceptTransferModes(TransferMode.MOVE); event.consume();
+    });
+    host.tabs.setOnDragExited(event -> host.tabs.clearInsertion());
+    host.tabs.setOnDragDropped(event -> {
+      if (!event.getDragboard().hasContent(TAB_DRAG)) return;
+      host.tabs.clearInsertion();
+      View view = draggedView((String) event.getDragboard().getContent(TAB_DRAG));
+      int insertion = host.tabs.insertionAt(event.getSceneX());
       boolean moved = view != null && moveView(view, host);
       if (moved) host.tabs.moveToInsertion(view.tab, insertion);
       event.setDropCompleted(moved); event.consume();
     });
-  }
-
-  private int tabInsertionIndex(PaneHost host, double sceneX) {
-    for (int index = 0; index < host.tabs.getTabs().size(); index++) {
-      Tab tab = host.tabs.getTabs().get(index);
-      for (Node node : host.tabs.lookupAll(".tab")) {
-        if (node instanceof TabSkin skin && skin.getTab() == tab
-            && sceneX < skin.localToScene(skin.getBoundsInLocal()).getCenterX()) return index;
-      }
-    }
-    return host.tabs.getTabs().size();
   }
 
   private TabSkin tabSkin(Object target) {
@@ -1468,7 +1483,7 @@ public final class FxDiyalamp extends Application {
     accentControl.setContentDisplay(ContentDisplay.RIGHT);
     accentControl.setTooltip(new Tooltip("Workspace accent color"));
     accentControl.setAccessibleText("Workspace accent color");
-    accentControl.setAccessibleHelp("Choose from six muted accent colors. Changes apply immediately.");
+    accentControl.setAccessibleHelp("Choose a preset accent or enter a custom six-digit hex color.");
     accentControl.getStyleClass().addAll("workspace-tool", "workspace-accent-button");
     accentControl.setOnAction(event -> chooseAccent());
     return accentControl;
@@ -1477,8 +1492,6 @@ public final class FxDiyalamp extends Application {
   private void initializeAccent() {
     try {
       String chosen = preferences.get("accent", FxTheme.hex(FxTheme.DEFAULT_ACCENT));
-      if (chosen.equalsIgnoreCase("#7B8FB7") || chosen.equalsIgnoreCase("#0078D4"))
-        chosen = FxTheme.hex(FxTheme.DEFAULT_ACCENT);
       accent.set(Color.web(chosen));
     }
     catch (IllegalArgumentException e) { accent.set(FxTheme.DEFAULT_ACCENT); }
@@ -1525,7 +1538,6 @@ public final class FxDiyalamp extends Application {
       GridPane.setHgrow(choice, Priority.ALWAYS);
       Runnable state = () -> {
         boolean current = value.equals(accent.get());
-        choice.setText(name + (current ? " ✓" : ""));
         choice.setAccessibleText(name + " accent color" + (current ? ", selected" : ""));
         choice.pseudoClassStateChanged(ACCENT_SELECTED, current);
       };
@@ -1533,11 +1545,52 @@ public final class FxDiyalamp extends Application {
       choice.setOnAction(event -> accent.set(value));
       choices.add(choice, i % 2, i / 2);
     }
-    VBox content = new VBox(8, title, choices); content.getStyleClass().add("accent-bubble"); content.setPrefWidth(304);
+    TextField hex = new TextField();
+    hex.setPromptText("#RRGGBB");
+    hex.setAccessibleText("Custom accent hex");
+    hex.setAccessibleHelp("Enter six hexadecimal digits, with or without the leading number sign.");
+    hex.getStyleClass().add("accent-hex");
+    HBox.setHgrow(hex, Priority.ALWAYS);
+    Button apply = new Button("Apply");
+    apply.getStyleClass().addAll("popover-action", Styles.ACCENT);
+    apply.disableProperty().bind(Bindings.createBooleanBinding(() -> !validAccentHex(hex.getText()), hex.textProperty()));
+    apply.setOnAction(event -> accent.set(Color.web("#" + hex.getText().strip().replaceFirst("^#", ""))));
+    hex.setOnAction(event -> apply.fire());
+    HBox customRow = new HBox(8, hex, apply);
+    customRow.setAlignment(Pos.CENTER_LEFT);
+    customRow.setVisible(false);
+    customRow.managedProperty().bind(customRow.visibleProperty());
+    Button custom = new Button("Custom", FxTheme.icon("settings-2", 16));
+    custom.getStyleClass().addAll(Styles.FLAT, "accent-choice");
+    custom.setMinWidth(0);
+    custom.setMaxWidth(Double.MAX_VALUE);
+    GridPane.setHgrow(custom, Priority.ALWAYS);
+    Runnable customState = () -> {
+      String selected = FxTheme.hex(accent.get());
+      boolean isCustom = java.util.Arrays.stream(ACCENT_CHOICES).noneMatch(choice -> choice[1].equals(selected));
+      custom.pseudoClassStateChanged(ACCENT_SELECTED, isCustom);
+      custom.setAccessibleText("Custom accent color" + (isCustom ? ", selected" : ""));
+    };
+    accent.addListener((observable, previous, next) -> customState.run());
+    customState.run();
+    custom.setOnAction(event -> {
+      customRow.setVisible(!customRow.isVisible());
+      if (customRow.isVisible()) {
+        hex.setText(FxTheme.hex(accent.get()));
+        hex.requestFocus();
+        hex.selectAll();
+      }
+    });
+    choices.add(custom, 1, 2);
+    VBox content = new VBox(8, title, choices, customRow);
+    content.getStyleClass().add("accent-bubble");
+    content.setPrefWidth(304);
     Popover popup = new Popover(content); popup.setTitle("Accent color");
     FxPopovers.style(popup, stage);
     return popup;
   }
+
+  private static boolean validAccentHex(String text) { return ACCENT_HEX.matcher(text.strip()).matches(); }
 
   private static Region accentSwatch(ObjectProperty<Color> color) {
     Region swatch = new Region(); swatch.getStyleClass().add("accent-swatch");
