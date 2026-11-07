@@ -21,23 +21,23 @@ If installation fails, [report an issue](https://github.com/diyalamp/diyalamp/is
 
 ## Verify a download (optional)
 
-Keep the DMG and its checksum file in the same folder without renaming either file. For example, for release **1.1.3** downloaded into Downloads, open Terminal and run the command for your architecture:
+Keep the DMG and its checksum file in the same folder without renaming either file. For example, for release **1.3.4** downloaded into Downloads, open Terminal and run the command for your architecture:
 
 Apple silicon:
 
 ```sh
 cd ~/Downloads
-shasum -a 256 -c diyalamp-1.1.3-macos-arm64.dmg.sha256
+shasum -a 256 -c diyalamp-1.3.4-macos-arm64.dmg.sha256
 ```
 
 Intel:
 
 ```sh
 cd ~/Downloads
-shasum -a 256 -c diyalamp-1.1.3-macos-x86_64.dmg.sha256
+shasum -a 256 -c diyalamp-1.3.4-macos-x86_64.dmg.sha256
 ```
 
-For another release, replace `1.1.3` with that release's version in the command. The result should end with **`OK`**. A missing-file error means the files are not together or their names differ. A checksum mismatch means the download does not match the published checksum; discard it and download the matching pair again. This check detects download changes; it does not replace code signing, notarization, or a security review.
+For another release, replace `1.3.4` with that release's version in the command. The result should end with **`OK`**. A missing-file error means the files are not together or their names differ. A checksum mismatch means the download does not match the published checksum; discard it and download the matching pair again. This check detects download changes; it does not replace code signing, notarization, or a security review.
 
 ## Install and open
 
@@ -46,7 +46,7 @@ For another release, replace `1.1.3` with that release's version in the command.
 3. Eject the mounted diyalamp disk image.
 4. Open diyalamp from Applications.
 
-This community release is **unsigned and not Apple-notarized**, so macOS may block the first launch. If you trust the release source and choose to approve this app, try opening it once, then use System Settings → Privacy & Security → **Open Anyway** and review the confirmation. This is Apple's per-app approval flow; see [Apple's current instructions](https://support.apple.com/en-us/102445). If macOS reports malware or a damaged app, stop and report the message instead of trying to bypass it. Organization-managed Macs may require an administrator's approval.
+This release is **ad hoc signed**, without Developer ID or Apple notarization. macOS may require approval on first launch. If you trust the release source and choose to approve this app, try opening it once, then use System Settings → Privacy & Security → **Open Anyway** and review the confirmation. This is Apple's per-app approval flow; see [Apple's current instructions](https://support.apple.com/en-us/102445). If macOS reports malware or a damaged app, stop and report the message instead of trying to bypass it. Organization-managed Macs may require an administrator's approval.
 
 ## Updating from the app
 
@@ -54,7 +54,7 @@ From version 1.1.1 onward, choose Help → **Check for updates**. Checking is ex
 
 The updater uses only this project's GitHub release channel and the installer for your Mac architecture. It verifies the SHA-256 checksum, disk image, bundle identity/version, architecture, and staged app. It keeps the previous app as a hidden `.diyalamp-backup-….bundle` beside the installation, and attempts rollback if replacement or launch fails. It does not request administrator rights or change macOS security settings. If your Applications folder is not writable by your account, [update from a DMG](#update-from-a-dmg).
 
-Earlier versions without the updater need one manual replacement. These releases are unsigned; checksum verification is not publisher signature verification.
+Earlier versions without the updater need one manual replacement. Checksums verify download integrity. This release does not carry a Developer ID signature.
 
 ## Start writing
 
