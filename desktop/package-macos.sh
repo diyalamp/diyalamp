@@ -7,10 +7,17 @@ VERSION=$(sh version.sh)
 ARCH=$(uname -m)
 rm -rf build/input
 mkdir -p build/input/deps build/input/fx-deps/common "build/input/fx-deps/$FX_PLATFORM" build/release build/icon.iconset
-cp build/diyalamp.jar build/input/
-cp build/deps/flatlaf-3.7.2.jar build/deps/commonmark-0.32.0.jar build/deps/commonmark-ext-gfm-strikethrough-0.32.0.jar build/deps/flatlaf-extras-3.7.2.jar build/deps/jsvg-2.1.0.jar build/input/deps/
+# The Mac launcher uses JavaFX. Keep the legacy Swing libraries in the
+# source build and test classpath, outside the shipped app.
+cp build/deps/commonmark-0.32.0.jar build/deps/commonmark-ext-gfm-strikethrough-0.32.0.jar build/input/deps/
 cp build/fx-deps/common/*.jar build/input/fx-deps/common/
 cp "build/fx-deps/$FX_PLATFORM/"*.jar "build/input/fx-deps/$FX_PLATFORM/"
+manifest_paths=''
+for dependency in build/input/deps/*.jar build/input/fx-deps/common/*.jar; do
+  manifest_paths="$manifest_paths ${dependency#build/input/}"
+done
+printf 'Class-Path:%s\n' "$manifest_paths" > build/package-manifest.mf
+"$JDK/bin/jar" --create --file build/input/diyalamp.jar --main-class com.diyalamp.desktop.DesktopLauncher --manifest build/package-manifest.mf -C build/classes .
 for size in 16 32 128 256 512; do
   sips -z "$size" "$size" src/main/resources/app-icon.png --out "build/icon.iconset/icon_${size}x${size}.png" >/dev/null
   double=$((size * 2))

@@ -37,7 +37,7 @@ On a Mac with JDK 25 or newer and Apple's command-line tools:
 sh desktop/package-macos.sh
 ```
 
-This produces a self-contained `.app`, a compressed DMG for the current processor architecture, and a SHA-256 file. The runtime is included; users do not need to install Java. The manual GitHub packaging workflow builds separate Apple silicon and Intel artifacts. Both the artifact names and draft release tag use the application version declared in `DesktopLauncher.VERSION`; published assets are never overwritten.
+This produces a self-contained `.app`, a compressed DMG for the current processor architecture, and a SHA-256 file. The runtime is included; users do not need to install Java. The packaged JavaFX launcher ships with its runtime dependencies. FlatLaf, FlatLaf Extras, and JSVG remain available to the source build and Swing tests. The manual GitHub packaging workflow builds separate Apple silicon and Intel artifacts. Both the artifact names and draft release tag use the application version declared in `DesktopLauncher.VERSION`; published assets are never overwritten.
 
 This community release is unsigned and not Apple-notarized. Do not describe it as notarized or suppress macOS security checks. Signing requires the owner's Apple Developer identity and a separate notarization setup.
 
