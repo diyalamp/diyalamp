@@ -6,6 +6,7 @@ import com.brunomnsilva.smartgraph.graphview.SmartGraphPanel;
 import com.diyalamp.desktop.NoteStore;
 import java.lang.reflect.Field;
 import java.nio.file.*;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -16,6 +17,8 @@ import javafx.scene.Scene;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.SplitPane;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.input.*;
 import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
@@ -41,6 +44,7 @@ public final class FxNoteGraphTests {
       Path origin = Files.writeString(root.resolve("Origin.md"), "[[Target]]\n");
       Path target = Files.writeString(root.resolve("Target.md"), "[[Origin]]\n");
       Path source = Files.writeString(root.resolve("Source.md"), "[[Origin]]\n");
+      Path isolated = Files.writeString(root.resolve("Isolated.md"), "No links\n");
       FxNoteGraph chosen = fx(() -> {
         FxTheme.setup();
         FxNoteGraph graph = new FxNoteGraph(opened::set, status::set);
@@ -116,6 +120,16 @@ public final class FxNoteGraphTests {
             "Incoming and outgoing notes use the shared Inter 16 regular face");
         chosen.openWiki(origin, "Target");
         check(target.equals(opened.get()), "Wiki clicks use the same safe local resolver");
+        return null;
+      });
+      double[] chosenDividers = fx(() -> sectionLayout(chosen, origin, source, isolated));
+      Object beforeRefresh = fx(() -> field(chosen, "snapshot"));
+      fx(() -> { chosen.refresh(); return null; });
+      await(() -> fx(() -> field(chosen, "snapshot") != beforeRefresh));
+      fx(() -> {
+        layout(chosen);
+        check(Arrays.equals(chosenDividers, ((SplitPane) field(chosen, "sections")).getDividerPositions()),
+            "Refreshing the same lists must retain the dragged divider positions");
         return null;
       });
       fx(() -> {
@@ -211,6 +225,72 @@ public final class FxNoteGraphTests {
     }
     System.out.println("Passed " + checks + " JavaFX note-graph checks.");
   }
+
+  private static double[] sectionLayout(FxNoteGraph graph, Path origin, Path source, Path isolated) throws Exception {
+    layout(graph);
+    var split = (SplitPane) field(graph, "sections");
+    var summary = graph.node().lookup(".graph-summary");
+    var heading = graph.node().lookup(".graph-heading-row");
+    check(summary.getLayoutBounds().getHeight() == 52 && heading.getLayoutBounds().getHeight() == 52,
+        "The active note and Connections title must use the shared header bands");
+    check(split.getItems().size() == 3 && split.getDividers().size() == 2,
+        "Three open sections need two native dividers");
+    var heights = split.getItems().stream().map(node -> node.getLayoutBounds().getHeight()).toList();
+    check(java.util.Collections.max(heights) - java.util.Collections.min(heights) <= 2,
+        "All open sections must start at equal height: " + heights);
+    double first = split.getDividerPositions()[0];
+    dragFirstDivider(split, 32);
+    layout(graph);
+    double[] adjusted = split.getDividerPositions();
+    check(adjusted[0] > first + .03, "Dragging the first divider must resize the graph");
+
+    var incoming = disclosure(graph, "Incoming");
+    var outgoing = disclosure(graph, "Outgoing");
+    graph.select(source); layout(graph);
+    check(!incoming.isSelected() && outgoing.isSelected() && split.getDividers().size() == 1,
+        "An empty incoming list starts closed without blocking the remaining divider");
+    double graphHeight = split.getItems().getFirst().getLayoutBounds().getHeight();
+    double linksHeight = split.getItems().getLast().getLayoutBounds().getHeight();
+    check(Math.abs(graphHeight - (linksHeight - incoming.getHeight())) <= 2,
+        "Graph and the remaining open list split the space left by the collapsed header: " + graphHeight + ", " + linksHeight);
+    first = split.getDividerPositions()[0];
+    dragFirstDivider(split, 32); layout(graph);
+    check(split.getDividerPositions()[0] > first + .03,
+        "Dragging still resizes the graph and outgoing list with incoming collapsed");
+
+    graph.select(isolated); layout(graph);
+    check(!incoming.isSelected() && !outgoing.isSelected() && split.getDividers().isEmpty(),
+        "Two empty lists leave the graph flexible and retain both headings");
+    incoming.fire(); layout(graph);
+    check(incoming.isSelected() && ((ListView<?>) field(graph, "incoming")).isVisible()
+        && split.getDividers().size() == 1, "A user can expand a zero-count list");
+
+    graph.select(origin); layout(graph);
+    check(Arrays.equals(adjusted, split.getDividerPositions()),
+        "Returning to all three sections must recover the prior adjustment");
+    return adjusted;
+  }
+
+  private static ToggleButton disclosure(FxNoteGraph graph, String title) {
+    return graph.node().lookupAll(".graph-list-toggle").stream().map(ToggleButton.class::cast)
+        .filter(button -> button.getAccessibleText().startsWith(title)).findFirst().orElseThrow();
+  }
+
+  private static void layout(FxNoteGraph graph) {
+    var root = graph.node().getScene().getRoot(); root.applyCss(); root.layout();
+  }
+
+  private static void dragFirstDivider(SplitPane split, double delta) {
+    Node divider = split.lookupAll(".split-pane-divider").stream()
+        .min(Comparator.comparingDouble(node -> node.getBoundsInParent().getMinY())).orElseThrow();
+    var center = divider.localToScene(divider.getLayoutBounds());
+    for (var event : java.util.List.of(MouseEvent.MOUSE_PRESSED, MouseEvent.MOUSE_DRAGGED, MouseEvent.MOUSE_RELEASED)) {
+      double y = center.getCenterY() + (event == MouseEvent.MOUSE_PRESSED ? 0 : delta);
+      Event.fireEvent(divider, new MouseEvent(event, center.getCenterX(), y, center.getCenterX(), y,
+          MouseButton.PRIMARY, 1, false, false, false, false, true, false, false, false, false, true, null));
+    }
+  }
+
   private static MouseEvent mouse(javafx.event.EventType<MouseEvent> type) {
     return new MouseEvent(type, 10, 10, 10, 10, MouseButton.PRIMARY, 1,
         false, false, false, false, true, false, false, false, false, true, null);

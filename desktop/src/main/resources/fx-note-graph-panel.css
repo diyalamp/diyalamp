@@ -11,7 +11,8 @@
 .tooltip { -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; }
 .graph-sections { -fx-background-color: transparent; -fx-padding: 0; }
 .graph-sections > .split-pane-divider {
-  -fx-padding: 4 0; -fx-background-color: -diyalamp-divider; -fx-background-insets: 3.5 0;
+  /* SplitPaneSkin uses the divider's preferred width for either orientation. */
+  -fx-padding: 4; -fx-background-color: -diyalamp-divider; -fx-background-insets: 3.5 0;
 }
 .graph-sections > .split-pane-divider:hover { -fx-background-color: -color-fg-muted; }
 .graph-canvas { -fx-background-color: -color-bg-default; -fx-padding: 16; }
