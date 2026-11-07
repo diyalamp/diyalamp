@@ -107,16 +107,29 @@ public final class FxWorkspaceLayoutTests {
         "Search and both creation actions live in the files sidebar");
     check(toolbar.getItems().stream().noneMatch(node -> java.util.List.of("New folder", "New note", "Search notes", "Open note side by side")
         .contains(String.valueOf(node.getAccessibleText()))), "Sidebar controls, including Split View, are not repeated on the top bar");
-    Region graphHeader = (Region) ((FxNoteGraph) field(fixture.app, "noteGraph")).node().lookup(".graph-heading-row");
+    Node graphPanel = ((FxNoteGraph) field(fixture.app, "noteGraph")).node();
+    Region graphHeader = (Region) graphPanel.lookup(".graph-heading-row");
     check(filesHeader.getHeight() == 52 && tabs.getHeight() == 52 && graphHeader.getHeight() == 52
         && filesHeader.localToScene(0, 0).getY() == tabs.localToScene(0, 0).getY()
         && filesHeader.localToScene(0, 0).getY() == graphHeader.localToScene(0, 0).getY(),
         "Files, tabs and Connections start on one 52 px band");
-    var bandDivider = (javafx.scene.shape.Line) fixture.stage.getScene().lookup(".workspace-band-divider");
+    var bandDivider = (javafx.scene.shape.Line) fixture.stage.getScene().lookup("#workspace-top-divider");
     check(bandDivider.isMouseTransparent() && bandDivider.getStrokeWidth() == 1
         && bandDivider.getEndX() == fixture.stage.getScene().getWidth()
         && Math.abs(bandDivider.localToScene(0, 0).getY() - tabs.localToScene(0, 51.5).getY()) < .01,
         "A single one-pixel rule spans the workspace without intercepting the sidebar dividers");
+    Region filesContext = (Region) explorerList.lookup(".files-context-row");
+    Region documentLocation = (Region) tabs.getParent().lookup(".document-location");
+    Region graphSummary = (Region) graphPanel.lookup(".graph-summary");
+    double contextY = filesContext.localToScene(0, 0).getY();
+    check(filesContext.getHeight() == 52 && documentLocation.getHeight() == 52 && graphSummary.getHeight() == 52
+        && contextY == documentLocation.localToScene(0, 0).getY() && contextY == graphSummary.localToScene(0, 0).getY(),
+        "Files, document breadcrumb, and current note share the second 52 px band");
+    check(((Label) filesContext.lookup(".label")).getText().equals("Files"), "The files context band is labeled");
+    var contextDivider = (javafx.scene.shape.Line) fixture.stage.getScene().lookup("#workspace-context-divider");
+    check(contextDivider.isMouseTransparent() && contextDivider.getEndX() == fixture.stage.getScene().getWidth()
+        && Math.abs(contextDivider.localToScene(0, 0).getY() - contextY - 51.5) < .01,
+        "A single shared divider underlines all three context headers");
     paintedRows(tree, ".tree-cell", 4);
     graphRows(fixture);
     HBox metrics = (HBox) field(fixture.app, "metrics");

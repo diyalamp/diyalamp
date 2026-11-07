@@ -251,8 +251,8 @@
 }
 .document-tabs .tab > .tab-box > .close-button > .graphic { -fx-background-color: -color-fg-muted; }
 .document-tabs .tab > .tab-box > .close-button:hover > .graphic { -fx-background-color: -color-fg-default; }
-.document-location { -fx-min-height: 32; -fx-padding: 8 16; -fx-spacing: 8; }
-.document-breadcrumb { -fx-text-fill: #8C8C8C; }
+.workspace-band.document-location, .workspace-band.files-context-row { -fx-padding: 0 16; }
+.document-breadcrumb, .files-context-row .label { -fx-text-fill: #8C8C8C; }
 .note-page { -fx-background-color: -color-bg-default; -fx-padding: 0; }
 .diyalamp-editor, .diyalamp-editor > .viewport, .writing-area { -fx-background-color: -color-bg-default; }
 .writing-area { -fx-background-insets: 0; }
