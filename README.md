@@ -24,6 +24,8 @@ Sizes are compressed DMG downloads. The [under-5-MB installed target](https://gi
 
 Open the DMG and drag **diyalamp** into **Applications**. Then press `⌘O` to open your Markdown folder. The release is ad hoc signed, and macOS may require first-launch approval. The [install guide](docs/install.md) covers that prompt, checksum verification, macOS compatibility, and updates.
 
+[Download the sample notes (ZIP)](https://diyalamp.com/downloads/database-systems-demo.zip) to try the workspace shown above. Unzip the archive, open the **Database Systems Demo** folder in diyalamp, and start with **Database Indexes**.
+
 ## The writing workspace
 
 Edit headings, checklists, quotes, links, and fenced code blocks with live formatting. Type `/` on an empty line for block commands. Drag a note into a second pane to keep a reference in view while you write. Reorder tabs, rename a note inline, or drag it to another folder.
