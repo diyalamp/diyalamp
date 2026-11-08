@@ -35,13 +35,18 @@ if [ -d "$APP_DEST/diyalamp.app" ]; then mv "$APP_DEST/diyalamp.app" "$APP_DEST/
 TARGET="build/release/diyalamp-${VERSION}-macos-${ARCH}.dmg"
 "$JDK/bin/jpackage" --type dmg --name diyalamp --app-image "$APP_DEST/diyalamp.app" --app-version "$VERSION" --vendor diyalamp --dest build/dmg
 DMG="build/dmg/diyalamp-${VERSION}.dmg"
-COMPRESSED_DMG="build/dmg/diyalamp-${VERSION}-compressed.dmg"
-if hdiutil convert "$DMG" -format UDZO -imagekey zlib-level=9 -ov -o "$COMPRESSED_DMG" >/dev/null &&
-  [ "$(wc -c < "$COMPRESSED_DMG")" -lt "$(wc -c < "$DMG")" ]; then
-  mv "$COMPRESSED_DMG" "$DMG"
-else
-  rm -f "$COMPRESSED_DMG"
-fi
+# Compare lossless formats on the same app image and keep the smallest.
+for format in UDZO ULMO; do
+  candidate="build/dmg/diyalamp-${VERSION}-$format.dmg"
+  set --
+  if [ "$format" = UDZO ]; then set -- -imagekey zlib-level=9; fi
+  if hdiutil convert "$DMG" -format "$format" "$@" -ov -o "$candidate" >/dev/null &&
+    [ "$(wc -c < "$candidate")" -lt "$(wc -c < "$DMG")" ]; then
+    mv "$candidate" "$DMG"
+  else
+    rm -f "$candidate"
+  fi
+done
 if [ -f "$TARGET" ]; then mv "$TARGET" "$TARGET.previous-$(date +%s)"; fi
 mv "$DMG" "$TARGET"
 (cd build/release && shasum -a 256 "$(basename "$TARGET")") > "$TARGET.sha256"

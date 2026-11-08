@@ -13,7 +13,7 @@ diyalamp is a desktop Markdown editor with rendered formatting and local file st
 
 The application opens a folder of `.md` or `.markdown` files. Editing does not require an account, subscription, server, database, or internet connection. Notes remain readable by other Markdown tools.
 
-## Desktop features · 1.3.4
+## Desktop features · 1.3.5
 
 - Dark-only macOS workspace using AtlantaFX CupertinoDark controls, aligned dividers, and flat Lucide icons. Normal mode uses one charcoal background and Focus uses black.
 - 16 px Inter for the interface and prose, with distinct sizes for the first three headings inside notes. Code uses installed Menlo.
@@ -36,16 +36,16 @@ The application opens a folder of `.md` or `.markdown` files. Editing does not r
 
 ## macOS downloads
 
-Version **1.3.4** is available from [GitHub Releases](https://github.com/diyalamp/diyalamp/releases/tag/v1.3.4) and [diyalamp.com](https://diyalamp.com).
+Version **1.3.5** is available from [GitHub Releases](https://github.com/diyalamp/diyalamp/releases/tag/v1.3.5) and [diyalamp.com](https://diyalamp.com).
 
-- [Apple silicon DMG · 48.2 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.3.4/diyalamp-1.3.4-macos-arm64.dmg)
-- [Intel DMG · 49.6 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.3.4/diyalamp-1.3.4-macos-x86_64.dmg)
+- [Apple silicon DMG](https://github.com/diyalamp/diyalamp/releases/download/v1.3.5/diyalamp-1.3.5-macos-arm64.dmg)
+- [Intel DMG](https://github.com/diyalamp/diyalamp/releases/download/v1.3.5/diyalamp-1.3.5-macos-x86_64.dmg)
 
 Drag diyalamp to Applications. See the [installation guide](docs/install.md) for choosing Apple silicon or Intel, verifying the SHA-256 checksum, first-launch approval, and current macOS compatibility limits.
 
-The [installed size target](https://github.com/diyalamp/diyalamp/issues/2) is under 5 MB. See the measured release sizes below.
+The [installed size target](https://github.com/diyalamp/diyalamp/issues/2) is under 5 MB and is still open.
 
-The package includes a runtime; users do not need to install Java separately. The apps from the verified release DMGs occupy approximately **64.9 MiB** (Apple silicon) and **67.4 MiB** (Intel). Release downloads are **48,239,105 bytes** (Apple silicon) and **49,634,711 bytes** (Intel). Architecture and runtime builds can differ; release assets provide SHA-256 checksums.
+Both installers include a runtime and provide matching SHA-256 checksums. No separate Java installation is required.
 
 This release is **ad hoc signed**, without Developer ID or Apple notarization. macOS may require approval on first launch.
 
