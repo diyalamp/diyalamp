@@ -89,6 +89,9 @@ final class FxNoteGraph implements AutoCloseable {
   private final Label placeholder = new Label();
   private boolean viewDirty, needsReheat, graphInitialized, updatingGraph;
   private Path hovered;
+  // Track only the class we add, so stable graph states avoid CSS invalidation.
+
+  private final Map<SmartStylableNode, String> highlightStates = new WeakHashMap<>();
   private Scene watchedScene;
   private Window watchedWindow;
   private final ChangeListener<Window> windowListener = (observable, previous, current) -> watchWindow(current);
@@ -474,16 +477,15 @@ final class FxNoteGraph implements AutoCloseable {
       Path path = vertex.getUnderlyingVertex().element();
       String state = path.equals(active) ? "current-note" : path.equals(hovered) ? "inspected-note"
           : neighbors.contains(path) ? "related-note" : hovered != null ? "muted-note" : null;
-      noteStyle(vertex, state);
-      noteStyle(vertex.getStylableLabel(), state);
+      applyHighlight(vertex, state);
+      applyHighlight(vertex.getStylableLabel(), state);
     }
     for (SmartGraphEdge<NoteLinkIndex.Edge, Path> edge : graph.getSmartEdges()) {
       NoteLinkIndex.Edge link = edge.getUnderlyingEdge().element();
       boolean highlighted = touches(link, hovered);
-      clearStyle(edge, "secondary-link"); clearStyle(edge, "muted-link"); clearStyle(edge, "highlighted-link");
-      if (highlighted) edge.addStyleClass("highlighted-link");
-      else if (hovered != null) edge.addStyleClass("muted-link");
-      else if (!touches(link, active)) edge.addStyleClass("secondary-link");
+      String state = highlighted ? "highlighted-link" : hovered != null ? "muted-link"
+          : touches(link, active) ? null : "secondary-link";
+      applyHighlight(edge, state);
       // SmartGraph mirrors edge classes to arrows. Use visibility to keep
       // overview arrows outside hit testing regardless of edge opacity.
       if (edge.getStylableArrow() instanceof Node arrow) arrow.setVisible(highlighted);
@@ -567,10 +569,11 @@ final class FxNoteGraph implements AutoCloseable {
     return edge.from().equals(path) || edge.to().equals(path);
   }
 
-  private static void noteStyle(SmartStylableNode node, String state) {
+  private void applyHighlight(SmartStylableNode node, String state) {
     if (node == null) return;
-    clearStyle(node, "current-note"); clearStyle(node, "inspected-note");
-    clearStyle(node, "related-note"); clearStyle(node, "muted-note");
+    String previous = state == null ? highlightStates.remove(node) : highlightStates.put(node, state);
+    if (Objects.equals(previous, state)) return;
+    if (previous != null) clearStyle(node, previous);
     if (state != null) node.addStyleClass(state);
   }
 
