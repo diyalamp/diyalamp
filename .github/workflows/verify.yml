@@ -1,22 +1,24 @@
-name: Verify native macOS editor
+name: Verify desktop editor
 on:
   push:
-    paths: ['native/macos/**', '.github/workflows/verify.yml']
+    paths: ['desktop/**', '.github/workflows/verify.yml']
   pull_request:
-    paths: ['native/macos/**', '.github/workflows/verify.yml']
+    paths: ['desktop/**', '.github/workflows/verify.yml']
 permissions:
   contents: read
 jobs:
   verify:
     strategy:
       matrix:
-        os: [macos-15, macos-15-intel]
+        os: [ubuntu-latest, macos-15]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 12
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Run native tests
-        run: |
-          cmark="$RUNNER_TEMP/diyalamp-cmark"
-          sh native/macos/prepare-cmark.sh "$cmark"
-          sh native/macos/test.sh "$cmark"
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a sh desktop/test.sh
+      - if: runner.os != 'Linux'
+        run: sh desktop/test.sh
