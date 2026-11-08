@@ -48,7 +48,7 @@ public final class FxDarkThemeTests {
     var secondStroke = (Shape) secondIcon.lookup(".icon-stroke");
     firstStroke.setStroke(Color.WHITE);
     check(independentIcons.getChildren().size() == 2 && firstStroke != secondStroke
-        && secondStroke.getStroke().equals(Color.web("#8C8C8C")),
+        && secondStroke.getStroke().equals(Color.web("#A49D95")),
         "Cached icon geometry must still give each control its own rendered shapes");
     BorderPane root = new BorderPane(); root.getStyleClass().add("workspace-root");
     root.getStylesheets().add(FxTheme.class.getResource("/fx-workspace.css").toExternalForm());
