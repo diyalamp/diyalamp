@@ -1,12 +1,6 @@
 # Third-party notices
 
-## Native macOS editor
-
-- cmark-gfm 0.29.0.gfm.13 is statically linked. The native build verifies the upstream source archive checksum and includes the upstream `COPYING` file in the app. [Upstream source and license](https://github.com/github/cmark-gfm/tree/0.29.0.gfm.13)
-- The app bundles the unmodified Inter fonts and their SIL Open Font License. It uses installed macOS fonts for code.
-- The DiyaLamp icon and lamp artwork are project brand assets.
-
-## Historical Java desktop app
+## Desktop writing app
 
 - SmartGraph 2.6.1, copyright Bruno Silva, MIT. Official project: https://github.com/brunomnsilva/JavaFXSmartGraph. The directed note graph uses its layout, pan, zoom, and interaction components. Full license: `licenses/SmartGraph-LICENSE.txt`; Maven artifact checksum pinned in `desktop/fx-dependencies.sha256`.
 

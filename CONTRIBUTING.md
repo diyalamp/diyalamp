@@ -1,32 +1,36 @@
 # Contributing to diyalamp
 
-The maintained app is a native Markdown editor for macOS. Contributions improve writing, local file safety, and AppKit integration.
+Contributions improve the local Markdown editor, file safety, and macOS integration.
 
 ## Test the Mac app
 
-Install the current build from the [macOS installation guide](docs/install.md). Open a folder of fictional notes and try editing, saving, searching, or following a note link using the keyboard or VoiceOver. Report what you expected, what happened, and which app version you tested.
+Install the current build using the [macOS install guide](docs/install.md). Pick one writing task, such as finding a note, closing a tab, or switching between split panes. Try it with the keyboard or VoiceOver in a folder of fictional notes. Report what you expected, what happened, and the app version from **Help → About diyalamp**. [Open VoiceOver review](https://github.com/diyalamp/diyalamp/issues/1)
 
-Include your macOS version and whether the Mac uses Apple silicon or Intel. Share the smallest Markdown example that reproduces the problem. Keep private notes, credentials, and personal paths out of reports. For sensitive security reports, follow [SECURITY.md](SECURITY.md).
+For other issues, include your macOS version and whether the Mac uses Apple silicon or Intel. Share the smallest Markdown example that reproduces the problem. Keep private notes, credentials, and personal paths out of reports. For sensitive security reports, follow [SECURITY.md](SECURITY.md).
 
 ## Build from source
 
-Use a Mac with macOS 15 or later, the Xcode command-line tools, and Python 3. From the repository root, prepare the pinned Markdown parser and run the source tests.
+Use JDK 25 or newer on a Mac. Run these commands from the root of your clone. The first build downloads and verifies pinned dependencies.
 
 ```sh
-native="$PWD/native/macos"
-cmark="$native/build/cmark"
-sh "$native/prepare-cmark.sh" "$cmark"
-sh "$native/test.sh" "$cmark"
+sh desktop/test.sh
+
+workspace=$(mktemp -d "${TMPDIR:-/tmp}/diyalamp-contribute.XXXXXX")
+printf '# Draft\n\nRead [[Reference]].\n' > "$workspace/Draft.md"
+printf '# Reference\n\nA fictional note for testing.\n' > "$workspace/Reference.md"
+sh desktop/run.sh --workspace "$workspace"
 ```
 
-The [native build guide](native/macos/README.md) explains how to build and verify the universal installer. Test changes in a disposable notes folder.
+Open both notes and follow the link from Draft to Reference. The temporary workspace keeps tests away from your own files, and this launch does not replace the app's last-opened folder. App-wide preferences still apply. See [desktop development](desktop/README.md) for JDK selection and packaging, or [the installer size issue](https://github.com/diyalamp/diyalamp/issues/2) for runtime and package work.
 
 ## Pull requests
 
-The maintained app lives in `native/macos/`. The Java implementation in `desktop/` is historical, and the [website](https://github.com/diyalamp/diyalamp.github.io) has its own repository.
+The desktop application lives in `desktop/` and the website has [its own repository](https://github.com/diyalamp/diyalamp.github.io). Check the [product scope](docs/PRODUCT.md) and open an issue before a large change. Small documentation corrections and reproducible bug fixes can go straight to a pull request.
 
-Open an issue before a large change. Small documentation corrections and reproducible fixes can go straight to a pull request. Describe the problem, the resulting behavior, and how you checked it. Add focused coverage for changes to file safety, recovery, or Markdown round trips. For UI changes, include a screenshot and check the affected flow with the keyboard.
+Describe the problem, the resulting behavior, and how you checked it. Add focused tests for changes that could affect file safety or Markdown round trips. For UI changes, include a screenshot and check the affected flow with the keyboard.
 
-Use the existing AppKit controls and align related controls to the workspace’s shared spacing. Keep the writing flow independent of sign-in, telemetry, and hosted services.
+## Design
 
-Contributions are licensed under the repository’s [Apache License 2.0](LICENSE).
+Follow the [desktop design rules](desktop/README.md#interface-design). Reuse the shared spacing tokens and existing AtlantaFX controls, RichTextFX editor, and SmartGraph panel. Keep the local writing flow independent of sign-in, telemetry, and hosted services.
+
+Contributions are licensed under the repository's Apache 2.0 license.

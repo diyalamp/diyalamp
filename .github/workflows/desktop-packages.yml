@@ -1,54 +1,94 @@
-name: Package native macOS editor
+name: Package macOS editor
 on:
   workflow_dispatch:
+    inputs:
+      validate_only:
+        description: Build and test installers without staging a release
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
   package:
-    name: Build and verify on Apple silicon
-    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            arch: arm64
+            fx_platform: mac-aarch64
+          - os: macos-15-intel
+            arch: x86_64
+            fx_platform: mac
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Prepare parser and run native tests
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
+        with:
+          distribution: temurin
+          java-version: '25'
+      - id: version
+        run: echo "version=$(sh desktop/version.sh)" >> "$GITHUB_OUTPUT"
+      - run: sh desktop/package-macos.sh
+      - name: Verify the mounted installer and bundled runtime
+        working-directory: desktop
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          ARCH: ${{ matrix.arch }}
+          FX_PLATFORM: ${{ matrix.fx_platform }}
         run: |
-          test "$(uname -m)" = arm64
-          cmark="$RUNNER_TEMP/diyalamp-cmark"
-          sh native/macos/prepare-cmark.sh "$cmark"
-          sh native/macos/test.sh "$cmark"
-      - id: build
-        name: Build and mount-verify the universal installer
-        run: |
-          set -o pipefail
-          cmark="$RUNNER_TEMP/diyalamp-cmark"
-          log="$RUNNER_TEMP/diyalamp-build.log"
-          sh native/macos/build.sh "$PWD/desktop/src/main/resources" "$cmark" | tee "$log"
-          directory=$(sed -n 's/^Build directory: //p' "$log")
-          test -n "$directory"
-          sh native/macos/verify.sh "$directory/DiyaLamp-macOS.dmg" "$cmark"/cmark-gfm-*/COPYING
-          printf 'directory=%s\n' "$directory" >> "$GITHUB_OUTPUT"
+          name="diyalamp-$VERSION-macos-$ARCH.dmg"
+          (cd build/release && shasum -a 256 -c "$name.sha256")
+          hdiutil verify "build/release/$name"
+          mount=$(mktemp -d)
+          hdiutil attach -readonly -nobrowse -mountpoint "$mount" "build/release/$name"
+          trap 'hdiutil detach "$mount" >/dev/null' EXIT
+          app="$mount/diyalamp.app"
+          payload="$app/Contents/app"
+          java="$app/Contents/runtime/Contents/Home/bin/java"
+          codesign --verify --deep --strict "$app"
+          test "$(lipo -archs "$app/Contents/MacOS/diyalamp")" = "$ARCH"
+          test "$(lipo -archs "$java")" = "$ARCH"
+          test -z "$(find "$payload" -type f \( -name 'flatlaf-*.jar' -o -name 'jsvg-*.jar' \) -print)"
+          for suite in fx.FxWritingPaneTests update.UpdateTests; do
+            "$java" --module-path "$payload/fx-deps/$FX_PLATFORM" --add-modules javafx.controls \
+              --enable-native-access=javafx.graphics,ALL-UNNAMED -Djava.awt.headless=true \
+              -Dglass.platform=Headless -Dprism.order=sw \
+              -cp "$payload/diyalamp.jar:$PWD/build/test-classes" "com.diyalamp.desktop.$suite"
+          done
+          printf '%s %s bytes\n' "$name" "$(wc -c < "build/release/$name" | tr -d ' ')"
       - uses: actions/upload-artifact@v4
         with:
-          name: diyalamp-macos-universal
-          path: |
-            ${{ steps.build.outputs.directory }}/DiyaLamp-macOS.dmg
-            ${{ steps.build.outputs.directory }}/DiyaLamp-macOS.dmg.sha256
+          name: ${{ inputs.validate_only && 'diyalamp-validation' || 'diyalamp' }}-macos-${{ matrix.arch }}
+          path: desktop/build/release/*.dmg*
           if-no-files-found: error
-  verify-intel:
-    name: Verify the same installer on Intel
+  stage-release:
     needs: package
-    runs-on: macos-15-intel
-    timeout-minutes: 20
+    if: ${{ !inputs.validate_only }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/download-artifact@v4
         with:
-          name: diyalamp-macos-universal
+          pattern: diyalamp-macos-*
           path: release-artifacts
-      - name: Run native tests and mount-verify the installer
+          merge-multiple: true
+      - name: Verify installer checksums
+        working-directory: release-artifacts
+        run: shasum -a 256 -c *.sha256
+      - name: Stage verified installers in a draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          test "$(uname -m)" = x86_64
-          cmark="$RUNNER_TEMP/diyalamp-cmark"
-          sh native/macos/prepare-cmark.sh "$cmark"
-          sh native/macos/test.sh "$cmark"
-          sh native/macos/verify.sh release-artifacts/DiyaLamp-macOS.dmg "$cmark"/cmark-gfm-*/COPYING
+          version=$(sh desktop/version.sh)
+          tag="v$version"
+          if gh release view "$tag" --json isDraft --jq .isDraft > /tmp/diyalamp-release-draft.txt 2>/dev/null; then
+            test "$(cat /tmp/diyalamp-release-draft.txt)" = true
+            gh release upload "$tag" release-artifacts/*.dmg release-artifacts/*.sha256 --clobber
+            gh release edit "$tag" --notes-file desktop/RELEASE_NOTES.md --target "$GITHUB_SHA"
+          else
+            gh release create "$tag" release-artifacts/*.dmg release-artifacts/*.sha256 --draft --target "$GITHUB_SHA" --title "diyalamp $version" --notes-file desktop/RELEASE_NOTES.md
+          fi
