@@ -74,8 +74,12 @@
   -fx-background-color: -color-border-default, -color-bg-subtle;
   -fx-background-insets: 0, 1; -fx-background-radius: 8, 7;
 }
-.workspace-root .pomodoro-control:timer-active:hover,
-.workspace-root .pomodoro-control:timer-active:focused { -fx-background-color: -diyalamp-focus, -color-bg-subtle; }
+.workspace-root .pomodoro-control:timer-active:hover {
+  -fx-background-color: -color-border-default, -diyalamp-control-hover;
+}
+.workspace-root .pomodoro-control:timer-active:focus-visible {
+  -fx-background-color: -diyalamp-focus, -color-bg-subtle;
+}
 .pomodoro-control .pomodoro-toolbar-phase {
   -fx-min-width: 48; -fx-pref-width: 48; -fx-max-width: 48;
   -fx-text-fill: -color-fg-default;

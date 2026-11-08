@@ -37,7 +37,7 @@ public final class FxTheme {
   private static final Color DEFAULT_LINK = Color.web("#FF6B6B");
   private static final Color DEFAULT_FOCUS = Color.web("#FF5555B3");
   private static final Color DEFAULT_SELECTION = Color.web("#AB2828DD");
-  private static final Color ICON_INK = Color.web("#8C8C8C");
+  private static final Color ICON_INK = Color.web("#A49D95");
   static final String DISPLAYED_ACCENT = "diyalamp.displayedAccent";
   private static final String DISPLAYED_SURFACE = "diyalamp.displayedSurface";
   private static final String REDUCED_MOTION = "diyalamp.reducedMotion";
