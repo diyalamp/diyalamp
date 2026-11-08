@@ -21,6 +21,7 @@ import javafx.css.PseudoClass;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.Point2D;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -28,6 +29,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.Duration;
@@ -36,6 +38,8 @@ import javafx.util.Duration;
 final class FxNoteGraph implements AutoCloseable {
   private static final int MAX_VISIBLE_NODES = 60;
   private static final int SPARSE_GRAPH_NODES = 7;
+  private static final double LABEL_INSET = 6;
+  private static final double LABEL_CLEARANCE = 4;
   private static final PseudoClass CROWDED = PseudoClass.getPseudoClass("crowded");
   // SmartGraph scales repulsion by 1,000. Gentle steps and a stronger center
   // pull in crowded graphs prevent notes from piling against the pane's edges.
@@ -400,12 +404,21 @@ final class FxNoteGraph implements AutoCloseable {
     zoom.getStyleClass().add("note-graph-zoom"); zoom.setMinSize(0, 0);
     Tooltip.install(zoom, new Tooltip("Hover to inspect · scroll to zoom · drag to pan · double-click to open"));
     zoom.scaleFactorProperty().addListener((observable, previous, scale) -> updateLabels());
+    graph.automaticLayoutProperty().addListener((observable, previous, moving) -> updateLabels());
     zoom.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> reheat());
     zoom.addEventFilter(MouseEvent.MOUSE_DRAGGED, event -> reheat());
-    graph.widthProperty().addListener((observable, previous, value) -> { refreshGraph(); reheat(); });
-    graph.heightProperty().addListener((observable, previous, value) -> { refreshGraph(); reheat(); });
+    zoom.addEventFilter(MouseEvent.MOUSE_RELEASED, event -> {
+      if (graph != null && !graph.automaticLayoutProperty().get()) updateLabels();
+    });
+    graph.widthProperty().addListener((observable, previous, value) -> resizeGraph());
+    graph.heightProperty().addListener((observable, previous, value) -> resizeGraph());
     graph.sceneProperty().addListener((observable, previous, value) -> refreshGraph());
     canvas.getChildren().setAll(zoom, placeholder, detail);
+  }
+
+  private void resizeGraph() {
+    refreshGraph(); reheat();
+    if (graph != null && !graph.automaticLayoutProperty().get()) updateLabels();
   }
 
   private void refreshGraph() {
@@ -479,38 +492,75 @@ final class FxNoteGraph implements AutoCloseable {
   }
 
   private void updateLabels() {
+    if (graph == null || zoom == null) return;
     double scale = zoom.scaleFactorProperty().get();
     int count = vertices.size();
     double labelScale = count <= SPARSE_GRAPH_NODES ? .85 : Math.min(2.5, 1.4 + count / 40.0);
+    // Inspect one note at a time. During motion, keep the active name in
+    // place and defer the fit check until the layout settles.
+    Path prominent = hovered == null ? active : hovered;
+    Set<Path> fitted = hovered == null && !graph.automaticLayoutProperty().get() && scale >= labelScale
+        ? fittingLabels() : Collections.emptySet();
     for (SmartGraphVertex<Path> vertex : graph.getSmartVertices()) {
       if (!(vertex.getStylableLabel() instanceof SmartLabel label)) continue;
       Path path = vertex.getUnderlyingVertex().element();
-      // The inspector already names the active note. Show one label during
-      // hover so the inspected name can never collide with another label.
-      boolean visible = hovered != null ? path.equals(hovered) : path.equals(active) || scale >= labelScale;
+      boolean visible = path.equals(prominent) || fitted.contains(path);
       label.setVisible(visible);
       // SmartGraph reserves space for label text even when the label is hidden.
       label.setText(visible ? graphTitle(path) : "");
-      if (visible && (path.equals(active) || path.equals(hovered))) label.toFront();
+      if (path.equals(prominent)) label.toFront();
     }
+  }
+
+  private Set<Path> fittingLabels() {
+    var ordered = new ArrayList<>(graph.getSmartVertices());
+    ordered.sort(Comparator.comparing((SmartGraphVertex<Path> vertex) ->
+        !vertex.getUnderlyingVertex().element().equals(active))
+        .thenComparing(vertex -> vertex.getUnderlyingVertex().element()));
+    Text measure = new Text();
+    measure.setFont(FxTheme.textFont(FxTheme.TEXT_SIZE, false, false));
+    Set<Path> fitted = new HashSet<>();
+    List<Rectangle2D> occupied = new ArrayList<>();
+    for (var vertex : ordered) {
+      Path path = vertex.getUnderlyingVertex().element();
+      measure.setText(graphTitle(path));
+      double width = measure.getLayoutBounds().getWidth();
+      double height = measure.getLayoutBounds().getHeight();
+      double left = labelLeft(vertex.getPositionCenterX() - width / 2, width, graph.getWidth());
+      double below = vertex.getPositionCenterY() + vertex.getRadius()
+          + SmartGraphVertexNode.ATTACHED_LABEL_VERTICAL_OFFSET;
+      double top = labelTop(below, height, vertex.getRadius(), graph.getHeight(), false);
+      Rectangle2D box = new Rectangle2D(left - LABEL_CLEARANCE, top - LABEL_CLEARANCE,
+          width + 2 * LABEL_CLEARANCE, height + 2 * LABEL_CLEARANCE);
+      if (occupied.stream().noneMatch(box::intersects)) {
+        fitted.add(path);
+        occupied.add(box);
+      }
+    }
+    return fitted;
   }
 
   private void positionLabel(SmartGraphVertex<Path> vertex) {
     if (!(vertex.getStylableLabel() instanceof SmartLabel label)) return;
     SmartGraphPanel<Path, NoteLinkIndex.Edge> owner = graph;
-    double inset = 6;
     label.translateXProperty().bind(Bindings.createDoubleBinding(() -> {
       double left = label.xProperty().get();
-      double right = left + label.layoutWidthProperty().get();
-      return Math.max(inset - left, Math.min(0, owner.getWidth() - inset - right));
+      return labelLeft(left, label.layoutWidthProperty().get(), owner.getWidth()) - left;
     }, label.xProperty(), label.layoutWidthProperty(), owner.widthProperty()));
     label.translateYProperty().bind(Bindings.createDoubleBinding(() -> {
-      double below = label.yProperty().get(), height = label.layoutHeightProperty().get();
-      double above = below - height - 2 * (vertex.getRadius() + 5);
-      boolean placeAbove = label.getStyleClass().contains("inspected-note")
-          || below + height > owner.getHeight() - inset;
-      return placeAbove && above >= inset ? above - below : 0;
+      double below = label.yProperty().get();
+      return labelTop(below, label.layoutHeightProperty().get(), vertex.getRadius(), owner.getHeight(),
+          label.getStyleClass().contains("inspected-note")) - below;
     }, label.yProperty(), label.layoutHeightProperty(), label.getStyleClass(), owner.heightProperty()));
+  }
+
+  private static double labelLeft(double left, double width, double paneWidth) {
+    return Math.max(LABEL_INSET, Math.min(left, paneWidth - LABEL_INSET - width));
+  }
+
+  private static double labelTop(double below, double height, double radius, double paneHeight, boolean inspect) {
+    double above = below - height - 2 * (radius + SmartGraphVertexNode.ATTACHED_LABEL_VERTICAL_OFFSET);
+    return above >= LABEL_INSET && (inspect || below + height > paneHeight - LABEL_INSET) ? above : below;
   }
 
   private static boolean touches(NoteLinkIndex.Edge edge, Path path) {

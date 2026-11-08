@@ -4,6 +4,7 @@ import com.brunomnsilva.smartgraph.containers.ContentZoomScrollPane;
 import com.brunomnsilva.smartgraph.graph.Digraph;
 import com.brunomnsilva.smartgraph.graphview.SmartGraphPanel;
 import com.brunomnsilva.smartgraph.graphview.SmartGraphVertex;
+import com.brunomnsilva.smartgraph.graphview.SmartLabel;
 import com.diyalamp.desktop.NoteStore;
 import java.lang.reflect.Field;
 import java.nio.file.*;
@@ -206,6 +207,7 @@ public final class FxNoteGraphTests {
       check(fx(() -> field(chosen, "graph") == retainedGraph.get() && field(chosen, "zoom") == retainedZoom.get()),
           "A safe save must update the existing model without rebuilding the visualization or viewport");
       fx(() -> {
+        inspectLabelCollision(chosen, retainedGraph.get(), retainedZoom.get(), origin, target, source);
         inspectDenseGraph(chosen, retainedGraph.get(), retainedZoom.get(), dense);
         return null;
       });
@@ -275,10 +277,53 @@ public final class FxNoteGraphTests {
     check(graph.lookupAll(".arrow").stream().filter(Node::isVisible).count() == 3,
         "Only arrows incident to the inspected node are visible");
     Event.fireEvent((Node) neighbor, mouse(MouseEvent.MOUSE_EXITED));
+    graph.setAutomaticLayout(false);
+    var ordered = graph.getModel().vertices().stream().sorted(Comparator.comparing(vertex -> vertex.element())).toList();
+    for (int index = 0; index < ordered.size(); index++)
+      graph.setVertexPosition(ordered.get(index), 70 + 130 * (index % 2), 12 + 28 * (index / 2));
     zoom.scaleFactorProperty().set(2);
-    check(visibleLabels(graph) == 10, "Zooming into the graph reveals its note names");
+    layout(panel);
+    var bounds = graph.getSmartVertices().stream().map(vertex -> (Node) vertex.getStylableLabel())
+        .filter(Node::isVisible).map(Node::getBoundsInParent).toList();
+    check(bounds.size() > 1, "Zooming into a settled graph reveals additional names");
+    for (int index = 0; index < bounds.size(); index++)
+      for (int other = index + 1; other < bounds.size(); other++)
+        check(!bounds.get(index).intersects(bounds.get(other)), "Visible names fit without overlap when zoomed");
     zoom.scaleFactorProperty().set(1);
     check(visibleLabels(graph) == 1, "Zooming back out restores the uncluttered overview");
+  }
+
+  private static void inspectLabelCollision(FxNoteGraph panel, SmartGraphPanel<Path, NoteLinkIndex.Edge> graph,
+      ContentZoomScrollPane zoom, Path active, Path overlapping, Path separate) {
+    graph.setAutomaticLayout(false);
+    SmartGraphVertex<Path> activeNode = graphVertex(graph, active), overlapNode = graphVertex(graph, overlapping);
+    SmartGraphVertex<Path> separateNode = graphVertex(graph, separate);
+    graph.setVertexPosition(activeNode.getUnderlyingVertex(), 110, 55);
+    graph.setVertexPosition(overlapNode.getUnderlyingVertex(), 115, 55);
+    graph.setVertexPosition(separateNode.getUnderlyingVertex(), 210, 105);
+    SmartLabel activeLabel = (SmartLabel) activeNode.getStylableLabel();
+    SmartLabel overlapLabel = (SmartLabel) overlapNode.getStylableLabel();
+    SmartLabel separateLabel = (SmartLabel) separateNode.getStylableLabel();
+    overlapLabel.setText("Target"); overlapLabel.setVisible(true); layout(panel);
+    check(activeLabel.getBoundsInParent().intersects(overlapLabel.getBoundsInParent()),
+        "The fixture places the real rendered labels in collision");
+
+    zoom.scaleFactorProperty().set(1); layout(panel);
+    check(activeLabel.isVisible() && separateLabel.isVisible() && !overlapLabel.isVisible(),
+        "The active label wins and a separated name can still fit");
+    check(!activeLabel.getBoundsInParent().intersects(separateLabel.getBoundsInParent()),
+        "The remaining visible label bounds do not overlap");
+    var beforeHover = position(graph, overlapping);
+    Event.fireEvent((Node) overlapNode, mouse(MouseEvent.MOUSE_ENTERED)); layout(panel);
+    check(overlapLabel.isVisible() && visibleLabels(graph) == 1 && position(graph, overlapping).equals(beforeHover),
+        "Hover reveals the rejected name without moving its node");
+    Event.fireEvent((Node) overlapNode, mouse(MouseEvent.MOUSE_EXITED)); layout(panel);
+    check(activeLabel.isVisible() && separateLabel.isVisible() && !overlapLabel.isVisible(),
+        "Leaving hover restores the same fitted labels");
+    graph.setAutomaticLayout(true);
+    check(activeLabel.isVisible() && visibleLabels(graph) == 1,
+        "Moving nodes keep only the active name visible");
+    graph.setAutomaticLayout(false);
   }
 
   private static SmartGraphVertex<Path> graphVertex(SmartGraphPanel<Path, NoteLinkIndex.Edge> graph, Path path) {
