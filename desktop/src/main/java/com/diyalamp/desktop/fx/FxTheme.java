@@ -28,7 +28,7 @@ import org.w3c.dom.Element;
 public final class FxTheme {
   public static final double TEXT_SIZE = 16;
   public static final Color DEFAULT_ACCENT = Color.web("#EE0000");
-  public static final Color EDITOR_BACKGROUND = Color.web("#111213");
+  public static final Color EDITOR_BACKGROUND = Color.web("#141312");
   private static final Color DEFAULT_LINK = Color.web("#FF6B6B");
   private static final Color DEFAULT_FOCUS = Color.web("#FF5555B3");
   private static final Color DEFAULT_SELECTION = Color.web("#AB2828DD");
@@ -232,7 +232,7 @@ public final class FxTheme {
         };
         if (shape == null) continue;
         shape.setFill(Color.TRANSPARENT);
-        shape.setStroke(Color.web("#8C8C8C"));
+        shape.setStroke(Color.web("#A49D95"));
         shape.setStrokeWidth(1.7);
         shape.setStrokeLineCap(StrokeLineCap.ROUND);
         shape.setStrokeLineJoin(StrokeLineJoin.ROUND);

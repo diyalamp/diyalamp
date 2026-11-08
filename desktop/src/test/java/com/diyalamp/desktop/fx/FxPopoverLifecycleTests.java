@@ -95,14 +95,14 @@ public final class FxPopoverLifecycleTests {
         check(surface.getStyleClass().contains("diyalamp-popover") && surface.getEffect() == null,
             "The actual AtlantaFX skin must retain workspace styling and have no drop shadow");
         Path border = (Path) surface.lookup(".border");
-        check(border.getStrokeWidth() == 1 && border.getStroke().equals(Color.web("#333536")),
+        check(border.getStrokeWidth() == 1 && border.getStroke().equals(Color.web("#383533")),
             "The rounded popup must use the shared one-pixel dialog border");
-        checkPopupSurface(popup, Color.web("#111213"), chosenAccent);
+        checkPopupSurface(popup, Color.web("#141312"), chosenAccent);
         checkPomodoroButtons(popup);
         FxTheme.focusSurface(root, 1);
         checkPopupSurface(popup, Color.BLACK, chosenAccent);
         FxTheme.focusSurface(root, 0);
-        checkPopupSurface(popup, Color.web("#111213"), chosenAccent);
+        checkPopupSurface(popup, Color.web("#141312"), chosenAccent);
         for (var node = surface.getParent(); node != null; node = node.getParent())
           if (node instanceof javafx.scene.layout.Region region && region.getBackground() != null)
             check(region.getBackground().getFills().stream()

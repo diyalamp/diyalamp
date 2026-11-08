@@ -137,14 +137,14 @@ final class FxPomodoro implements AutoCloseable {
     title.getStyleClass().add("popover-title");
     Region spacer = new Region();
     HBox.setHgrow(spacer, Priority.ALWAYS);
-    HBox header = new HBox(8, new VBox(8, title, state), spacer, time);
-    header.setAlignment(Pos.TOP_LEFT);
+    HBox header = new HBox(8, title, spacer, time);
+    header.setAlignment(Pos.CENTER_LEFT);
     VBox focusSetting = labeledMinutes("Focus minutes", focusMinutes);
     VBox breakSetting = labeledMinutes("Break minutes", breakMinutes);
     Label schedule = new Label("Schedule");
     schedule.getStyleClass().add("pomodoro-detail");
-    VBox content = new VBox(8, header, row(start, reset), row(focus, rest), new Separator(),
-        row(focusSetting, breakSetting), schedule, row(once, repeat), settingsHelp, durationError, detail);
+    VBox content = new VBox(8, header, state, row(start, reset), segments(focus, rest), new Separator(),
+        row(focusSetting, breakSetting), schedule, segments(once, repeat), settingsHelp, durationError, detail);
     content.getStyleClass().add("pomodoro-bubble");
     content.setPrefWidth(328);
     popup = new Popover(content);
@@ -185,6 +185,12 @@ final class FxPomodoro implements AutoCloseable {
     HBox.setHgrow(first, Priority.ALWAYS);
     HBox.setHgrow(second, Priority.ALWAYS);
     return new HBox(8, first, second);
+  }
+
+  private static HBox segments(RadioButton first, RadioButton second) {
+    HBox group = row(first, second);
+    group.getStyleClass().add("pomodoro-segments");
+    return group;
   }
 
   private void configureMinutes(TextField field, String id, int initial) {
