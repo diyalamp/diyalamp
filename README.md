@@ -1,5 +1,5 @@
 <div align="center">
-  <h1><img src="assets/lamp.png" width="32" height="32" alt="" align="absmiddle"> diyalamp</h1>
+  <h1><img src="desktop/src/main/resources/app-icon.png" width="40" height="40" alt="" align="absmiddle"> diyalamp</h1>
   <p><strong>Edit Markdown in place on your Mac.</strong></p>
   <p>Open a folder and write with live formatting, full-text search, and side-by-side notes.</p>
   <p>Free forever · Open source · No sign-up</p>
