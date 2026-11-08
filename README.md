@@ -1,57 +1,62 @@
 <div align="center">
   <h1><img src="assets/lamp.png" width="32" height="32" alt="" align="absmiddle"> diyalamp</h1>
-  <p><strong>Open-source Markdown editor for macOS.</strong></p>
-  <p>Live formatting · Local .md files · Multiple tabs · Split view · No sign-up</p>
-  <p><a href="https://diyalamp.com">Website</a> · <a href="https://github.com/diyalamp/diyalamp/releases">Releases</a> · <a href="https://github.com/diyalamp/diyalamp/issues">Issues</a> · <a href="CONTRIBUTING.md">Contributing</a></p>
-  <img alt="Apache 2.0" src="https://img.shields.io/badge/license-Apache%202.0-3C4545?style=flat-square">
-  <img alt="macOS" src="https://img.shields.io/badge/platform-macOS-3C4545?style=flat-square">
+  <p><strong>Edit Markdown in place on your Mac.</strong></p>
+  <p>Open a folder and write with live formatting, full-text search, and side-by-side notes.</p>
+  <p>Free forever · Open source · No sign-up</p>
+  <p><a href="#download-for-mac"><strong>Download for Mac</strong></a> · <a href="https://diyalamp.com/">Website</a> · <a href="https://github.com/diyalamp/diyalamp/releases/tag/v1.3.5">Release notes</a></p>
 </div>
 
-## Overview
+<p align="center">
+  <a href="docs/assets/database-workspace.webp"><img src="docs/assets/database-workspace.webp" alt="diyalamp showing a rendered database index note, a local graph, four incoming links, and five outgoing links" width="1100"></a><br>
+  <sub>Database Indexes, with its incoming and outgoing note links.</sub>
+</p>
 
-diyalamp is a desktop Markdown editor with rendered formatting and local file storage. It is a free, open-source option for local Markdown writing as an alternative to Obsidian, Notion, and Typora.
+## Download for Mac
 
-The application opens a folder of `.md` or `.markdown` files. Editing does not require an account, subscription, server, database, or internet connection. Notes remain readable by other Markdown tools.
+Version **1.3.5** includes the runtime. Open **Apple menu → About This Mac** to choose your installer. Select Apple silicon if you see an Apple chip and Intel if you see an Intel processor.
 
-## Desktop features · 1.3.5
+| Mac | Installer | SHA-256 |
+| --- | --- | --- |
+| Apple silicon | [Download DMG · 42.2 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.3.5/diyalamp-1.3.5-macos-arm64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.3.5/diyalamp-1.3.5-macos-arm64.dmg.sha256) |
+| Intel | [Download DMG · 43.8 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.3.5/diyalamp-1.3.5-macos-x86_64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.3.5/diyalamp-1.3.5-macos-x86_64.dmg.sha256) |
 
-- Dark-only macOS workspace using AtlantaFX CupertinoDark controls, aligned dividers, and flat Lucide icons. Normal mode uses one charcoal background and Focus uses black.
-- 16 px Inter for the interface and prose, with distinct sizes for the first three headings inside notes. Code uses installed Menlo.
-- Rendered headings, bold, italic, inline code, links, lists, checklists, inset quotes, and fenced code blocks.
-- Formatting controls, Markdown typing shortcuts, and keyboard-accessible slash commands with icons.
-- Folder explorer with nested Markdown files, closable note tabs, and side-by-side editing.
-- Workspace search for filenames or note text, with an icon beside the query to show or hide advanced filters. Text matches are grouped by note.
-- Local autosave with external-file conflict detection.
-- Note creation, import, rename, export, recoverable deletion, and restore.
-- Undo/redo and macOS keyboard shortcuts.
-- `[[Note name]]` links with directed incoming/outgoing navigation and a SmartGraph panel that retains layout and zoom during note selection and safe saves.
-- Focus fades text away from the active caret line and dims the workspace chrome while keeping tabs, sidebars, and controls available.
-- Smooth accent transitions, matching dark dialogs, and restrained hover paint transitions without moving controls.
-- A toolbar Pomodoro that shows Focus or Break with the popover closed, with editable durations and one-cycle or repeat controls. The color-circle accent picker keeps its geometry stable when switching colors.
-- Drag tabs between panes or move notes into workspace folders without overwrites.
-- A unified macOS toolbar with centered native window buttons and one clickable workspace path. The files sidebar has search and creation controls, with split, inline rename, and recoverable delete on each note row.
-- Character, word, and logical-line counts for rendered text, plus the current Markdown's UTF-8 byte size in the status bar.
-- Native draggable dividers for both sidebars, with saved pixel widths and independent open/closed states. An icon-only reset restores the default widths without closing notes or changing Zen.
-- Five accent presets with a red default and a custom hex option. In-app update checks are explicit.
+Sizes are compressed DMG downloads. The [under-5-MB installed target](https://github.com/diyalamp/diyalamp/issues/2) is an open engineering goal.
 
-## macOS downloads
+Open the DMG and drag **diyalamp** into **Applications**. Then press `⌘O` to open your Markdown folder. The release is ad hoc signed, and macOS may require first-launch approval. The [install guide](docs/install.md) covers that prompt, checksum verification, macOS compatibility, and updates.
 
-Version **1.3.5** is available from [GitHub Releases](https://github.com/diyalamp/diyalamp/releases/tag/v1.3.5) and [diyalamp.com](https://diyalamp.com).
+## The writing workspace
 
-- [Apple silicon DMG](https://github.com/diyalamp/diyalamp/releases/download/v1.3.5/diyalamp-1.3.5-macos-arm64.dmg)
-- [Intel DMG](https://github.com/diyalamp/diyalamp/releases/download/v1.3.5/diyalamp-1.3.5-macos-x86_64.dmg)
+- **Edit rendered Markdown.** Use headings, checklists, quotes, links, and fenced code blocks in the editor. Type `/` on an empty line for block commands.
+- **Search the folder.** Find filenames with `⌘P` or search note text with `⌥⌘F`. Filter by case, whole words, regular expressions, and include or exclude paths.
+- **Work side by side.** Drag a note into a second pane. Reorder tabs, rename notes inline, or drag a note to another workspace folder.
+- **Follow connections.** Type `[[Note name]]` or use a relative Markdown link. The Connections panel shows the active note’s graph and both directions of links.
+- **Focus on a line.** Dim the surrounding workspace and keep the active line bright. The toolbar Pomodoro supports custom focus and break durations, a single cycle, or repeat.
 
-Drag diyalamp to Applications. See the [installation guide](docs/install.md) for choosing Apple silicon or Intel, verifying the SHA-256 checksum, first-launch approval, and current macOS compatibility limits.
+<p align="center">
+  <a href="docs/assets/database-search-and-split.webp"><img src="docs/assets/database-search-and-split.webp" alt="Search results for index alongside the Database Indexes and Query Plans notes in two editing panes" width="1100"></a><br>
+  <sub>Search note text while keeping Database Indexes and Query Plans open.</sub>
+</p>
 
-The [installed size target](https://github.com/diyalamp/diyalamp/issues/2) is under 5 MB and is still open.
+## Bring your notes
 
-Both installers include a runtime and provide matching SHA-256 checksums. No separate Java installation is required.
+| Coming from | What to try |
+| --- | --- |
+| **Obsidian** | Open a copy of your vault folder to edit its Markdown and follow backlinks. Obsidian remains useful for plugins, Canvas, and a vault-wide graph. |
+| **Notion** | Export **Markdown & CSV**, unzip it, and open the resulting folder. diyalamp is for account-free writing on local files. Notion provides shared workspaces and databases. |
+| **Typora** | Open your existing Markdown folder for rendered editing, folder search, and backlinks under a free license. Typora offers richer tables, equations, and diagrams. |
 
-This release is **ad hoc signed**, without Developer ID or Apple notarization. macOS may require approval on first launch.
+See [the comparison and migration guide](https://diyalamp.com/alternatives/) for details.
+
+## Files, privacy, and updates
+
+- Notes are UTF-8 `.md` or `.markdown` files in the folder you choose. Writing works offline without an account or telemetry service.
+- Autosave checks for edits made by another app before writing. If there is a conflict, your edits remain available to export. Deleted notes can be restored from `.diyalamp-trash` inside the workspace.
+- Embedded HTML stays literal and remote image references stay on the page as text. The editor supports common Markdown syntax. See [product scope](docs/PRODUCT.md) for format limits.
+- **Help → Check for updates** checks GitHub when you ask. The updater verifies the matching installer and saves pending edits before applying it. A save conflict cancels installation.
 
 ## Build and test
 
-Requires JDK 25 or newer. The desktop app uses JavaFX, AtlantaFX, RichTextFX, Lucide icons, and CommonMark Java. Four static Inter faces are bundled for consistent reading and emphasis; Menlo comes from macOS. There is no JavaScript runtime or web backend in the desktop application.
+Install **JDK 25 or newer** and run from the repository root. The desktop app uses JavaFX, AtlantaFX, RichTextFX, SmartGraph, and CommonMark Java.
 
 ```sh
 sh desktop/build.sh
@@ -59,35 +64,10 @@ sh desktop/run.sh
 sh desktop/test.sh
 ```
 
-To package a self-contained app and DMG on macOS:
+To create a self-contained app and DMG on a Mac with Apple’s command-line tools, run `sh desktop/package-macos.sh`. The [desktop build guide](desktop/README.md) covers verified dependencies, architecture builds, and running against a separate notes folder. Current desktop development is in `desktop/`. The [website source](https://github.com/diyalamp/diyalamp.github.io) lives in a separate repository.
 
-```sh
-sh desktop/package-macos.sh
-```
+## Contribute
 
-See [`desktop/README.md`](desktop/README.md) for dependency checksums, architecture builds, and development with a separate notes folder. Tests cover Markdown round trips, save conflicts, filename collisions, deletion recovery, and file boundaries.
+If diyalamp fits your workflow, star the repository to follow the project. For code changes, start with the [contribution guide](CONTRIBUTING.md). Share reproducible bugs in [Issues](https://github.com/diyalamp/diyalamp/issues) using sample notes. A keyboard or [VoiceOver review](https://github.com/diyalamp/diyalamp/issues/1) is also welcome.
 
-## Storage and privacy
-
-- Choose the notes folder with Open Folder; Markdown stays in that folder.
-- Notes are UTF-8 Markdown files, saved locally.
-- A file changed by another application is not silently overwritten; edits stay open for export.
-- Deleted notes move to `.diyalamp-trash` inside the notes folder and can be restored.
-- Embedded HTML is treated as text. Remote images and scripts are not downloaded or executed.
-- No account or telemetry service is part of the desktop writing flow.
-
-## Scope
-
-This release supports common Markdown editing. It does not implement the complete CommonMark specification, rich table rendering, remote-image previews, plugins, sync, team databases, or publication integrations. Unsupported text is retained rather than executed.
-
-See [macOS screenshots and comparisons](https://diyalamp.com/) on the product website. Website source is in [diyalamp.github.io](https://github.com/diyalamp/diyalamp.github.io).
-
-Previous AI-agent, browser-automation, and writing-review experiments remain in the repository history and existing folders. They are not dependencies of the desktop editor. Current application development belongs in `desktop/`.
-
-## Contributing
-
-You can help by testing one writing task with the keyboard or VoiceOver. For code contributions, the [contribution guide](CONTRIBUTING.md) includes a local test workspace and build steps. [VoiceOver review](https://github.com/diyalamp/diyalamp/issues/1) · [Product scope](docs/PRODUCT.md)
-
-## License
-
-[Apache License 2.0](LICENSE). Dependencies and brand assets retain their own notices in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[Apache License 2.0](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)
