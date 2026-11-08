@@ -163,7 +163,8 @@ public final class FxWorkspaceLayoutTests {
     Region previous = null;
     for (Node node : toolbar.getItems()) {
       if (!(node instanceof javafx.scene.control.Labeled control)) { previous = null; continue; }
-      check(control.getHeight() == 36 && control.getPadding().equals(new Insets(8))
+      Insets padding = control == brand ? new Insets(0, 8, 0, 8) : new Insets(8);
+      check(control.getHeight() == 36 && control.getPadding().equals(padding)
           && control.getFont().getSize() == 16
           && control.getFont().getName().equals(control == brand ? "Inter SemiBold" : "Inter Regular")
           && Math.abs(control.localToScene(0, 18).getY() - center) <= 1,
@@ -173,9 +174,12 @@ public final class FxWorkspaceLayoutTests {
           "Neighboring controls have an 8 px gap");
       previous = control;
     }
+    Region sidebarToggle = (Region) toolbar.getItems().getFirst();
     check(brand.getGraphic() instanceof ImageView icon && icon.getImage() == FxTheme.appIcon()
-            && icon.getFitWidth() == 20 && Math.abs(centerY(icon) - center) <= 1 && brand.getText().equals("diyalamp"),
-        "The Dock artwork and name must share a vertically centered inline label");
+            && icon.getBoundsInParent().getWidth() == sidebarToggle.getWidth()
+            && icon.getBoundsInParent().getHeight() == sidebarToggle.getHeight()
+            && Math.abs(centerY(icon) - centerY(sidebarToggle)) <= 1 && brand.getText().equals("diyalamp"),
+        "The Dock artwork must fill a centered slot the same size as the sidebar toggle");
     check("Toggle files sidebar".equals(toolbar.getItems().getFirst().getAccessibleText()) && toolbar.getItems().get(1) == brand,
         "The sidebar toggle precedes the lamp and diyalamp name");
     check(((ToggleButton) field(fixture.app, "filesControl")).isSelected()
@@ -304,11 +308,13 @@ public final class FxWorkspaceLayoutTests {
     check(pane.localToScene(pane.getWidth(), 0).getX() <= fixture.stage.getScene().getWidth() + 1,
         "The editor must stay within the native window rather than overflowing horizontally");
     var bounds = toggle.localToScene(toggle.getBoundsInLocal());
-    Node overflow = ((ToolBar) field(fixture.app, "toolbar")).lookup(".tool-bar-overflow-button");
+    ToolBar toolbar = (ToolBar) field(fixture.app, "toolbar");
+    Node overflow = toolbar.lookup(".tool-bar-overflow-button");
+    Label brand = (Label) toolbar.lookup(".workspace-brand");
     check(toggle.isVisible() && toggle.getScene() == fixture.stage.getScene()
         && bounds.getMinX() >= 0 && bounds.getMaxX() <= fixture.stage.getScene().getWidth()
-        && (overflow == null || !overflow.isVisible()),
-        "The right-sidebar toggle stays on the bar at minimum width with a long folder and running timer");
+        && (overflow == null || !overflow.isVisible()) && brand.getGraphic().getBoundsInParent().getWidth() == 36,
+        "The full-size Dock icon and sidebar toggle stay on the bar with a long folder and running timer");
     check(folder.getTooltip().getText().equals(longPath),
         "A shortened folder button still exposes the complete path");
     String longFilename = "Long fictional name ".repeat(5).strip() + ".md";

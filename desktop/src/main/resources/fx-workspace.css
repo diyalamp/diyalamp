@@ -161,7 +161,7 @@
   -fx-padding: 8; -fx-border-width: 0; -fx-background-color: transparent;
 }
 .workspace-tool { -fx-min-width: 36; -fx-pref-width: 36; }
-.workspace-brand { -fx-font-family: "Inter SemiBold"; -fx-graphic-text-gap: 8; -fx-text-fill: -color-fg-default; }
+.workspace-brand { -fx-padding: 0 8; -fx-font-family: "Inter SemiBold"; -fx-graphic-text-gap: 8; -fx-text-fill: -color-fg-default; }
 .workspace-root .workspace-folder { -fx-text-fill: -color-fg-muted; -fx-graphic-text-gap: 8; }
 .workspace-root .workspace-folder:hover { -fx-text-fill: -color-fg-default; }
 .workspace-root .workspace-folder, .workspace-tool:hover {
