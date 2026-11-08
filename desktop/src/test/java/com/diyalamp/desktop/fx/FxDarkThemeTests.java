@@ -15,6 +15,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Shape;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -41,6 +42,14 @@ public final class FxDarkThemeTests {
   private static void surfaces() {
     FxTheme.setup();
     check(Application.getUserAgentStylesheet().contains("cupertino-dark"), "Maintained CupertinoDark supplies controls");
+    Node firstIcon = FxTheme.icon("search"), secondIcon = FxTheme.icon("search");
+    HBox independentIcons = new HBox(firstIcon, secondIcon);
+    var firstStroke = (Shape) firstIcon.lookup(".icon-stroke");
+    var secondStroke = (Shape) secondIcon.lookup(".icon-stroke");
+    firstStroke.setStroke(Color.WHITE);
+    check(independentIcons.getChildren().size() == 2 && firstStroke != secondStroke
+        && secondStroke.getStroke().equals(Color.web("#8C8C8C")),
+        "Cached icon geometry must still give each control its own rendered shapes");
     BorderPane root = new BorderPane(); root.getStyleClass().add("workspace-root");
     root.getStylesheets().add(FxTheme.class.getResource("/fx-workspace.css").toExternalForm());
     FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);

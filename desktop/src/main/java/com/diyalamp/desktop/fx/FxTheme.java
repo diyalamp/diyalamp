@@ -2,9 +2,13 @@ package com.diyalamp.desktop.fx;
 
 import atlantafx.base.theme.CupertinoDark;
 import java.io.InputStream;
-import java.util.Locale;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import javafx.application.Application;
 import javafx.collections.MapChangeListener;
 import javafx.css.PseudoClass;
@@ -33,12 +37,14 @@ public final class FxTheme {
   private static final Color DEFAULT_LINK = Color.web("#FF6B6B");
   private static final Color DEFAULT_FOCUS = Color.web("#FF5555B3");
   private static final Color DEFAULT_SELECTION = Color.web("#AB2828DD");
+  private static final Color ICON_INK = Color.web("#8C8C8C");
   static final String DISPLAYED_ACCENT = "diyalamp.displayedAccent";
   private static final String DISPLAYED_SURFACE = "diyalamp.displayedSurface";
   private static final String REDUCED_MOTION = "diyalamp.reducedMotion";
   private static final PseudoClass REDUCED_MOTION_CLASS = PseudoClass.getPseudoClass("reduced-motion");
   private static final Map<String, String> TEXT_FACES = new HashMap<>();
   private static final Map<String, Font> TEXT_FONTS = new HashMap<>();
+  private static final Map<String, List<Supplier<Shape>>> ICON_GEOMETRY = new ConcurrentHashMap<>();
 
   public static void setup() {
     loadTextFonts();
@@ -204,58 +210,98 @@ public final class FxTheme {
     pane.setPrefSize(size, size);
     pane.setMaxSize(size, size);
     pane.setMouseTransparent(true);
+    if (name == null) return pane;
+    List<Supplier<Shape>> geometry = ICON_GEOMETRY.computeIfAbsent(name, FxTheme::readIconGeometry);
+    if (geometry.isEmpty()) return pane;
     Group group = new Group();
     group.getTransforms().add(new Scale(size / 24, size / 24));
+    for (Supplier<Shape> part : geometry) {
+      Shape shape = part.get();
+      shape.setFill(Color.TRANSPARENT);
+      shape.setStroke(ICON_INK);
+      shape.setStrokeWidth(1.7);
+      shape.setStrokeLineCap(StrokeLineCap.ROUND);
+      shape.setStrokeLineJoin(StrokeLineJoin.ROUND);
+      shape.getStyleClass().add("icon-stroke");
+      group.getChildren().add(shape);
+    }
+    // A wrapping group includes the scaled artwork in its layout bounds, so the
+    // icon slot centers the painted strokes even when the SVG has uneven margins.
+    pane.getChildren().add(new Group(group));
+    return pane;
+  }
+
+  // Rows are recycled frequently. Parse bundled SVG once while giving each control
+  // fresh nodes so its CSS state and scene-graph parent remain independent.
+  private static List<Supplier<Shape>> readIconGeometry(String name) {
+    List<Supplier<Shape>> geometry = new ArrayList<>();
     try (InputStream in = FxTheme.class.getResourceAsStream("/icons/" + name + ".svg")) {
-      if (in == null) return pane;
+      if (in == null) return List.of();
       DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
       factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
       factory.setExpandEntityReferences(false);
       var nodes = factory.newDocumentBuilder().parse(in).getDocumentElement().getChildNodes();
       for (int i = 0; i < nodes.getLength(); i++) {
         if (!(nodes.item(i) instanceof Element element)) continue;
-        Shape shape = switch (element.getTagName()) {
-          case "path" -> {
-            SVGPath path = new SVGPath(); path.setContent(element.getAttribute("d")); yield path;
-          }
-          case "line" -> new Line(number(element, "x1"), number(element, "y1"),
-              number(element, "x2"), number(element, "y2"));
-          case "circle" -> new Circle(number(element, "cx"), number(element, "cy"), number(element, "r"));
-          case "ellipse" -> new Ellipse(number(element, "cx"), number(element, "cy"),
-              number(element, "rx"), number(element, "ry"));
-          case "rect" -> {
-            Rectangle rectangle = new Rectangle(number(element, "x"), number(element, "y"),
-                number(element, "width"), number(element, "height"));
-            rectangle.setArcWidth(number(element, "rx") * 2);
-            rectangle.setArcHeight(number(element, "rx") * 2);
-            yield rectangle;
-          }
-          case "polyline", "polygon" -> {
-            Polyline polyline = new Polyline();
-            for (String point : element.getAttribute("points").strip().split("[ ,]+"))
-              if (!point.isBlank()) polyline.getPoints().add(Double.parseDouble(point));
-            if (element.getTagName().equals("polygon") && polyline.getPoints().size() >= 2)
-              polyline.getPoints().addAll(polyline.getPoints().get(0), polyline.getPoints().get(1));
-            yield polyline;
-          }
-          default -> null;
-        };
-        if (shape == null) continue;
-        shape.setFill(Color.TRANSPARENT);
-        shape.setStroke(Color.web("#A49D95"));
-        shape.setStrokeWidth(1.7);
-        shape.setStrokeLineCap(StrokeLineCap.ROUND);
-        shape.setStrokeLineJoin(StrokeLineJoin.ROUND);
-        shape.getStyleClass().add("icon-stroke");
-        group.getChildren().add(shape);
+        Supplier<Shape> part = iconPart(element);
+        if (part != null) geometry.add(part);
       }
     } catch (Exception e) {
       System.err.println("Could not load bundled icon: " + name);
     }
-    // A wrapping group includes the scaled artwork in its layout bounds, so the
-    // icon slot centers the painted strokes even when the SVG has uneven margins.
-    pane.getChildren().add(new Group(group));
-    return pane;
+    return List.copyOf(geometry);
+  }
+
+  private static Supplier<Shape> iconPart(Element element) {
+    return switch (element.getTagName()) {
+      case "path" -> {
+        String commands = element.getAttribute("d");
+        yield () -> {
+          SVGPath path = new SVGPath();
+          path.setContent(commands);
+          return path;
+        };
+      }
+      case "line" -> {
+        double x1 = number(element, "x1"), y1 = number(element, "y1");
+        double x2 = number(element, "x2"), y2 = number(element, "y2");
+        yield () -> new Line(x1, y1, x2, y2);
+      }
+      case "circle" -> {
+        double x = number(element, "cx"), y = number(element, "cy"), radius = number(element, "r");
+        yield () -> new Circle(x, y, radius);
+      }
+      case "ellipse" -> {
+        double x = number(element, "cx"), y = number(element, "cy");
+        double radiusX = number(element, "rx"), radiusY = number(element, "ry");
+        yield () -> new Ellipse(x, y, radiusX, radiusY);
+      }
+      case "rect" -> {
+        double x = number(element, "x"), y = number(element, "y");
+        double width = number(element, "width"), height = number(element, "height");
+        double arc = number(element, "rx") * 2;
+        yield () -> {
+          Rectangle rectangle = new Rectangle(x, y, width, height);
+          rectangle.setArcWidth(arc);
+          rectangle.setArcHeight(arc);
+          return rectangle;
+        };
+      }
+      case "polyline", "polygon" -> {
+        List<Double> points = new ArrayList<>();
+        for (String point : element.getAttribute("points").strip().split("[ ,]+"))
+          if (!point.isBlank()) points.add(Double.parseDouble(point));
+        if (element.getTagName().equals("polygon") && points.size() >= 2)
+          points.addAll(List.of(points.get(0), points.get(1)));
+        List<Double> coordinates = List.copyOf(points);
+        yield () -> {
+          Polyline polyline = new Polyline();
+          polyline.getPoints().setAll(coordinates);
+          return polyline;
+        };
+      }
+      default -> null;
+    };
   }
 
   private static double number(Element element, String key) {
