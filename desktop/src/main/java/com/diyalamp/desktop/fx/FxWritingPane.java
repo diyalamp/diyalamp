@@ -5,6 +5,8 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javafx.animation.FadeTransition;
+import javafx.animation.Interpolator;
 import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.value.ChangeListener;
@@ -25,6 +27,8 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextFlow;
+import javafx.stage.WindowEvent;
+import javafx.util.Duration;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.Element;
 import javax.swing.text.SimpleAttributeSet;
@@ -56,6 +60,7 @@ public final class FxWritingPane {
   private Consumer<String> onNoteLink = target -> {};
   private long revision, serializedRevision = -1;
   private String serialized = "";
+  private static final double WRITING_COLUMN_WIDTH = 672;
   private static final Pattern BLOCK_SHORTCUT = Pattern.compile("^(#{1,6}) $|^([-*+]) $|^(\\d+)\\. $|^> $|^(?:[-*+] )?\\[ \\] $|^```(?:[a-zA-Z0-9_-]+)? $");
   private static final Pattern INLINE_SHORTCUT = Pattern.compile("(\\*\\*[^*\\n]+\\*\\*|~~[^~\\n]+~~|`[^`\\n]+`|(?<!\\*)\\*[^*\\n]+\\*)(?: )?$");
   private static final Map<String, Font> FONTS = new HashMap<>();
@@ -141,6 +146,20 @@ public final class FxWritingPane {
     slash.getStyleClass().add("slash-menu");
     slash.setAutoHide(true);
     slash.setConsumeAutoHidingEvents(false);
+    Node menuSurface = slash.getScene().getRoot();
+    FadeTransition menuEntrance = new FadeTransition(Duration.millis(110), menuSurface);
+    menuEntrance.setToValue(1);
+    menuEntrance.setInterpolator(Interpolator.EASE_OUT);
+    slash.addEventHandler(WindowEvent.WINDOW_SHOWN, event -> {
+      if (!FxMotion.reduced()) {
+        menuSurface.setOpacity(.45);
+        menuEntrance.playFromStart();
+      }
+    });
+    slash.addEventHandler(WindowEvent.WINDOW_HIDDEN, event -> {
+      menuEntrance.stop();
+      menuSurface.setOpacity(1);
+    });
     for (BlockCommand item : BLOCKS) {
       MenuItem command = new MenuItem(item.label(), FxTheme.icon(item.icon(), 16));
       command.setOnAction(event -> {
@@ -690,7 +709,7 @@ public final class FxWritingPane {
   }
 
   private void gutters() {
-    double horizontal = Math.max(24, (area.getWidth() - 760) / 2);
+    double horizontal = Math.max(24, (area.getWidth() - WRITING_COLUMN_WIDTH) / 2);
     Insets padding = new Insets(24, horizontal, 40, horizontal);
     if (!padding.equals(area.getPadding())) area.setPadding(padding);
   }

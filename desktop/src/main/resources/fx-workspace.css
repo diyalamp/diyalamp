@@ -79,15 +79,15 @@
 .context-menu .menu-item:focused .label { -fx-text-fill: #CEC9C2; }
 .context-menu.slash-menu {
   -fx-padding: 8;
-  -fx-min-width: 216;
+  -fx-min-width: 224;
 }
 .context-menu.slash-menu .menu-item {
   -fx-padding: 0 8;
-  -fx-border-color: transparent; -fx-border-radius: 8;
+  -fx-background-radius: 8; -fx-border-color: transparent; -fx-border-radius: 8;
 }
 .context-menu.slash-menu .menu-item > .graphic-container { -fx-padding: 0 8 0 0; }
 .context-menu.slash-menu .menu-item:focused, .context-menu.slash-menu .menu-item:hover {
-  -fx-border-color: -color-border-default;
+  -fx-background-color: #FFFFFF0F;
 }
 .context-menu.slash-menu .menu-item:focused .label, .context-menu.slash-menu .menu-item:hover .label {
   -fx-text-fill: -color-fg-emphasis;

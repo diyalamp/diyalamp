@@ -1,6 +1,6 @@
 # diyalamp desktop
 
-A focused, local Markdown writing app for macOS. The 1.3.4 development interface uses JavaFX 27, AtlantaFX CupertinoDark controls, RichTextFX rendered editing, bundled Inter text, and installed Menlo for code. No backend, model provider, database, or account is required.
+A focused, local Markdown writing app for macOS. The desktop interface uses JavaFX 27, AtlantaFX CupertinoDark controls, RichTextFX rendered editing, bundled Inter text, and installed Menlo for code. No backend, model provider, database, or account is required.
 
 ## Build and run
 
@@ -45,11 +45,11 @@ The community installers are ad hoc signed. Developer ID signing and Apple notar
 
 ## Interface design
 
-Use lowercase **diyalamp** and the fixed lamp asset. The dark workspace uses one charcoal surface (`#111213`) and black (`#000000`) in Focus mode. Dividers, foreground text, and control states use the shared tokens in `fx-workspace.css`. The default accent is red (`#EE0000`). Preset and custom accents keep readable foreground contrast and transition smoothly.
+Use lowercase **diyalamp** and the fixed lamp asset. The dark workspace uses one warm charcoal surface (`#141312`) and black (`#000000`) in Focus mode. Dividers, foreground text, and control states use the shared tokens in `fx-workspace.css`. The default accent is red (`#EE0000`). Preset and custom accents keep readable foreground contrast and transition smoothly.
 
 The interface and prose use 16 px Inter. Markdown H1, H2, and H3 use Inter SemiBold at 28, 23, and 19 px. H4–H6 use the 16 px body size. Quotes use a rounded inset with an accent rule. Code uses installed Menlo, and static italic faces preserve emphasis. Use AtlantaFX CupertinoDark controls and Popover, RichTextFX for editing, and SmartGraph for the Connections panel.
 
-Workspace spacing uses an 8 px grid. The wordmark, toolbar controls, search fields, dialog actions, and popover actions share a 36 px control height and 8 px corners. The toolbar and pane header rows are 52 px tall. Tabs fill the editor header row and keep their labels and close targets centered. Use the shared 140 ms control transition for hover and focus. Dialogs use 24 px inner padding and 12 px surface corners. Entrance motion leaves adjacent controls in place and honors reduced motion.
+Workspace spacing uses an 8 px grid. The wordmark, toolbar controls, search fields, dialog actions, and popover actions share a 36 px control height and 8 px corners. The toolbar and pane header rows are 52 px tall. Tabs fill the editor header row and keep their labels and close targets centered. Use the shared 140 ms control transition for hover and focus. Dialogs use 24 px inner padding and 12 px surface corners. Entrance motion leaves adjacent controls in place and follows the system Reduce Motion setting. Action buttons share a visible keyboard focus ring and stable geometry across dialogs and popovers.
 
 ## Writing and storage
 
