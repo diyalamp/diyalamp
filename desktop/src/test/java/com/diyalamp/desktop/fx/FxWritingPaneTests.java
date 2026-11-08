@@ -436,7 +436,7 @@ public final class FxWritingPaneTests {
     for (int row : List.of(6, 7)) {
       var marker = (javafx.scene.control.Label) editor.area().getParagraphGraphic(row);
       check(marker.getFont().getName().equals("Inter Regular") && marker.getFont().getSize() == 16
-          && marker.getTextFill().equals(Color.web("#8C8C8C")),
+          && marker.getTextFill().equals(Color.web("#A49D95")),
           "Bullet and ordered-list markers must use the same size and readable dark-theme muted ink");
     }
     editor.area().selectRange(editor.area().getAbsolutePosition(4, 0), editor.area().getAbsolutePosition(4, 0));
@@ -456,16 +456,16 @@ public final class FxWritingPaneTests {
             "Full application CSS must preserve static Inter Regular at the intended body size");
         check(!text.getFont().getStyle().contains("Bold") && !text.getFont().getStyle().contains("Thin"),
             "Body copy must resolve a true regular face rather than a heavy or thin substitution");
-        check(text.getFill().equals(Color.web("#BFBFBF")), "Prose must use the shared readable foreground");
+        check(text.getFill().equals(Color.web("#CEC9C2")), "Prose must use the shared readable foreground");
       } else if (headingSizes.containsKey(text.getText())) {
         headings.add(text.getText());
-        check(text.getFont().getName().equals("Inter SemiBold") && text.getFill().equals(Color.web("#BFBFBF")),
+        check(text.getFont().getName().equals("Inter SemiBold") && text.getFill().equals(Color.web("#CEC9C2")),
             "All heading levels must preserve the semibold face and dark-theme text color");
       } else if (List.of("value", "fenced()").contains(text.getText())) {
         codeRuns.add(text.getText());
         if (System.getProperty("os.name").startsWith("Mac"))
           check(text.getFont().getFamily().equals("Menlo"), "Only code should switch to installed Menlo");
-        check(text.getFill().equals(Color.web("#8C8C8C")) && text.getBackgroundColor().equals(FxTheme.EDITOR_BACKGROUND),
+        check(text.getFill().equals(Color.web("#A49D95")) && text.getBackgroundColor().equals(FxTheme.EDITOR_BACKGROUND),
             "Inline and fenced code must use readable dark-theme foreground and background colors");
       }
       else if (text.getText().equals("strong"))

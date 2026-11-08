@@ -79,7 +79,7 @@ public final class FxDialogs {
     entrance.setToValue(1);
     entrance.setInterpolator(Interpolator.EASE_OUT);
     dialog.addEventHandler(DialogEvent.DIALOG_SHOWING, event ->
-        pane.setOpacity(Boolean.getBoolean("diyalamp.reduceMotion") ? 1 : 0));
+        pane.setOpacity(FxMotion.reduced() ? 1 : 0));
     dialog.showingProperty().addListener((observable, previous, showing) -> {
       if (showing) {
         if (pane.getOpacity() == 0) entrance.playFromStart();

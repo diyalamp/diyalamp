@@ -3,10 +3,9 @@
   -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal;
   -fx-background-color: -color-bg-inset;
 }
-.graph-heading { -fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #BFBFBF; }
 .graph-summary { -fx-padding: 8 16; }
-.graph-current-note { -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #8C8C8C; }
-.graph-detail { -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #8C8C8C; }
+.graph-current-note { -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: -color-fg-muted; }
+.graph-detail { -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: -color-fg-muted; }
 .graph-status { -fx-padding: 8; -fx-background-color: -color-bg-default; -fx-background-radius: 8; }
 .tooltip { -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; }
 .graph-sections { -fx-background-color: transparent; -fx-padding: 0; }
@@ -15,7 +14,7 @@
   -fx-padding: 4; -fx-background-color: -diyalamp-divider; -fx-background-insets: 3.5 0;
 }
 .graph-sections > .split-pane-divider:hover { -fx-background-color: -color-fg-muted; }
-.graph-canvas { -fx-background-color: -color-bg-default; -fx-padding: 16; }
+.graph-canvas { -fx-background-color: -color-bg-default; -fx-padding: 8; }
 .note-graph-zoom, .note-graph-zoom > .viewport {
   -fx-background-color: -color-bg-default; -fx-background-insets: 0; -fx-padding: 0; -fx-border-width: 0;
 }
@@ -31,5 +30,5 @@
 .graph-note-list { -fx-padding: 0 8; }
 .graph-note-list .list-cell {
   -fx-background-color: transparent; -fx-padding: 8;
-  -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #BFBFBF; -fx-graphic-text-gap: 8;
+  -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: -color-fg-default; -fx-graphic-text-gap: 8;
 }

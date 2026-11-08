@@ -10,16 +10,24 @@ import java.util.Map;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
+import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
+import javafx.collections.ListChangeListener;
 import javafx.geometry.Bounds;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
 /** AtlantaFX headers reordered through its permutation API during a native drag gesture. */
 final class FxDocumentTabs extends TabLine {
   private final Region insertionGuide = new Region();
+  private final Runnable revealAfterLayout = this::revealSelectedTab;
+  private final PauseTransition revealAfterOpening = new PauseTransition(ANIMATION_SPEED);
   private Timeline reorderMotion;
+  private Scene revealScene;
 
   FxDocumentTabs() {
     // The library's mouse-only gesture cannot become an external native drag halfway through.
@@ -29,6 +37,23 @@ final class FxDocumentTabs extends TabLine {
     insertionGuide.setManaged(false);
     insertionGuide.setMouseTransparent(true);
     insertionGuide.setVisible(false);
+    applyMotionPreference();
+    widthProperty().addListener((observable, oldWidth, newWidth) -> queueSelectedTabReveal());
+    getSelectionModel().selectedItemProperty().addListener(observable -> queueSelectedTabReveal());
+    getTabs().addListener((ListChangeListener<Tab>) change -> {
+      while (change.next()) {
+        if (change.wasAdded() && getAnimated()) {
+          revealAfterOpening.playFromStart();
+          break;
+        }
+      }
+    });
+    revealAfterOpening.setOnFinished(event -> queueSelectedTabReveal());
+    sceneProperty().addListener((observable, previous, next) -> {
+      cancelQueuedReveal();
+      if (next == null) revealAfterOpening.stop();
+      else queueSelectedTabReveal();
+    });
   }
 
   int insertionAt(double sceneX) {
@@ -74,6 +99,7 @@ final class FxDocumentTabs extends TabLine {
     int to = Math.max(0, Math.min(getTabs().size() - 1, insertion > from ? insertion - 1 : insertion));
     if (from != to) animateReorder(from, to);
     getSelectionModel().select(tab);
+    queueSelectedTabReveal();
     return true;
   }
 
@@ -81,18 +107,14 @@ final class FxDocumentTabs extends TabLine {
     List<TabSkin> headers = headers(strip());
     Map<Tab, Double> oldPositions = new IdentityHashMap<>();
     for (TabSkin skin : headers) oldPositions.put(skin.getTab(), skin.getLayoutX() + skin.getTranslateX());
-    if (reorderMotion != null) {
-      reorderMotion.stop();
-      reorderMotion = null;
-    }
-    for (TabSkin skin : headers) skin.setTranslateX(0);
+    settleReorder(headers);
     // AtlantaFX recreates the affected headers on an external permutation. Skip its
     // hide/show sequence here so those headers can slide without collapsing first.
     boolean animated = getAnimated();
     setAnimated(false);
     try { reorderTabs(from, to); }
     finally { setAnimated(animated); }
-    if (oldPositions.isEmpty() || Boolean.getBoolean("diyalamp.reduceMotion")) return;
+    if (oldPositions.isEmpty() || FxMotion.reduced()) return;
     applyCss(); layout();
     List<KeyValue> settle = new ArrayList<>();
     for (TabSkin skin : headers(strip())) {
@@ -105,6 +127,59 @@ final class FxDocumentTabs extends TabLine {
     reorderMotion = new Timeline(new KeyFrame(Duration.millis(160), settle.toArray(KeyValue[]::new)));
     reorderMotion.setOnFinished(event -> reorderMotion = null);
     reorderMotion.play();
+  }
+
+  void applyMotionPreference() {
+    boolean reduced = FxMotion.reduced();
+    setAnimated(!reduced);
+    if (reduced) {
+      revealAfterOpening.stop();
+      if (reorderMotion != null) settleReorder(headers(strip()));
+    }
+  }
+
+  private void settleReorder(List<TabSkin> headers) {
+    if (reorderMotion != null) {
+      reorderMotion.stop();
+      reorderMotion = null;
+    }
+    for (TabSkin skin : headers) skin.setTranslateX(0);
+  }
+
+  private void queueSelectedTabReveal() {
+    if (revealScene != null || getScene() == null) return;
+    revealScene = getScene();
+    revealScene.addPostLayoutPulseListener(revealAfterLayout);
+    Platform.requestNextPulse();
+  }
+
+  private void cancelQueuedReveal() {
+    if (revealScene == null) return;
+    revealScene.removePostLayoutPulseListener(revealAfterLayout);
+    revealScene = null;
+  }
+
+  private void revealSelectedTab() {
+    cancelQueuedReveal();
+    Tab selected = getSelectionModel().getSelectedItem();
+    Parent strip = strip();
+    if (selected == null || strip == null || !getTabResizePolicy().isScrollable()) return;
+    Bounds visible = viewport(strip);
+    if (visible.getWidth() <= 0) return;
+    for (TabSkin header : headers(strip)) {
+      if (header.getTab() != selected) continue;
+      double left = header.getLayoutX(), right = left + header.getWidth();
+      double delta = left < visible.getMinX() || header.getWidth() > visible.getWidth()
+          ? visible.getMinX() - left : Math.min(0, visible.getMaxX() - right);
+      if (Math.abs(delta) > .5) {
+        // Use AtlantaFX's existing horizontal scroll path, including its clipping and bounds.
+        strip.fireEvent(new ScrollEvent(ScrollEvent.SCROLL, 0, 0, 0, 0, false, false, false,
+            false, false, false, delta, 0, delta, 0,
+            ScrollEvent.HorizontalTextScrollUnits.NONE, 0,
+            ScrollEvent.VerticalTextScrollUnits.NONE, 0, 0, null));
+      }
+      return;
+    }
   }
 
   private Parent strip() {

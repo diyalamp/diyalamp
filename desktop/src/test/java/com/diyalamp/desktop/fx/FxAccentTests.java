@@ -95,6 +95,15 @@ public final class FxAccentTests {
         check(field(app, "accentAnimation") == null, "A completed transition must release its animation reference");
         check(preview.getStyle().contains(FxTheme.hex(blue)), "The circular preview must finish at the selected color");
         check(preferences.writes == 3, "Completion must not add preference writes");
+        System.setProperty("diyalamp.reduceMotion", "true");
+        try {
+          target.set(rose);
+          check(displayed.get().equals(rose) && field(app, "accentAnimation") == null,
+              "Reduced motion applies a chosen accent immediately");
+          check(preferences.writes == 4, "Applying an accent without motion persists only its final value");
+        } finally {
+          System.clearProperty("diyalamp.reduceMotion");
+        }
         call(app, "disposeAll");
       } catch (Throwable error) { failure.set(error); }
       finally { finished.countDown(); }

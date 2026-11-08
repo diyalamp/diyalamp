@@ -39,7 +39,10 @@ public final class FxPopovers {
     root.getStylesheets().add(FxPopovers.class.getResource("/fx-popovers.css").toExternalForm());
     Parent[] source = {null};
     MapChangeListener<Object, Object> theme = change -> {
-      if (source[0] != null && FxTheme.themeChanged(change.getKey())) FxTheme.inherit(root, source[0]);
+      if (source[0] != null && FxTheme.themeChanged(change.getKey())) {
+        FxTheme.inherit(root, source[0]);
+        if (FxMotion.reduced()) motion.finish();
+      }
     };
     Runnable detach = () -> {
       if (source[0] != null) source[0].getProperties().removeListener(theme);
@@ -62,7 +65,7 @@ public final class FxPopovers {
 
   static void toggle(Popover popup, Node anchor) {
     Motion motion = (Motion) popup.getProperties().get(MOTION);
-    boolean animate = !Boolean.getBoolean("diyalamp.reduceMotion");
+    boolean animate = !FxMotion.reduced();
     if (!popup.isShowing()) {
       if (animate) popup.getRoot().setOpacity(0);
       popup.show(anchor, -GAP);
@@ -105,6 +108,12 @@ public final class FxPopovers {
       closing = false;
       popup.getRoot().setOpacity(1);
       popup.getRoot().setTranslateY(0);
+    }
+
+    void finish() {
+      if (animation == null) return;
+      if (closing) popup.hide(Duration.ZERO);
+      else reset();
     }
   }
 

@@ -26,31 +26,10 @@
 .diyalamp-dialog > .button-bar > .container { -fx-padding: 16 24 24 24; -fx-spacing: 8; }
 .diyalamp-dialog .label { -fx-text-fill: -color-fg-default; }
 
-.diyalamp-dialog .dialog-action,
-.diyalamp-dialog .text-field,
-.diyalamp-dialog .combo-box-base {
-  -fx-border-insets: 0;
-  -fx-border-width: 1;
-}
-.diyalamp-dialog .dialog-action {
-  -fx-padding: 0 8;
-  -fx-background-color: -color-bg-subtle;
-  -fx-border-color: -color-border-default;
-  -fx-text-fill: -color-fg-default;
-  -fx-font-weight: normal;
-}
-.diyalamp-dialog .dialog-action:hover, .diyalamp-dialog .dialog-action:pressed {
-  -fx-border-color: -diyalamp-focus;
-}
-.diyalamp-dialog .dialog-action.accent {
-  -fx-background-color: -diyalamp-accent;
-  -fx-border-color: transparent;
-  -fx-text-fill: -diyalamp-accent-contrast;
-}
-.diyalamp-dialog .dialog-action.accent:hover,
-.diyalamp-dialog .dialog-action.accent:pressed { -fx-border-color: -diyalamp-focus; }
 .diyalamp-dialog .text-field, .diyalamp-dialog .combo-box-base {
   -fx-background-color: -color-bg-inset;
+  -fx-border-insets: 0;
+  -fx-border-width: 1;
   -fx-border-color: -color-border-default;
   -fx-text-fill: -color-fg-default;
   -fx-prompt-text-fill: -color-fg-muted;
@@ -58,7 +37,5 @@
   -fx-highlight-text-fill: -color-fg-emphasis;
 }
 .diyalamp-dialog .text-field { -fx-padding: 0 8; }
-.diyalamp-dialog .dialog-action:focused,
-.diyalamp-dialog .dialog-action.accent:focused,
 .diyalamp-dialog .text-field:focused,
 .diyalamp-dialog .combo-box-base:focused { -fx-border-color: -diyalamp-focus; }

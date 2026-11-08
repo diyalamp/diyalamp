@@ -6,6 +6,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.IntStream;
 import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.geometry.Insets;
@@ -16,6 +17,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Labeled;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
+import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.input.KeyCode;
@@ -23,6 +25,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
 
 /** Exercises the sidebar's normal keyboard, filtering, and result rendering paths. */
@@ -219,9 +222,40 @@ public final class FxSidebarSearchTests {
                   < header.localToScene(header.getBoundsInLocal()).getMaxX(),
           "At 200 pixels the compact action strip must leave a useful search field: "
               + input.getWidth() + " / " + advanced.getWidth());
+      snippetRows(workspace, panel, results, notePath);
     } finally {
       stage.close();
     }
+  }
+
+  private static void snippetRows(VBox workspace, FxSidebarSearch panel, TreeView<?> results, Path notePath) {
+    String excerpt = "Find the Original passage inside this longer result excerpt.";
+    var matches = IntStream.rangeClosed(1, 100).mapToObj(line -> line == 1
+        ? new FxWorkspaceSearch.Match(line, 1, 0, 8, "Original", 0, 8)
+        : new FxWorkspaceSearch.Match(line, 10, 0, 8, excerpt, 9, 17)).toList();
+    workspace.resize(272, workspace.getHeight());
+    panel.showResults(new FxWorkspaceSearch.Result(
+        List.of(new FxWorkspaceSearch.NoteResult(notePath, false, matches)), null, false));
+    workspace.applyCss(); workspace.layout();
+    check(previewHeight(results, 1) < previewHeight(results, 2),
+        "A short result stays on one line and a longer result wraps within the sidebar");
+
+    workspace.resize(200, workspace.getHeight());
+    results.scrollTo(90);
+    workspace.applyCss(); workspace.layout();
+    check(previewHeight(results, 90) > 36,
+        "A recycled result still wraps normally after narrowing the sidebar and scrolling");
+  }
+
+  private static double previewHeight(TreeView<?> results, int index) {
+    var cell = results.lookupAll(".tree-cell:filled").stream()
+        .map(node -> (TreeCell<?>) node).filter(row -> row.getIndex() == index).findFirst().orElseThrow();
+    HBox row = (HBox) cell.getGraphic();
+    TextFlow preview = (TextFlow) row.getChildren().getLast();
+    double height = preview.prefHeight(preview.getWidth());
+    check(cell.getHeight() >= height && cell.getHeight() - height < 22,
+        "Result row height should follow the wrapped preview plus padding: " + cell.getHeight() + " / " + height);
+    return height;
   }
 
   private static double treeBelowOptions(VBox workspace, FxSidebarSearch panel, TreeView<?> files) {

@@ -23,48 +23,49 @@
 }
 .diyalamp-popover .pomodoro-detail { -fx-text-fill: -color-fg-muted; }
 
-.diyalamp-popover .accent-choice,
-.diyalamp-popover .pomodoro-phase,
-.diyalamp-popover .popover-action {
+.diyalamp-popover .accent-choice, .diyalamp-popover .pomodoro-phase {
   -fx-font-family: "Inter";
   -fx-font-weight: normal;
   -fx-padding: 0 8;
   -fx-graphic-text-gap: 8;
-  -fx-background-color: -color-bg-subtle;
+  -fx-background-color: transparent;
   -fx-border-insets: 0;
   -fx-border-width: 1;
-  -fx-border-color: -color-border-default;
+  -fx-border-color: transparent;
   -fx-text-fill: -color-fg-default;
 }
-.diyalamp-popover .accent-choice {
-  -fx-alignment: center-left;
-  -fx-background-color: transparent;
-  -fx-border-color: transparent;
+.diyalamp-popover .accent-choice { -fx-alignment: center-left; }
+.diyalamp-popover .accent-choice:hover, .diyalamp-popover .pomodoro-phase:hover {
+  -fx-background-color: -diyalamp-control-hover;
+  -fx-text-fill: -color-fg-emphasis;
 }
-.diyalamp-popover .accent-choice:hover,
-.diyalamp-popover .pomodoro-phase:hover,
-.diyalamp-popover .popover-action:hover,
-.diyalamp-popover .accent-choice:pressed,
-.diyalamp-popover .pomodoro-phase:pressed,
-.diyalamp-popover .popover-action:pressed,
-.diyalamp-popover .accent-choice:selected,
-.diyalamp-popover .pomodoro-phase:selected { -fx-border-color: -diyalamp-focus; }
+.diyalamp-popover .accent-choice:pressed, .diyalamp-popover .pomodoro-phase:pressed {
+  -fx-background-color: -diyalamp-control-pressed;
+}
+.diyalamp-popover .accent-choice:selected, .diyalamp-popover .pomodoro-phase:selected {
+  -fx-background-color: -diyalamp-accent-subtle;
+  -fx-text-fill: -color-fg-emphasis;
+}
+.diyalamp-popover .accent-choice:focus-visible, .diyalamp-popover .pomodoro-phase:focus-visible {
+  -fx-border-color: -diyalamp-focus;
+}
 .diyalamp-popover .accent-hex {
   -fx-padding: 0 8;
   -fx-border-width: 1;
   -fx-highlight-fill: -diyalamp-selection;
   -fx-highlight-text-fill: -color-fg-emphasis;
 }
-.diyalamp-popover .popover-action.accent {
-  -fx-background-color: -diyalamp-accent;
-  -fx-border-color: transparent;
-  -fx-text-fill: -diyalamp-accent-contrast;
+.pomodoro-segments {
+  -fx-background-color: -color-border-default, -color-bg-default;
+  -fx-background-insets: 0, 1;
+  -fx-background-radius: 8, 7;
 }
-.diyalamp-popover .accent-choice:focused,
-.diyalamp-popover .pomodoro-phase:focused,
-.diyalamp-popover .popover-action:focused,
-.diyalamp-popover .popover-action.accent:hover,
-.diyalamp-popover .popover-action.accent:pressed { -fx-border-color: -diyalamp-focus; }
+.pomodoro-segments .pomodoro-phase {
+  -fx-background-insets: 3;
+  -fx-border-insets: 3;
+  -fx-background-radius: 5;
+  -fx-border-radius: 5;
+}
 
 .workspace-root .pomodoro-control {
   -fx-min-width: 160; -fx-pref-width: 160; -fx-max-width: 160;
@@ -73,8 +74,12 @@
   -fx-background-color: -color-border-default, -color-bg-subtle;
   -fx-background-insets: 0, 1; -fx-background-radius: 8, 7;
 }
-.workspace-root .pomodoro-control:timer-active:hover,
-.workspace-root .pomodoro-control:timer-active:focused { -fx-background-color: -diyalamp-focus, -color-bg-subtle; }
+.workspace-root .pomodoro-control:timer-active:hover {
+  -fx-background-color: -color-border-default, -diyalamp-control-hover;
+}
+.workspace-root .pomodoro-control:timer-active:focus-visible {
+  -fx-background-color: -diyalamp-focus, -color-bg-subtle;
+}
 .pomodoro-control .pomodoro-toolbar-phase {
   -fx-min-width: 48; -fx-pref-width: 48; -fx-max-width: 48;
   -fx-text-fill: -color-fg-default;
