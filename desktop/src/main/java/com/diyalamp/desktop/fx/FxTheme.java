@@ -193,8 +193,14 @@ public final class FxTheme {
     }
   }
 
-  public static ImageView lamp(double size) {
-    ImageView view = new ImageView(image("lamp.png"));
+  private static final class AppIcon {
+    private static final Image IMAGE = image("app-icon.png");
+  }
+
+  static Image appIcon() { return AppIcon.IMAGE; }
+
+  static ImageView brandIcon(double size) {
+    ImageView view = new ImageView(appIcon());
     view.setFitWidth(size);
     view.setFitHeight(size);
     view.setPreserveRatio(true);

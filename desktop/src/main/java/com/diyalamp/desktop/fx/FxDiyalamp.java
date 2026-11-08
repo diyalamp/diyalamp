@@ -252,7 +252,7 @@ public final class FxDiyalamp extends Application {
     boolean packagedMac = System.getProperty("os.name", "").startsWith("Mac")
         && !System.getProperty("jpackage.app-path", "").isBlank();
     if (!packagedMac) {
-      var icon = FxTheme.image("app-icon.png");
+      var icon = FxTheme.appIcon();
       if (icon != null) stage.getIcons().add(icon);
     }
     primary = new PaneHost(); secondary = new PaneHost();
@@ -315,9 +315,7 @@ public final class FxDiyalamp extends Application {
 
   private ToolBar buildToolbar() {
     toolbar.getStyleClass().add("workspace-toolbar");
-    Node lamp = FxTheme.lamp(16);
-    lamp.setTranslateY(2);
-    Label brand = new Label("diyalamp", lamp);
+    Label brand = new Label("diyalamp", FxTheme.brandIcon(20));
     brand.setMinWidth(Region.USE_PREF_SIZE);
     brand.setAlignment(Pos.CENTER_LEFT); brand.getStyleClass().add("workspace-brand");
     ToggleButton files = new ToggleButton(null, FxTheme.icon("panel-left", 16));
@@ -688,7 +686,7 @@ public final class FxDiyalamp extends Application {
     Button create = new Button("New note"); create.setOnAction(event -> newNote(null));
     create.setDisable(store == null);
     HBox actions = new HBox(10, choose, create); actions.setAlignment(Pos.CENTER);
-    HBox brand = new HBox(10, FxTheme.lamp(30), title);
+    HBox brand = new HBox(10, FxTheme.brandIcon(30), title);
     brand.setAlignment(Pos.CENTER);
     VBox empty = new VBox(14, brand, detail, actions);
     empty.setAlignment(Pos.CENTER); empty.getStyleClass().add("workspace-empty");
@@ -1467,8 +1465,7 @@ public final class FxDiyalamp extends Application {
         + "⇧⌘Enter  Toggle checklist\n⇧⌘B  Toggle sidebar\n⌘\\  Side by side\n\n"
         + "Type / on a new line for blocks. Drag a note to the right edge to open it beside your writing.\n"
         + "Deleted notes can be restored from the File menu.")),
-        item("About diyalamp", () -> information("diyalamp", "Version " + DesktopLauncher.VERSION
-            + "\nOpen-source Markdown editor for macOS.\nLocal files. No account required.\n\nApache License 2.0")));
+        item("About diyalamp", this::about));
     menu.getMenus().setAll(file, edit, format, view, help); return menu;
   }
 
@@ -1586,8 +1583,10 @@ public final class FxDiyalamp extends Application {
     hex.setAccessibleText("Custom accent hex");
     hex.setAccessibleHelp("Enter six hexadecimal digits, with or without the leading number sign.");
     hex.getStyleClass().add("accent-hex");
+    hex.setMinWidth(0);
     HBox.setHgrow(hex, Priority.ALWAYS);
     Button apply = new Button("Apply");
+    apply.setMinWidth(Region.USE_PREF_SIZE);
     apply.getStyleClass().addAll("popover-action", Styles.ACCENT);
     apply.disableProperty().bind(Bindings.createBooleanBinding(() -> !validAccentHex(hex.getText()), hex.textProperty()));
     apply.setOnAction(event -> accent.set(Color.web("#" + hex.getText().strip().replaceFirst("^#", ""))));
@@ -1669,6 +1668,19 @@ public final class FxDiyalamp extends Application {
   private void information(String title, String message) {
     Alert alert = new Alert(Alert.AlertType.INFORMATION, message, ButtonType.OK);
     alert.setTitle(title); alert.setHeaderText(null); FxDialogs.style(alert, stage); alert.showAndWait();
+  }
+
+  private void about() {
+    Alert alert = new Alert(Alert.AlertType.INFORMATION, "Version " + DesktopLauncher.VERSION
+        + "\nOpen-source Markdown editor for macOS.\nLocal files. No account required.\n\nApache License 2.0", ButtonType.OK);
+    Label title = new Label("diyalamp", FxTheme.brandIcon(30));
+    title.getStyleClass().add("workspace-empty-title");
+    title.setGraphicTextGap(8);
+    title.setPadding(new Insets(24, 24, 0, 24));
+    alert.setTitle("diyalamp");
+    alert.getDialogPane().setHeader(title);
+    FxDialogs.style(alert, stage);
+    alert.showAndWait();
   }
 
   private void error(String title, Exception exception) {

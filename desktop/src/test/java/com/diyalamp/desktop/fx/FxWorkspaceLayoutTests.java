@@ -27,6 +27,7 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToolBar;
 import javafx.scene.control.TreeView;
 import javafx.scene.image.WritableImage;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -172,8 +173,9 @@ public final class FxWorkspaceLayoutTests {
           "Neighboring controls have an 8 px gap");
       previous = control;
     }
-    check(brand.getGraphic() != null && brand.getGraphic().getTranslateY() == 2 && brand.getText().equals("diyalamp"),
-        "The lamp and name must use one inline labeled control");
+    check(brand.getGraphic() instanceof ImageView icon && icon.getImage() == FxTheme.appIcon()
+            && icon.getFitWidth() == 20 && Math.abs(centerY(icon) - center) <= 1 && brand.getText().equals("diyalamp"),
+        "The Dock artwork and name must share a vertically centered inline label");
     check("Toggle files sidebar".equals(toolbar.getItems().getFirst().getAccessibleText()) && toolbar.getItems().get(1) == brand,
         "The sidebar toggle precedes the lamp and diyalamp name");
     check(((ToggleButton) field(fixture.app, "filesControl")).isSelected()
