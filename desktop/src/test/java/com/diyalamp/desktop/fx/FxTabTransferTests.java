@@ -142,7 +142,7 @@ public final class FxTabTransferTests {
     tabs.getSelectionModel().select(tab);
   }
 
-  private static void narrowDropGuide() {
+  private static void narrowDropGuide() throws Exception {
     FxDocumentTabs tabs = new FxDocumentTabs();
     tabs.getStyleClass().addAll("floating", "dense", "document-tabs", "workspace-band");
     tabs.setMinWidth(0); tabs.setTabMinWidth(110); tabs.setAnimated(false);
@@ -164,6 +164,17 @@ public final class FxTabTransferTests {
       Region guide = (Region) tabs.lookup(".tab-insertion-guide");
       check(guide.isVisible() && guide.localToScene(2, 0).getX() <= edge + .01,
           "The two-pixel insertion guide must stay inside the clipped tab viewport");
+      tabs.clearInsertion();
+      tabs.getSelectionModel().selectLast();
+      check(field(tabs, "revealScene") == stage.getScene(), "Selecting a hidden tab queues a reveal after layout");
+      call(tabs, "revealSelectedTab", new Class<?>[0]);
+      root.layout();
+      TabSkin selected = header(tabs, tabs.getTabs().getLast());
+      var visible = strip.getClip().getBoundsInParent();
+      check(selected.getLayoutX() >= visible.getMinX() - 1
+              && selected.getLayoutX() + selected.getWidth() <= visible.getMaxX() + 1,
+          "The active tab must appear inside the clipped viewport when it fits");
+      check(field(tabs, "revealScene") == null, "The layout listener removes itself once the tab is visible");
     } finally { stage.close(); }
   }
 
