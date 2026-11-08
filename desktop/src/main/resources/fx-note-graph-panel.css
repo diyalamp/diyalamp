@@ -3,7 +3,6 @@
   -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal;
   -fx-background-color: -color-bg-inset;
 }
-.graph-heading { -fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: #BFBFBF; }
 .graph-summary { -fx-padding: 8 16; }
 .graph-current-note { -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #8C8C8C; }
 .graph-detail { -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #8C8C8C; }

@@ -103,7 +103,7 @@ final class FxNoteGraph implements AutoCloseable {
     Rectangle clip = new Rectangle(); clip.widthProperty().bind(wrapper.widthProperty());
     clip.heightProperty().bind(wrapper.heightProperty()); wrapper.setClip(clip);
     wrapper.getChildren().add(content);
-    Label title = new Label("Connections"); title.getStyleClass().add("graph-heading");
+    Label title = new Label("Connections"); title.getStyleClass().add("workspace-section-title");
     Region spring = new Region(); HBox.setHgrow(spring, Priority.ALWAYS);
     Button refresh = FxTheme.iconButton("refresh-cw", "Refresh note connections", this::refresh);
     Button close = FxTheme.iconButton("panel-right", "Hide connections", () -> showing.set(false));
@@ -129,12 +129,16 @@ final class FxNoteGraph implements AutoCloseable {
     debounce.setOnFinished(event -> requestScan(null));
     settle.setOnFinished(event -> { if (graph != null) graph.setAutomaticLayout(false); });
     showing.addListener((observable, previous, visible) -> {
-      if (animation != null) animation.stop();
       if (!visible) stopLayout();
-      if (visible) { wrapper.setVisible(true); wrapper.setManaged(true); }
-      animation = new Timeline(new KeyFrame(Duration.millis(160),
-          new KeyValue(reveal, visible ? 1 : 0, Interpolator.EASE_BOTH)));
-      animation.setOnFinished(event -> { if (!visible) stopLayout(); }); animation.play();
+      if (FxMotion.reduced()) finishMotion();
+      else {
+        if (animation != null) animation.stop();
+        if (visible) { wrapper.setVisible(true); wrapper.setManaged(true); }
+        animation = new Timeline(new KeyFrame(FxMotion.SIDEBAR_TIME,
+            new KeyValue(reveal, visible ? 1 : 0, FxMotion.SIDEBAR_EASE)));
+        animation.setOnFinished(event -> animation = null);
+        animation.play();
+      }
       if (visible) {
         refreshGraph(); reheat();
         if (stale) requestScan(null);
@@ -154,6 +158,14 @@ final class FxNoteGraph implements AutoCloseable {
 
   Node node() { return wrapper; }
   BooleanProperty showingProperty() { return showing; }
+
+  void finishMotion() {
+    if (animation != null) animation.stop();
+    animation = null;
+    reveal.set(showing.get() ? 1 : 0);
+    updateHidden();
+    stopLayout();
+  }
 
   private void updateHidden() {
     boolean visible = reveal.get() > .001 && wrapper.getOpacity() > .001;
@@ -461,7 +473,7 @@ final class FxNoteGraph implements AutoCloseable {
   }
 
   private void reheat() {
-    if (!canAnimate() || Boolean.getBoolean("diyalamp.reduceMotion")) return;
+    if (!canAnimate() || FxMotion.reduced()) return;
     graph.setAutomaticLayout(true); settle.playFromStart();
   }
 

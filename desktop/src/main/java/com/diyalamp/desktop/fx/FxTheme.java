@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import javafx.application.Application;
 import javafx.collections.MapChangeListener;
+import javafx.css.PseudoClass;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -34,6 +35,8 @@ public final class FxTheme {
   private static final Color DEFAULT_SELECTION = Color.web("#AB2828DD");
   static final String DISPLAYED_ACCENT = "diyalamp.displayedAccent";
   private static final String DISPLAYED_SURFACE = "diyalamp.displayedSurface";
+  private static final String REDUCED_MOTION = "diyalamp.reducedMotion";
+  private static final PseudoClass REDUCED_MOTION_CLASS = PseudoClass.getPseudoClass("reduced-motion");
   private static final Map<String, String> TEXT_FACES = new HashMap<>();
   private static final Map<String, Font> TEXT_FONTS = new HashMap<>();
 
@@ -78,12 +81,11 @@ public final class FxTheme {
   }
 
   static boolean themeChanged(Object key) {
-    return DISPLAYED_ACCENT.equals(key) || DISPLAYED_SURFACE.equals(key);
+    return DISPLAYED_ACCENT.equals(key) || DISPLAYED_SURFACE.equals(key) || REDUCED_MOTION.equals(key);
   }
 
   private static void paint(Parent root, Color color, Color surface) {
-    root.pseudoClassStateChanged(javafx.css.PseudoClass.getPseudoClass("reduced-motion"),
-        Boolean.getBoolean("diyalamp.reduceMotion"));
+    applyMotionPreference(root);
     root.getProperties().put(DISPLAYED_ACCENT, color);
     root.getProperties().put(DISPLAYED_SURFACE, surface);
     // Derive readable tones continuously as the accent animates.
@@ -99,6 +101,14 @@ public final class FxTheme {
         + "; -diyalamp-link: " + hex(readable) + "; -diyalamp-accent-contrast: " + hex(foreground)
         + "; -diyalamp-accent-subtle: " + cssColor(subtle) + "; -diyalamp-focus: " + cssColor(focus)
         + "; -diyalamp-selection: " + cssColor(accentTone(color, DEFAULT_SELECTION)) + ";");
+  }
+
+  static void applyMotionPreference(Parent root) {
+    boolean reduced = FxMotion.reduced();
+    root.pseudoClassStateChanged(REDUCED_MOTION_CLASS, reduced);
+    if (!Boolean.valueOf(reduced).equals(root.getProperties().get(REDUCED_MOTION))) {
+      root.getProperties().put(REDUCED_MOTION, reduced);
+    }
   }
 
   private static Color accentTone(Color color, Color target) {

@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.prefs.AbstractPreferences;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.scene.Node;
@@ -18,6 +19,7 @@ import javafx.scene.control.SplitPane;
 import javafx.scene.control.ToolBar;
 import javafx.scene.layout.Region;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 /** Native divider resizing/reset/persistence with an isolated preference store and fictional note. */
 public final class FxSidebarLayoutTests {
@@ -68,7 +70,26 @@ public final class FxSidebarLayoutTests {
         check(field(current.app, "active") == current.active && current.editor.area().getText().equals(current.text), "Reset keeps the same open editor and note content");
         check(current.editor.area().getAnchor() == 2 && current.editor.area().getCaretPosition() == 8, "Reset keeps the editor selection");
         check(((BooleanProperty) field(current.app, "zenMode")).get(), "Reset preserves current-line Zen");
-        call(current.app, "toggleSidebar"); current.graph.showingProperty().set(false); return null;
+        call(current.app, "toggleSidebar");
+        current.graph.showingProperty().set(false);
+        Timeline closing = (Timeline) field(current.app, "sidebarAnimation");
+        check(closing != null, "The sidebar transition begins while motion is enabled");
+        closing.jumpTo(Duration.millis(65));
+        current.layout();
+        check(current.body.getItems().size() == 3, "Both sidebars stay mounted while the workspace shrinks them");
+        System.setProperty("diyalamp.reduceMotion", "true");
+        try {
+          call(current.app, "applyMotionPreference");
+          check(field(current.app, "sidebarAnimation") == null && !current.right.isVisible()
+              && current.body.getItems().size() == 1,
+              "Enabling reduced motion must settle the divider and the inspector immediately");
+          check(!((TabLine) field(field(current.app, "primary"), "tabs")).getAnimated(),
+              "Reduced motion must disable AtlantaFX tab reveal as well as workspace motion");
+        } finally {
+          System.clearProperty("diyalamp.reduceMotion");
+          call(current.app, "applyMotionPreference");
+        }
+        return null;
       });
       await(() -> fx(() -> current.stable() && current.body.getItems().size() == 1));
       fx(() -> {

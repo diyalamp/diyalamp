@@ -164,15 +164,26 @@
 .workspace-brand { -fx-font-family: "Inter SemiBold"; -fx-graphic-text-gap: 8; -fx-text-fill: -color-fg-default; }
 .workspace-root .workspace-folder { -fx-text-fill: -color-fg-muted; -fx-graphic-text-gap: 8; }
 .workspace-root .workspace-folder:hover { -fx-text-fill: -color-fg-default; }
-.workspace-tool:hover, .workspace-brand:hover {
+.workspace-root .workspace-folder, .workspace-tool:hover {
   -fx-background-color: -color-border-default, -color-bg-default;
   -fx-background-insets: 0, 1;
   -fx-background-radius: 8, 7;
 }
-.workspace-tool, .workspace-brand, .note-metric,
+.workspace-tool:selected {
+  -fx-background-color: -color-border-default, -color-bg-default, -diyalamp-accent-subtle;
+  -fx-background-insets: 0, 1, 1;
+  -fx-background-radius: 8, 7, 7;
+}
+.workspace-tool:pressed {
+  -fx-background-color: -color-fg-muted, -color-bg-default;
+  -fx-background-insets: 0, 1;
+  -fx-background-radius: 8, 7;
+}
+.workspace-tool, .note-metric,
 .diyalamp-dialog .text-field, .diyalamp-dialog .combo-box-base,
 .diyalamp-popover .accent-choice, .diyalamp-popover .pomodoro-phase,
-.sidebar-search .sidebar-search-mode, .sidebar-search .sidebar-search-option {
+.sidebar-search .sidebar-search-mode, .sidebar-search .sidebar-search-option,
+.document-tabs .tab > .tab-box > .close-button {
   transition-property: -fx-background-color, -fx-border-color, -fx-text-fill, -fx-opacity;
   transition-duration: 140ms;
   transition-timing-function: ease-out;
@@ -181,30 +192,33 @@
 .diyalamp-dialog .text-field, .diyalamp-dialog .combo-box-base {
   transition-property: -fx-border-color, -fx-text-fill, -fx-opacity;
 }
-.workspace-tool .icon-stroke {
+.workspace-tool .icon-stroke, .document-tabs .tab .icon-stroke {
   transition-property: -fx-stroke;
   transition-duration: 140ms;
   transition-timing-function: ease-out;
 }
-.note-metric { -fx-padding: 4; -fx-background-color: transparent; -fx-background-radius: 8; -fx-text-fill: #A49D95; }
+.note-metric { -fx-padding: 2 4; -fx-background-color: transparent; -fx-background-radius: 8; -fx-text-fill: -color-fg-muted; }
 .note-metric:hover { -fx-background-color: -color-bg-subtle; -fx-text-fill: -color-fg-default; }
 .workspace-root:reduced-motion .workspace-tool,
-.workspace-root:reduced-motion .workspace-brand, .workspace-root:reduced-motion .note-metric,
+.workspace-root:reduced-motion .note-metric,
 .workspace-root:reduced-motion .workspace-tool .icon-stroke,
+.workspace-root:reduced-motion .document-tabs .tab .icon-stroke,
+.workspace-root:reduced-motion .document-tabs .tab > .tab-box > .close-button,
 .diyalamp-dialog:reduced-motion .dialog-action, .diyalamp-dialog:reduced-motion .text-field,
 .diyalamp-dialog:reduced-motion .combo-box-base, .diyalamp-popover:reduced-motion .accent-choice,
 .diyalamp-popover:reduced-motion .pomodoro-phase, .diyalamp-popover:reduced-motion .popover-action,
 .workspace-root:reduced-motion .sidebar-search-mode, .workspace-root:reduced-motion .sidebar-search-option {
   transition-duration: 0s;
 }
-.workspace-tool:selected {
-  -fx-background-color: -diyalamp-focus, -color-bg-default;
-  -fx-background-insets: 0, 1; -fx-background-radius: 8, 7;
-}
+.workspace-tool:hover .icon-stroke { -fx-stroke: -color-fg-default; }
 .workspace-tool:selected .icon-stroke { -fx-stroke: -color-accent-fg; }
-.workspace-tool:focus-visible {
+.workspace-root .workspace-tool:focus-visible {
   -fx-background-color: -diyalamp-focus, -color-bg-subtle;
   -fx-background-insets: 0, 1; -fx-background-radius: 8, 7;
+}
+.workspace-root .workspace-tool:selected:focus-visible {
+  -fx-background-color: -diyalamp-focus, -color-bg-default, -diyalamp-accent-subtle;
+  -fx-background-insets: 0, 1, 1; -fx-background-radius: 8, 7, 7;
 }
 .icon-stroke { -fx-stroke: #A49D95; }
 .workspace-band {
@@ -213,6 +227,10 @@
   -fx-background-color: -color-bg-inset;
 }
 .workspace-band-divider { -fx-stroke: -diyalamp-divider; -fx-stroke-width: 1; }
+.workspace-root .workspace-section-title {
+  -fx-font-family: "Inter SemiBold"; -fx-font-weight: normal;
+  -fx-text-fill: -color-fg-default;
+}
 .file-explorer {
   -fx-background-color: -color-bg-inset;
 }
@@ -248,7 +266,7 @@
   -fx-background-color: -diyalamp-focus, -color-bg-default;
   -fx-background-insets: 4 0, 5 1; -fx-background-radius: 8, 7;
 }
-.file-tree .tree-cell:filled:selected .label { -fx-text-fill: #EDEDED; }
+.file-tree .tree-cell:filled:selected .label { -fx-text-fill: -color-fg-emphasis; }
 .file-tree .tree-cell:filled:selected .file-kind .icon-stroke { -fx-stroke: -diyalamp-accent; }
 .file-tree .tree-cell:drop-target {
   -fx-border-color: -diyalamp-focus; -fx-border-radius: 8; -fx-border-insets: 4 0;
@@ -280,6 +298,11 @@
 .document-tabs.floating.dense > .root-container > .tabs > .tab:selected {
   -fx-border-color: -color-accent-fg -color-border-default transparent transparent;
 }
+.document-tabs.floating.dense > .root-container > .tabs > .tab:hover {
+  -fx-background-color: -color-border-default, -color-bg-inset;
+  -fx-background-insets: 8 4, 9 5;
+  -fx-background-radius: 8, 7;
+}
 .document-tabs .tab-insertion-guide { -fx-background-color: -color-accent-fg; }
 .document-tabs .tab:drag-source { -fx-opacity: .45; }
 .document-tabs .tab { -fx-font-size: 16px; }
@@ -290,15 +313,20 @@
   transition-duration: 120ms; transition-timing-function: ease-out;
 }
 .workspace-root:reduced-motion .document-tabs .tab > .tab-box > .label { transition-duration: 0s; }
-.document-tabs .tab:hover > .tab-box > .label,
-.document-tabs .tab:selected > .tab-box > .label { -fx-text-fill: -color-fg-default; }
+.document-tabs .tab:hover > .tab-box > .label { -fx-text-fill: -color-fg-default; }
+.document-tabs .tab:selected > .tab-box > .label { -fx-text-fill: -color-fg-emphasis; }
+.document-tabs .tab:selected .icon-stroke { -fx-stroke: -color-accent-fg; }
 .document-tabs.floating > .root-container > .tabs > .tab > .tab-box > .close-button {
   -fx-max-height: 28; -fx-padding: 7; -fx-background-color: transparent;
+}
+.document-tabs.floating > .root-container > .tabs > .tab > .tab-box > .close-button:hover {
+  -fx-background-color: -color-border-default;
+  -fx-background-radius: 8;
 }
 .document-tabs .tab > .tab-box > .close-button > .graphic { -fx-background-color: -color-fg-muted; }
 .document-tabs .tab > .tab-box > .close-button:hover > .graphic { -fx-background-color: -color-fg-default; }
 .workspace-band.document-location, .workspace-band.files-context-row { -fx-padding: 0 16; }
-.document-breadcrumb, .files-context-row .label { -fx-text-fill: -color-fg-muted; }
+.document-breadcrumb { -fx-text-fill: -color-fg-muted; }
 .note-page { -fx-background-color: -color-bg-default; -fx-padding: 0; }
 .diyalamp-editor, .diyalamp-editor > .viewport, .writing-area { -fx-background-color: -color-bg-default; }
 .writing-area { -fx-background-insets: 0; }
@@ -346,7 +374,12 @@
 .writing-area .check-box.md-task:hover > .box { -fx-border-color: -color-accent-fg; }
 .writing-area .check-box.md-task:focused > .box { -fx-border-color: -color-fg-emphasis; }
 .workspace-root:reduced-motion .writing-area .check-box.md-task > .box { transition-duration: 0s; }
-.workspace-status { -fx-background-color: -color-bg-inset; -fx-border-color: -diyalamp-divider transparent transparent transparent; -fx-border-width: 1 0 0 0; -fx-padding: 8 24; -fx-min-height: 40; }
+.workspace-status {
+  -fx-background-color: -color-bg-inset;
+  -fx-border-color: -diyalamp-divider transparent transparent transparent;
+  -fx-border-width: 1 0 0 0; -fx-padding: 0 24;
+  -fx-min-height: 40; -fx-pref-height: 40; -fx-max-height: 40;
+}
 .workspace-status .label { -fx-text-fill: -color-fg-muted; }
 .workspace-empty { -fx-padding: 24; -fx-background-color: -color-bg-default; }
 .workspace-empty-title { -fx-font-family: "Inter SemiBold"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #CEC9C2; }

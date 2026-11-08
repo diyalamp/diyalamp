@@ -29,6 +29,7 @@ final class FxDocumentTabs extends TabLine {
     insertionGuide.setManaged(false);
     insertionGuide.setMouseTransparent(true);
     insertionGuide.setVisible(false);
+    applyMotionPreference();
   }
 
   int insertionAt(double sceneX) {
@@ -81,18 +82,14 @@ final class FxDocumentTabs extends TabLine {
     List<TabSkin> headers = headers(strip());
     Map<Tab, Double> oldPositions = new IdentityHashMap<>();
     for (TabSkin skin : headers) oldPositions.put(skin.getTab(), skin.getLayoutX() + skin.getTranslateX());
-    if (reorderMotion != null) {
-      reorderMotion.stop();
-      reorderMotion = null;
-    }
-    for (TabSkin skin : headers) skin.setTranslateX(0);
+    settleReorder(headers);
     // AtlantaFX recreates the affected headers on an external permutation. Skip its
     // hide/show sequence here so those headers can slide without collapsing first.
     boolean animated = getAnimated();
     setAnimated(false);
     try { reorderTabs(from, to); }
     finally { setAnimated(animated); }
-    if (oldPositions.isEmpty() || Boolean.getBoolean("diyalamp.reduceMotion")) return;
+    if (oldPositions.isEmpty() || FxMotion.reduced()) return;
     applyCss(); layout();
     List<KeyValue> settle = new ArrayList<>();
     for (TabSkin skin : headers(strip())) {
@@ -105,6 +102,20 @@ final class FxDocumentTabs extends TabLine {
     reorderMotion = new Timeline(new KeyFrame(Duration.millis(160), settle.toArray(KeyValue[]::new)));
     reorderMotion.setOnFinished(event -> reorderMotion = null);
     reorderMotion.play();
+  }
+
+  void applyMotionPreference() {
+    boolean reduced = FxMotion.reduced();
+    setAnimated(!reduced);
+    if (reduced && reorderMotion != null) settleReorder(headers(strip()));
+  }
+
+  private void settleReorder(List<TabSkin> headers) {
+    if (reorderMotion != null) {
+      reorderMotion.stop();
+      reorderMotion = null;
+    }
+    for (TabSkin skin : headers) skin.setTranslateX(0);
   }
 
   private Parent strip() {

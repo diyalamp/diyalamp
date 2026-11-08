@@ -42,6 +42,7 @@ import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyDoubleWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.value.ChangeListener;
 import javafx.css.PseudoClass;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -130,6 +131,7 @@ public final class FxDiyalamp extends Application {
   private NoteStore.Deleted lastDeleted;
   private boolean persistentFolder = true, refreshing, sidebarOpen = true;
   private Timeline sidebarAnimation;
+  private final ChangeListener<Boolean> motionPreference = (observable, before, after) -> applyMotionPreference();
   private final PauseTransition sidebarSave = new PauseTransition(Duration.millis(180));
   private double filesWidth = SIDEBAR_WIDTH, connectionsWidth = CONNECTIONS_WIDTH;
   private boolean sidebarLayoutReady, sidebarLayoutChanging, sidebarLayoutQueued;
@@ -209,7 +211,6 @@ public final class FxDiyalamp extends Application {
       tabs.setTabClosingPolicy(Tab.ClosingPolicy.ALL_TABS);
       tabs.setTabResizePolicy(Tab.ResizePolicy.COMPUTED_WIDTH);
       tabs.setTabMinWidth(110);
-      tabs.setAnimated(true);
       HBox location = new HBox(breadcrumb);
       location.setAlignment(Pos.CENTER_LEFT);
       location.getStyleClass().addAll("workspace-band", "document-location");
@@ -278,6 +279,7 @@ public final class FxDiyalamp extends Application {
     scene.getPreferences().setColorScheme(ColorScheme.DARK);
     scene.getStylesheets().add(FxDiyalamp.class.getResource("/fx-workspace.css").toExternalForm());
     initializeAccent();
+    Platform.getPreferences().reducedMotionProperty().addListener(motionPreference);
     scene.focusOwnerProperty().addListener((observable, previous, focused) -> {
       for (Session session : sessions.values()) for (View view : session.views)
         if (within(focused, view.content)) { activate(view); return; }
@@ -432,7 +434,9 @@ public final class FxDiyalamp extends Application {
     tree.managedProperty().bind(tree.visibleProperty());
     VBox.setVgrow(tree, Priority.ALWAYS);
     VBox.setVgrow(sidebarSearch, Priority.ALWAYS);
-    HBox files = new HBox(new Label("Files"));
+    Label filesTitle = new Label("Files");
+    filesTitle.getStyleClass().add("workspace-section-title");
+    HBox files = new HBox(filesTitle);
     files.setAlignment(Pos.CENTER_LEFT);
     files.getStyleClass().addAll("workspace-band", "files-context-row");
     explorer.getChildren().setAll(actions, files, sidebarSearch, tree);
@@ -1337,13 +1341,13 @@ public final class FxDiyalamp extends Application {
       double factor = available / (left + right); left *= factor; right *= factor;
     }
     double[] start = sidebarPositions(oldLeft, oldRight, width), target = sidebarPositions(left, right, width);
-    if (animate && !Boolean.getBoolean("diyalamp.reduceMotion") && target.length > 0) {
+    if (animate && !FxMotion.reduced() && target.length > 0) {
       body.setDividerPositions(start);
       ArrayList<KeyValue> values = new ArrayList<>();
       for (int i = 0; i < target.length; i++)
-        values.add(new KeyValue(body.getDividers().get(i).positionProperty(), target[i], Interpolator.EASE_BOTH));
-      values.add(new KeyValue(explorer.opacityProperty(), sidebarOpen ? 1 : 0, Interpolator.EASE_BOTH));
-      sidebarAnimation = new Timeline(new KeyFrame(Duration.millis(180), values.toArray(KeyValue[]::new)));
+        values.add(new KeyValue(body.getDividers().get(i).positionProperty(), target[i], FxMotion.SIDEBAR_EASE));
+      values.add(new KeyValue(explorer.opacityProperty(), sidebarOpen ? 1 : 0, FxMotion.SIDEBAR_EASE));
+      sidebarAnimation = new Timeline(new KeyFrame(FxMotion.SIDEBAR_TIME, values.toArray(KeyValue[]::new)));
       sidebarAnimation.setOnFinished(event -> finishSidebarLayout()); sidebarAnimation.play();
     } else {
       body.setDividerPositions(target); explorer.setOpacity(sidebarOpen ? 1 : 0); finishSidebarLayout();
@@ -1383,11 +1387,22 @@ public final class FxDiyalamp extends Application {
 
   private void toggleZen() { zenMode.set(!zenMode.get()); }
 
+  private void applyMotionPreference() {
+    FxTheme.applyMotionPreference(root);
+    primary.tabs.applyMotionPreference();
+    secondary.tabs.applyMotionPreference();
+    if (!FxMotion.reduced()) return;
+    if (sidebarAnimation != null) layoutSidebars(false);
+    if (zenAnimation != null) animateZen(zenMode.get());
+    if (accentAnimation != null) animateAccent(accent.get());
+    noteGraph.finishMotion();
+  }
+
   /** Line focus shares one reversible clock; workspace chrome never moves or disappears. */
   private void animateZen(boolean enabled) {
     if (zenAnimation != null) zenAnimation.stop();
     double current = zenProgress.get(), target = enabled ? 1 : 0;
-    if (Boolean.getBoolean("diyalamp.reduceMotion") || current == target) {
+    if (FxMotion.reduced() || current == target) {
       zenProgress.set(target); zenAnimation = null; return;
     }
     Timeline transition = new Timeline(
@@ -1526,7 +1541,11 @@ public final class FxDiyalamp extends Application {
     Color current = displayedAccent.get();
     if (accentAnimation != null) accentAnimation.stop();
     displayedAccent.set(current);
-    if (current.equals(target)) { accentAnimation = null; return; }
+    if (FxMotion.reduced() || current.equals(target)) {
+      displayedAccent.set(target);
+      accentAnimation = null;
+      return;
+    }
     Timeline transition = new Timeline(
         new KeyFrame(Duration.ZERO, new KeyValue(displayedAccent, current)),
         new KeyFrame(Duration.millis(280), new KeyValue(displayedAccent, target, Interpolator.EASE_BOTH)));
@@ -1660,6 +1679,7 @@ public final class FxDiyalamp extends Application {
 
   /** Native application quit can bypass a window close request. Preserve any blocked edits. */
   @Override public void stop() {
+    Platform.getPreferences().reducedMotionProperty().removeListener(motionPreference);
     sidebarLayoutReady = false;
     if (sidebarAnimation != null) sidebarAnimation.stop();
     scheduleSearch(null); searchWorker.shutdownNow();
