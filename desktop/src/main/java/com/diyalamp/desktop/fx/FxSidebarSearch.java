@@ -410,9 +410,13 @@ public final class FxSidebarSearch extends VBox {
       number.getStyleClass().add("sidebar-search-line");
       TextFlow preview = preview(match);
       preview.setMinWidth(0);
-      preview.setPrefWidth(0);
       HBox.setHgrow(preview, Priority.ALWAYS);
       HBox row = new HBox(8, number, preview);
+      // VirtualFlow measures the row before laying it out. Give the preview the
+      // width remaining after the line number, with a fallback for unlaid cells.
+      preview.prefWidthProperty().bind(Bindings.createDoubleBinding(
+          () -> Math.max(60, row.getPrefWidth() - row.getSpacing() - number.prefWidth(-1)),
+          row.prefWidthProperty(), row.spacingProperty(), number.fontProperty()));
       row.getStyleClass().add("sidebar-search-match");
       setAccessibleText(relative(result.path()) + ", line " + match.line() + ", column " + match.column() + ": " + match.excerpt());
       setTooltip(new Tooltip(match.excerpt()));
