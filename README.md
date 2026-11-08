@@ -1,8 +1,8 @@
 <div align="center">
   <h1><img src="desktop/src/main/resources/app-icon.png" width="40" height="40" alt="" align="absmiddle"> diyalamp</h1>
-  <p><strong>Your Markdown notes. No sign-up.</strong></p>
-  <p>Open a folder and write with live formatting, full-text search, and side-by-side notes.</p>
-  <p>Free forever · Open source · macOS</p>
+  <p><strong>Your commonplace book.</strong></p>
+  <p>Collect what you read and learn in a folder of Markdown notes. Write with live formatting, search your notes, and follow connections between them.</p>
+  <p>Free forever · Open source · No sign-up · macOS</p>
   <p><a href="#download-for-mac"><strong>Download for Mac</strong></a> · <a href="https://diyalamp.com/">Website</a> · <a href="https://github.com/diyalamp/diyalamp/releases/tag/v1.3.5">Release notes</a></p>
 </div>
 
