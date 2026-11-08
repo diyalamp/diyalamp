@@ -1,12 +1,24 @@
 .graph { -fx-background-color: -color-bg-default; }
-.vertex { -fx-fill: -color-fg-muted; -fx-stroke: -color-bg-default; -fx-stroke-width: 2; }
-.vertex:hover { -fx-fill: -diyalamp-accent; -fx-stroke: -diyalamp-accent-subtle; -fx-stroke-width: 4; }
-.vertex.current-note { -fx-fill: -diyalamp-accent; -fx-stroke: -diyalamp-accent-subtle; -fx-stroke-width: 5; }
-.vertex-label { -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-fill: #8C8C8C; }
-.edge { -fx-stroke: #333536; -fx-stroke-width: 1.2; -fx-fill: transparent; }
-.arrow { -fx-stroke: #8C8C8C; -fx-stroke-width: 1.2; -fx-fill: #8C8C8C; }
-.edge-label { -fx-font-family: "Inter"; -fx-fill: #8C8C8C; }
-.vertex.related-note { -fx-fill: -color-accent-fg; -fx-stroke: -diyalamp-accent-subtle; }
-.vertex-label.related-note { -fx-fill: #BFBFBF; }
-.edge.highlighted-link { -fx-stroke: -color-accent-fg; -fx-stroke-width: 1.8; }
-.arrow.highlighted-link { -fx-stroke: -color-accent-fg; -fx-fill: -color-accent-fg; }
+.vertex { -fx-fill: -color-fg-muted; -fx-stroke: -color-bg-default; -fx-stroke-width: 1; }
+.vertex.current-note { -fx-fill: -diyalamp-link; -fx-stroke: -diyalamp-accent-subtle; -fx-stroke-width: 3; }
+.vertex.inspected-note { -fx-fill: -color-fg-emphasis; -fx-stroke: -diyalamp-link; -fx-stroke-width: 2; }
+.vertex.related-note { -fx-fill: -color-fg-default; }
+.vertex.muted-note { -fx-opacity: .42; }
+
+.vertex-label {
+  -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal;
+  -fx-fill: -color-fg-muted;
+}
+.vertex-label.current-note, .vertex-label.inspected-note {
+  -fx-fill: -color-fg-emphasis; -fx-background-color: -color-bg-default;
+  -fx-background-radius: 4; -fx-background-insets: -1 -3;
+}
+.edge { -fx-stroke: -color-fg-muted; -fx-stroke-width: .85; -fx-opacity: .50; -fx-fill: transparent; }
+.edge.secondary-link { -fx-opacity: .27; }
+.edge.muted-link { -fx-opacity: .18; }
+.graph:crowded .edge { -fx-opacity: .28; }
+.graph:crowded .edge.secondary-link { -fx-opacity: .15; }
+.graph:crowded .edge.muted-link { -fx-opacity: .10; }
+.graph .edge.highlighted-link { -fx-stroke: -diyalamp-link; -fx-stroke-width: 1.25; -fx-opacity: .88; }
+.arrow { -fx-stroke: -diyalamp-link; -fx-stroke-width: .9; -fx-fill: -diyalamp-link; }
+.edge-label { -fx-font-family: "Inter"; -fx-fill: -color-fg-muted; }

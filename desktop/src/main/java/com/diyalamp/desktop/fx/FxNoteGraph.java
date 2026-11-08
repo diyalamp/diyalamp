@@ -14,8 +14,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import javafx.animation.*;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.property.*;
+import javafx.css.PseudoClass;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.geometry.Point2D;
@@ -24,7 +26,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
@@ -34,6 +35,14 @@ import javafx.util.Duration;
 /** SmartGraph visualization and a background, read-only index of saved local notes. */
 final class FxNoteGraph implements AutoCloseable {
   private static final int MAX_VISIBLE_NODES = 60;
+  private static final int SPARSE_GRAPH_NODES = 7;
+  private static final PseudoClass CROWDED = PseudoClass.getPseudoClass("crowded");
+  // SmartGraph scales repulsion by 1,000. Gentle steps and a stronger center
+  // pull in crowded graphs prevent notes from piling against the pane's edges.
+  private static final ForceDirectedSpringGravityLayoutStrategy<Path> STANDARD_LAYOUT =
+      new ForceDirectedSpringGravityLayoutStrategy<>(7, 2.8, 34, .018, .0025);
+  private static final ForceDirectedSpringGravityLayoutStrategy<Path> CROWDED_LAYOUT =
+      new ForceDirectedSpringGravityLayoutStrategy<>(4.5, 3.5, 30, .014, .008);
   private static final double WIDTH = 304;
   private static final double LINK_HEADER_HEIGHT = 40;
   private static final double DIVIDER_HEIGHT = 8;
@@ -289,8 +298,8 @@ final class FxNoteGraph implements AutoCloseable {
     pairedSections.getChildren().clear();
 
     VBox incomingPane = incomingSection.pane(), outgoingPane = outgoingSection.pane();
-    incomingSection.heading().pseudoClassStateChanged(javafx.css.PseudoClass.getPseudoClass("separated"), mode == 0);
-    outgoingSection.heading().pseudoClassStateChanged(javafx.css.PseudoClass.getPseudoClass("separated"), mode != 3);
+    incomingSection.heading().pseudoClassStateChanged(PseudoClass.getPseudoClass("separated"), mode == 0);
+    outgoingSection.heading().pseudoClassStateChanged(PseudoClass.getPseudoClass("separated"), mode != 3);
     if (mode == 3) {
       sections.getItems().addAll(canvas, incomingPane, outgoingPane);
     } else if (mode == 0) {
@@ -344,11 +353,13 @@ final class FxNoteGraph implements AutoCloseable {
     detail(active != null && snapshot == null ? "Updating connections…"
         : snapshot != null && snapshot.partial() ? "Some notes were skipped while indexing." : "");
     if (active == null || snapshot == null) { emptyCanvas(); return; }
+    List<Path> neighbors = java.util.stream.Stream.concat(in.stream(), out.stream())
+        .filter(path -> !path.equals(active)).distinct().toList();
     LinkedHashSet<Path> visible = new LinkedHashSet<>(); visible.add(active);
-    java.util.stream.Stream.concat(in.stream(), out.stream()).distinct().limit(MAX_VISIBLE_NODES - 1).forEach(visible::add);
+    neighbors.stream().limit(MAX_VISIBLE_NODES - 1).forEach(visible::add);
+    if (!visible.contains(hovered)) hovered = null;
     Set<NoteLinkIndex.Edge> wantedEdges = new LinkedHashSet<>();
     snapshot.edges().stream().filter(edge -> visible.contains(edge.from()) && visible.contains(edge.to()))
-        .filter(edge -> edge.from().equals(active) || edge.to().equals(active))
         .forEach(wantedEdges::add);
     rememberPositions();
     if (model == null) model = new DigraphEdgeList<>();
@@ -369,30 +380,28 @@ final class FxNoteGraph implements AutoCloseable {
     viewDirty = true; needsReheat |= changed;
     zoom.setVisible(true); zoom.setManaged(true); placeholder.setVisible(false); placeholder.setManaged(false);
     refreshGraph();
-    if (in.size() + out.size() >= MAX_VISIBLE_NODES)
+    if (neighbors.size() >= MAX_VISIBLE_NODES)
       detail("Showing 60 notes. Lists include all indexed links.");
   }
 
   private void createGraph() {
     try {
       graph = new SmartGraphPanel<>(model, new SmartGraphProperties(
-          "vertex.allow-user-move=true\nvertex.radius=6\nvertex.label=true\nvertex.tooltip=true\nedge.label=false\nedge.tooltip=false\nedge.arrow=true\nedge.arrowsize=5\n"),
+          "vertex.allow-user-move=true\nvertex.radius=4\nvertex.label=true\nvertex.tooltip=true\nedge.label=false\nedge.tooltip=false\nedge.arrow=true\nedge.arrowsize=4\n"),
           new SmartCircularSortedPlacementStrategy(), FxNoteGraph.class.getResource("/fx-note-graph.css").toURI(),
-          new ForceDirectedSpringGravityLayoutStrategy<>(6000, 2, 15, .4, .15));
+          STANDARD_LAYOUT);
     } catch (URISyntaxException error) { throw new IllegalStateException(error); }
-    graph.setVertexLabelProvider(path -> {
-      String name = title(path); return name.length() > 22 ? name.substring(0, 20) + "…" : name;
-    });
-    graph.setVertexRadiusProvider(path -> path.equals(active) ? 9 : 5);
+    graph.setVertexLabelProvider(FxNoteGraph::graphTitle);
+    graph.setVertexRadiusProvider(path -> path.equals(active) ? 6.5 : 4);
     graph.setVertexClickHandler(event -> {
       if (event.isPrimaryButton() && event.isDoubleClick()) open.accept(event.getVertex().getUnderlyingVertex().element());
     });
     zoom = new ContentZoomScrollPane(graph, 4, .15);
     zoom.getStyleClass().add("note-graph-zoom"); zoom.setMinSize(0, 0);
-    Tooltip.install(zoom, new Tooltip("Scroll to zoom · drag to pan · double-click a note to open"));
+    Tooltip.install(zoom, new Tooltip("Hover to inspect · scroll to zoom · drag to pan · double-click to open"));
+    zoom.scaleFactorProperty().addListener((observable, previous, scale) -> updateLabels());
     zoom.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> reheat());
     zoom.addEventFilter(MouseEvent.MOUSE_DRAGGED, event -> reheat());
-    zoom.addEventFilter(ScrollEvent.SCROLL, event -> reheat());
     graph.widthProperty().addListener((observable, previous, value) -> { refreshGraph(); reheat(); });
     graph.heightProperty().addListener((observable, previous, value) -> { refreshGraph(); reheat(); });
     graph.sceneProperty().addListener((observable, previous, value) -> refreshGraph());
@@ -403,10 +412,17 @@ final class FxNoteGraph implements AutoCloseable {
     if (graph == null || updatingGraph || graph.getScene() == null || graph.getWidth() <= 0 || graph.getHeight() <= 0 || !viewDirty) return;
     updatingGraph = true;
     try {
-      graph.init(); graphInitialized = true;
+      if (!graphInitialized) {
+        graph.init(); graphInitialized = true;
+        Vertex<Path> current = vertices.get(active);
+        if (current != null) graph.setVertexPosition(current, graph.getWidth() / 2, graph.getHeight() / 2);
+      }
       // SmartGraph 2.6.1 performs updateAndWait directly when already on the FX thread.
       // Existing vertex nodes and the upstream zoom container are retained.
       graph.updateAndWait(); viewDirty = false;
+      boolean crowded = vertices.size() > 24;
+      graph.pseudoClassStateChanged(CROWDED, crowded);
+      graph.setAutomaticLayoutStrategy(crowded ? CROWDED_LAYOUT : STANDARD_LAYOUT);
       for (Path path : restorePositions) {
         Point2D point = positions.get(path); Vertex<Path> vertex = vertices.get(path);
         if (point != null && vertex != null) graph.setVertexPosition(vertex, point.getX(), point.getY());
@@ -414,10 +430,14 @@ final class FxNoteGraph implements AutoCloseable {
       restorePositions.clear(); updateHighlights();
       for (SmartGraphVertex<Path> vertex : graph.getSmartVertices()) {
         if (vertex instanceof Node node && watchedVertices.add(node)) {
+          Path path = vertex.getUnderlyingVertex().element();
+          positionLabel(vertex);
           node.addEventFilter(MouseEvent.MOUSE_ENTERED, event -> {
-            hovered = vertex.getUnderlyingVertex().element(); updateHighlights(); reheat();
+            if (!path.equals(hovered)) { hovered = path; updateHighlights(); }
           });
-          node.addEventFilter(MouseEvent.MOUSE_EXITED, event -> { hovered = null; updateHighlights(); });
+          node.addEventFilter(MouseEvent.MOUSE_EXITED, event -> {
+            if (path.equals(hovered)) { hovered = null; updateHighlights(); }
+          });
         }
       }
       if (needsReheat) { needsReheat = false; reheat(); }
@@ -439,23 +459,69 @@ final class FxNoteGraph implements AutoCloseable {
     }
     for (SmartGraphVertex<Path> vertex : graph.getSmartVertices()) {
       Path path = vertex.getUnderlyingVertex().element();
-      clearStyle(vertex, "current-note"); clearStyle(vertex, "related-note");
-      if (path.equals(active)) vertex.addStyleClass("current-note");
-      if (neighbors.contains(path)) vertex.addStyleClass("related-note");
-      SmartStylableNode label = vertex.getStylableLabel();
-      if (label != null) {
-        clearStyle(label, "current-note"); clearStyle(label, "related-note");
-        if (path.equals(active)) label.addStyleClass("current-note");
-        if (neighbors.contains(path)) label.addStyleClass("related-note");
-      }
+      String state = path.equals(active) ? "current-note" : path.equals(hovered) ? "inspected-note"
+          : neighbors.contains(path) ? "related-note" : hovered != null ? "muted-note" : null;
+      noteStyle(vertex, state);
+      noteStyle(vertex.getStylableLabel(), state);
     }
-    for (var entry : edges.entrySet()) {
-      SmartStylableNode edge = graph.getStylableEdge(entry.getValue());
-      if (edge == null) continue;
-      clearStyle(edge, "highlighted-link");
-      if (hovered != null && (entry.getKey().from().equals(hovered) || entry.getKey().to().equals(hovered)))
-        edge.addStyleClass("highlighted-link");
+    for (SmartGraphEdge<NoteLinkIndex.Edge, Path> edge : graph.getSmartEdges()) {
+      NoteLinkIndex.Edge link = edge.getUnderlyingEdge().element();
+      boolean highlighted = touches(link, hovered);
+      clearStyle(edge, "secondary-link"); clearStyle(edge, "muted-link"); clearStyle(edge, "highlighted-link");
+      if (highlighted) edge.addStyleClass("highlighted-link");
+      else if (hovered != null) edge.addStyleClass("muted-link");
+      else if (!touches(link, active)) edge.addStyleClass("secondary-link");
+      // SmartGraph mirrors edge classes to arrows. Use visibility to keep
+      // overview arrows outside hit testing regardless of edge opacity.
+      if (edge.getStylableArrow() instanceof Node arrow) arrow.setVisible(highlighted);
     }
+    updateLabels();
+  }
+
+  private void updateLabels() {
+    double scale = zoom.scaleFactorProperty().get();
+    int count = vertices.size();
+    double labelScale = count <= SPARSE_GRAPH_NODES ? .85 : Math.min(2.5, 1.4 + count / 40.0);
+    for (SmartGraphVertex<Path> vertex : graph.getSmartVertices()) {
+      if (!(vertex.getStylableLabel() instanceof SmartLabel label)) continue;
+      Path path = vertex.getUnderlyingVertex().element();
+      // The inspector already names the active note. Show one label during
+      // hover so the inspected name can never collide with another label.
+      boolean visible = hovered != null ? path.equals(hovered) : path.equals(active) || scale >= labelScale;
+      label.setVisible(visible);
+      // SmartGraph reserves space for label text even when the label is hidden.
+      label.setText(visible ? graphTitle(path) : "");
+      if (visible && (path.equals(active) || path.equals(hovered))) label.toFront();
+    }
+  }
+
+  private void positionLabel(SmartGraphVertex<Path> vertex) {
+    if (!(vertex.getStylableLabel() instanceof SmartLabel label)) return;
+    SmartGraphPanel<Path, NoteLinkIndex.Edge> owner = graph;
+    double inset = 6;
+    label.translateXProperty().bind(Bindings.createDoubleBinding(() -> {
+      double left = label.xProperty().get();
+      double right = left + label.layoutWidthProperty().get();
+      return Math.max(inset - left, Math.min(0, owner.getWidth() - inset - right));
+    }, label.xProperty(), label.layoutWidthProperty(), owner.widthProperty()));
+    label.translateYProperty().bind(Bindings.createDoubleBinding(() -> {
+      double below = label.yProperty().get(), height = label.layoutHeightProperty().get();
+      double above = below - height - 2 * (vertex.getRadius() + 5);
+      boolean placeAbove = label.getStyleClass().contains("inspected-note")
+          || below + height > owner.getHeight() - inset;
+      return placeAbove && above >= inset ? above - below : 0;
+    }, label.yProperty(), label.layoutHeightProperty(), label.getStyleClass(), owner.heightProperty()));
+  }
+
+  private static boolean touches(NoteLinkIndex.Edge edge, Path path) {
+    return edge.from().equals(path) || edge.to().equals(path);
+  }
+
+  private static void noteStyle(SmartStylableNode node, String state) {
+    if (node == null) return;
+    clearStyle(node, "current-note"); clearStyle(node, "inspected-note");
+    clearStyle(node, "related-note"); clearStyle(node, "muted-note");
+    if (state != null) node.addStyleClass(state);
   }
 
   private static void clearStyle(SmartStylableNode node, String style) {
@@ -499,6 +565,10 @@ final class FxNoteGraph implements AutoCloseable {
   private static String title(Path path) {
     String name = path.getFileName().toString();
     return name.replaceFirst("(?i)\\.(md|markdown)$", "");
+  }
+  private static String graphTitle(Path path) {
+    String name = title(path);
+    return name.length() > 22 ? name.substring(0, 20) + "…" : name;
   }
   private void detail(String text) {
     detail.setText(text); detail.setVisible(!text.isBlank()); detail.setManaged(!text.isBlank());

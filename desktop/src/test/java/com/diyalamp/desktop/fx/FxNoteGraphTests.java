@@ -3,6 +3,7 @@ package com.diyalamp.desktop.fx;
 import com.brunomnsilva.smartgraph.containers.ContentZoomScrollPane;
 import com.brunomnsilva.smartgraph.graph.Digraph;
 import com.brunomnsilva.smartgraph.graphview.SmartGraphPanel;
+import com.brunomnsilva.smartgraph.graphview.SmartGraphVertex;
 import com.diyalamp.desktop.NoteStore;
 import java.lang.reflect.Field;
 import java.nio.file.*;
@@ -45,6 +46,7 @@ public final class FxNoteGraphTests {
       Path target = Files.writeString(root.resolve("Target.md"), "[[Origin]]\n");
       Path source = Files.writeString(root.resolve("Source.md"), "[[Origin]]\n");
       Path isolated = Files.writeString(root.resolve("Isolated.md"), "No links\n");
+      Path dense = writeDenseGraph(root);
       FxNoteGraph chosen = fx(() -> {
         FxTheme.setup();
         FxNoteGraph graph = new FxNoteGraph(opened::set, status::set);
@@ -169,6 +171,11 @@ public final class FxNoteGraphTests {
       await(() -> fx(() -> !retainedGraph.get().automaticLayoutProperty().get()));
       check(true, "The force simulation settles and stops after interaction becomes idle");
       fx(() -> {
+        var sourceNode = graphVertex(retainedGraph.get(), source);
+        Event.fireEvent((Node) sourceNode, mouse(MouseEvent.MOUSE_ENTERED));
+        check(!retainedGraph.get().automaticLayoutProperty().get(),
+            "Inspecting a settled node should leave its position stable");
+        Event.fireEvent((Node) sourceNode, mouse(MouseEvent.MOUSE_EXITED));
         Event.fireEvent(retainedGraph.get(), mouse(MouseEvent.MOUSE_PRESSED));
         check(retainedGraph.get().automaticLayoutProperty().get(), "A new pointer interaction must restart the settled force simulation");
         chosen.showingProperty().set(false);
@@ -198,6 +205,10 @@ public final class FxNoteGraphTests {
       check(true, "A safe-save hook refreshes incoming links asynchronously");
       check(fx(() -> field(chosen, "graph") == retainedGraph.get() && field(chosen, "zoom") == retainedZoom.get()),
           "A safe save must update the existing model without rebuilding the visualization or viewport");
+      fx(() -> {
+        inspectDenseGraph(chosen, retainedGraph.get(), retainedZoom.get(), dense);
+        return null;
+      });
       Path next = Files.createDirectory(root.resolve("another-folder"));
       Path other = Files.writeString(next.resolve("Other.md"), "No links\n");
       fx(() -> { chosen.workspace(new NoteStore(next)); chosen.select(other); return null; });
@@ -224,6 +235,65 @@ public final class FxNoteGraphTests {
       try (var paths = Files.walk(root)) { for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) Files.delete(path); }
     }
     System.out.println("Passed " + checks + " JavaFX note-graph checks.");
+  }
+
+  private static Path writeDenseGraph(Path root) throws java.io.IOException {
+    StringBuilder links = new StringBuilder();
+    for (int number = 0; number < 9; number++) {
+      String name = "Neighbor " + number;
+      links.append("[[").append(name).append("]]\n");
+      String body = switch (number) {
+        case 0 -> "[[Neighbor 1]]";
+        case 1 -> "[[Neighbor 2]]";
+        case 8 -> "[[Dense Hub]]";
+        default -> "A linked note.";
+      };
+      Files.writeString(root.resolve(name + ".md"), body);
+    }
+    return Files.writeString(root.resolve("Dense Hub.md"), links);
+  }
+
+  private static void inspectDenseGraph(FxNoteGraph panel, SmartGraphPanel<Path, NoteLinkIndex.Edge> graph,
+      ContentZoomScrollPane zoom, Path hub) {
+    zoom.scaleFactorProperty().set(1);
+    panel.select(hub); layout(panel);
+    check(graph.getModel().numVertices() == 10 && graph.getModel().numEdges() == 12,
+        "The overview preserves every directed link between visible notes, including reciprocal links");
+    check(countEdges(graph, "secondary-link") == 2,
+        "Neighbor cross-links receive the secondary edge style");
+    check(graph.lookupAll(".arrow").stream().noneMatch(Node::isVisible),
+        "Direction markers stay quiet in the overview");
+    check(visibleLabels(graph) == 1 && ((Node) graphVertex(graph, hub).getStylableLabel()).isVisible(),
+        "At overview scale, a crowded graph shows its current note name");
+
+    var neighbor = graphVertex(graph, hub.resolveSibling("Neighbor 1.md"));
+    Event.fireEvent((Node) neighbor, mouse(MouseEvent.MOUSE_ENTERED)); graph.applyCss();
+    check(visibleLabels(graph) == 1 && ((Node) neighbor.getStylableLabel()).isVisible(),
+        "Hovering a dense node shows only its label, with no names to overlap it");
+    check(countEdges(graph, "highlighted-link") == 3 && countEdges(graph, "muted-link") == 9,
+        "Inspection emphasizes only the hovered note's real incoming and outgoing links");
+    check(graph.lookupAll(".arrow").stream().filter(Node::isVisible).count() == 3,
+        "Only arrows incident to the inspected node are visible");
+    Event.fireEvent((Node) neighbor, mouse(MouseEvent.MOUSE_EXITED));
+    zoom.scaleFactorProperty().set(2);
+    check(visibleLabels(graph) == 10, "Zooming into the graph reveals its note names");
+    zoom.scaleFactorProperty().set(1);
+    check(visibleLabels(graph) == 1, "Zooming back out restores the uncluttered overview");
+  }
+
+  private static SmartGraphVertex<Path> graphVertex(SmartGraphPanel<Path, NoteLinkIndex.Edge> graph, Path path) {
+    return graph.getSmartVertices().stream()
+        .filter(vertex -> vertex.getUnderlyingVertex().element().equals(path)).findFirst().orElseThrow();
+  }
+
+  private static long visibleLabels(SmartGraphPanel<Path, NoteLinkIndex.Edge> graph) {
+    return graph.getSmartVertices().stream().map(vertex -> (Node) vertex.getStylableLabel())
+        .filter(Node::isVisible).count();
+  }
+
+  private static long countEdges(SmartGraphPanel<Path, NoteLinkIndex.Edge> graph, String style) {
+    return graph.getSmartEdges().stream().map(Node.class::cast)
+        .filter(node -> node.getStyleClass().contains(style)).count();
   }
 
   private static double[] sectionLayout(FxNoteGraph graph, Path origin, Path source, Path isolated) throws Exception {
