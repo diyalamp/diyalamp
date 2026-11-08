@@ -25,28 +25,23 @@ for size in 16 32 128 256 512; do
 done
 iconutil -c icns build/icon.iconset -o build/diyalamp.icns
 # Outputs live only under ignored build/. Existing release artifacts are not overwritten.
-RUNTIME="build/runtime-jdk${JAVA_MAJOR}-fx27-tls"
+RUNTIME="build/runtime-jdk${JAVA_MAJOR}-fx27-tls-string-sharing"
 if [ ! -d "$RUNTIME" ]; then
-  "$JDK/bin/jlink" --add-modules java.base,java.desktop,java.prefs,java.logging,java.xml,jdk.unsupported,jdk.crypto.ec --strip-debug --no-man-pages --no-header-files --compress=zip-9 --output "$RUNTIME"
+  "$JDK/bin/jlink" --add-modules java.base,java.desktop,java.prefs,java.logging,java.xml,jdk.unsupported,jdk.crypto.ec --strip-debug --no-man-pages --no-header-files --compress=1 --output "$RUNTIME"
 fi
 APP_DEST="build/app-$VERSION"
 if [ -d "$APP_DEST/diyalamp.app" ]; then mv "$APP_DEST/diyalamp.app" "$APP_DEST/diyalamp-previous-$(date +%s).app"; fi
 "$JDK/bin/jpackage" --type app-image --name diyalamp --input build/input --main-jar diyalamp.jar --main-class com.diyalamp.desktop.DesktopLauncher --runtime-image "$RUNTIME" --app-version "$VERSION" --vendor diyalamp --description 'Local Markdown editor for macOS. No account required.' --mac-package-identifier com.diyalamp.desktop --icon build/diyalamp.icns --java-options "--module-path=\$APPDIR/fx-deps/$FX_PLATFORM" --java-options '--add-modules=javafx.controls' --java-options '--enable-native-access=javafx.graphics,ALL-UNNAMED' --java-options '-Dapple.awt.application.appearance=NSAppearanceNameDarkAqua' --dest "$APP_DEST"
 TARGET="build/release/diyalamp-${VERSION}-macos-${ARCH}.dmg"
-"$JDK/bin/jpackage" --type dmg --name diyalamp --app-image "$APP_DEST/diyalamp.app" --app-version "$VERSION" --vendor diyalamp --dest build/dmg
-DMG="build/dmg/diyalamp-${VERSION}.dmg"
-# Compare lossless formats on the same app image and keep the smallest.
-for format in UDZO ULMO; do
-  candidate="build/dmg/diyalamp-${VERSION}-$format.dmg"
-  set --
-  if [ "$format" = UDZO ]; then set -- -imagekey zlib-level=9; fi
-  if hdiutil convert "$DMG" -format "$format" "$@" -ov -o "$candidate" >/dev/null &&
-    [ "$(wc -c < "$candidate")" -lt "$(wc -c < "$DMG")" ]; then
-    mv "$candidate" "$DMG"
-  else
-    rm -f "$candidate"
-  fi
-done
+DMG_WORK=$(mktemp -d "$PWD/build/dmg-work.XXXXXX")
+trap 'rm -rf "$DMG_WORK"' EXIT
+mkdir "$DMG_WORK/layout"
+# Keep the signed app's bytes intact and store compressible files in APFS-compressed form.
+ditto --hfsCompression "$APP_DEST/diyalamp.app" "$DMG_WORK/layout/diyalamp.app"
+codesign --verify --deep --strict "$DMG_WORK/layout/diyalamp.app"
+ln -s /Applications "$DMG_WORK/layout/Applications"
+DMG="$DMG_WORK/diyalamp.dmg"
+hdiutil create -srcfolder "$DMG_WORK/layout" -fs APFS -volname diyalamp -format ULMO "$DMG"
 if [ -f "$TARGET" ]; then mv "$TARGET" "$TARGET.previous-$(date +%s)"; fi
 mv "$DMG" "$TARGET"
 (cd build/release && shasum -a 256 "$(basename "$TARGET")") > "$TARGET.sha256"

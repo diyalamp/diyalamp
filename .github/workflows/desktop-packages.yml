@@ -42,9 +42,11 @@ jobs:
           (cd build/release && shasum -a 256 -c "$name.sha256")
           hdiutil verify "build/release/$name"
           mount=$(mktemp -d)
+          installed=$(mktemp -d)
           hdiutil attach -readonly -nobrowse -mountpoint "$mount" "build/release/$name"
-          trap 'hdiutil detach "$mount" >/dev/null' EXIT
-          app="$mount/diyalamp.app"
+          trap 'hdiutil detach "$mount" >/dev/null; rmdir "$mount"; rm -rf "$installed"' EXIT
+          app="$installed/diyalamp.app"
+          ditto "$mount/diyalamp.app" "$app"
           payload="$app/Contents/app"
           java="$app/Contents/runtime/Contents/Home/bin/java"
           codesign --verify --deep --strict "$app"
@@ -58,6 +60,8 @@ jobs:
               -cp "$payload/diyalamp.jar:$PWD/build/test-classes" "com.diyalamp.desktop.$suite"
           done
           printf '%s %s bytes\n' "$name" "$(wc -c < "build/release/$name" | tr -d ' ')"
+          printf 'Copied app uses %s KiB on disk (%s KiB apparent)\n' \
+            "$(du -sk "$app" | cut -f1)" "$(du -skA "$app" | cut -f1)"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.validate_only && 'diyalamp-validation' || 'diyalamp' }}-macos-${{ matrix.arch }}
