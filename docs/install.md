@@ -21,23 +21,23 @@ If installation fails, [report an issue](https://github.com/diyalamp/diyalamp/is
 
 ## Verify a download (optional)
 
-Keep the DMG and its checksum file in the same folder without renaming either file. For example, for release **1.3.5** downloaded into Downloads, open Terminal and run the command for your architecture:
+Keep the DMG and its checksum file in the same folder without renaming either file. For example, for release **1.3.6** downloaded into Downloads, open Terminal and run the command for your architecture:
 
 Apple silicon:
 
 ```sh
 cd ~/Downloads
-shasum -a 256 -c diyalamp-1.3.5-macos-arm64.dmg.sha256
+shasum -a 256 -c diyalamp-1.3.6-macos-arm64.dmg.sha256
 ```
 
 Intel:
 
 ```sh
 cd ~/Downloads
-shasum -a 256 -c diyalamp-1.3.5-macos-x86_64.dmg.sha256
+shasum -a 256 -c diyalamp-1.3.6-macos-x86_64.dmg.sha256
 ```
 
-For another release, replace `1.3.5` with that release's version in the command. The result should end with **`OK`**. A missing-file error means the files are not together or their names differ. A checksum mismatch means the download does not match the published checksum; discard it and download the matching pair again. This check detects download changes; it does not replace code signing, notarization, or a security review.
+For another release, replace `1.3.6` with that release's version in the command. The result should end with **`OK`**. A missing-file error means the files are not together or their names differ. A checksum mismatch means the download does not match the published checksum; discard it and download the matching pair again. This check detects download changes; it does not replace code signing, notarization, or a security review.
 
 ## Install and open
 

@@ -3,7 +3,7 @@
   <p><strong>Your commonplace book.</strong></p>
   <p>Collect what you read and learn in a folder of Markdown notes. Write with live formatting, search your notes, and follow connections between them.</p>
   <p>Free forever · Open source · No sign-up · macOS</p>
-  <p><a href="#download-for-mac"><strong>Download for Mac</strong></a> · <a href="https://diyalamp.com/">Website</a> · <a href="https://github.com/diyalamp/diyalamp/releases/tag/v1.3.5">Release notes</a></p>
+  <p><a href="#download-for-mac"><strong>Download for Mac</strong></a> · <a href="https://diyalamp.com/">Website</a> · <a href="https://github.com/diyalamp/diyalamp/releases/tag/v1.3.6">Release notes</a></p>
 </div>
 
 <p align="center">
@@ -13,12 +13,12 @@
 
 ## Download for Mac
 
-Version **1.3.5** includes the runtime. Open **Apple menu → About This Mac** to choose your installer. Select Apple silicon if you see an Apple chip and Intel if you see an Intel processor.
+Version **1.3.6** includes the runtime. Open **Apple menu → About This Mac** to choose your installer. Select Apple silicon if you see an Apple chip and Intel if you see an Intel processor.
 
 | Mac | Installer | SHA-256 |
 | --- | --- | --- |
-| Apple silicon | [Download DMG · 42.2 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.3.5/diyalamp-1.3.5-macos-arm64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.3.5/diyalamp-1.3.5-macos-arm64.dmg.sha256) |
-| Intel | [Download DMG · 43.8 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.3.5/diyalamp-1.3.5-macos-x86_64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.3.5/diyalamp-1.3.5-macos-x86_64.dmg.sha256) |
+| Apple silicon | [Download DMG · 42.2 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.3.6/diyalamp-1.3.6-macos-arm64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.3.6/diyalamp-1.3.6-macos-arm64.dmg.sha256) |
+| Intel | [Download DMG · 43.8 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.3.6/diyalamp-1.3.6-macos-x86_64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.3.6/diyalamp-1.3.6-macos-x86_64.dmg.sha256) |
 
 Sizes are compressed DMG downloads. The [under-5-MB installed target](https://github.com/diyalamp/diyalamp/issues/2) is an open engineering goal.
 
