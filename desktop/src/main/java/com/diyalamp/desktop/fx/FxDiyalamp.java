@@ -1583,8 +1583,10 @@ public final class FxDiyalamp extends Application {
     hex.setAccessibleText("Custom accent hex");
     hex.setAccessibleHelp("Enter six hexadecimal digits, with or without the leading number sign.");
     hex.getStyleClass().add("accent-hex");
+    hex.setMinWidth(0);
     HBox.setHgrow(hex, Priority.ALWAYS);
     Button apply = new Button("Apply");
+    apply.setMinWidth(Region.USE_PREF_SIZE);
     apply.getStyleClass().addAll("popover-action", Styles.ACCENT);
     apply.disableProperty().bind(Bindings.createBooleanBinding(() -> !validAccentHex(hex.getText()), hex.textProperty()));
     apply.setOnAction(event -> accent.set(Color.web("#" + hex.getText().strip().replaceFirst("^#", ""))));
