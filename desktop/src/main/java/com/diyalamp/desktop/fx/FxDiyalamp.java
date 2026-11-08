@@ -315,7 +315,7 @@ public final class FxDiyalamp extends Application {
 
   private ToolBar buildToolbar() {
     toolbar.getStyleClass().add("workspace-toolbar");
-    Label brand = new Label("diyalamp", FxTheme.brandIcon(20));
+    Label brand = new Label("diyalamp", FxTheme.brandIcon(36));
     brand.setMinWidth(Region.USE_PREF_SIZE);
     brand.setAlignment(Pos.CENTER_LEFT); brand.getStyleClass().add("workspace-brand");
     ToggleButton files = new ToggleButton(null, FxTheme.icon("panel-left", 16));
