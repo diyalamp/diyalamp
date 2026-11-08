@@ -1,8 +1,8 @@
 <div align="center">
   <h1><img src="desktop/src/main/resources/app-icon.png" width="40" height="40" alt="" align="absmiddle"> diyalamp</h1>
-  <p><strong>Edit Markdown in place on your Mac.</strong></p>
+  <p><strong>Your Markdown notes. No sign-up.</strong></p>
   <p>Open a folder and write with live formatting, full-text search, and side-by-side notes.</p>
-  <p>Free forever · Open source · No sign-up</p>
+  <p>Free forever · Open source · macOS</p>
   <p><a href="#download-for-mac"><strong>Download for Mac</strong></a> · <a href="https://diyalamp.com/">Website</a> · <a href="https://github.com/diyalamp/diyalamp/releases/tag/v1.3.5">Release notes</a></p>
 </div>
 
@@ -26,15 +26,45 @@ Open the DMG and drag **diyalamp** into **Applications**. Then press `⌘O` to o
 
 ## The writing workspace
 
-- **Edit rendered Markdown.** Use headings, checklists, quotes, links, and fenced code blocks in the editor. Type `/` on an empty line for block commands.
-- **Search the folder.** Find filenames with `⌘P` or search note text with `⌥⌘F`. Filter by case, whole words, regular expressions, and include or exclude paths.
-- **Work side by side.** Drag a note into a second pane. Reorder tabs, rename notes inline, or drag a note to another workspace folder.
-- **Follow connections.** Type `[[Note name]]` or use a relative Markdown link. The Connections panel shows the active note’s graph and both directions of links.
-- **Focus on a line.** Dim the surrounding workspace and keep the active line bright. The toolbar Pomodoro supports custom focus and break durations, a single cycle, or repeat.
+Edit headings, checklists, quotes, links, and fenced code blocks with live formatting. Type `/` on an empty line for block commands. Drag a note into a second pane to keep a reference in view while you write. Reorder tabs, rename a note inline, or drag it to another folder.
 
 <p align="center">
   <a href="docs/assets/database-search-and-split.webp"><img src="docs/assets/database-search-and-split.webp" alt="Search results for index alongside the Database Indexes and Query Plans notes in two editing panes" width="1100"></a><br>
   <sub>Search note text while keeping Database Indexes and Query Plans open.</sub>
+</p>
+
+### Search the folder or the open note
+
+Use `⌘P` to find files, `⌥⌘F` to search text across the folder, or `⌘F` to find text in the open note. Workspace filters support case, whole words, regular expressions, and included or excluded paths.
+
+<p align="center">
+  <a href="docs/assets/workspace-search.webp"><img src="docs/assets/workspace-search.webp" width="288" align="top" alt="Workspace search with advanced filters and matching passages grouped by note"></a>
+  <a href="docs/assets/find-in-note.webp"><img src="docs/assets/find-in-note.webp" width="392" align="top" alt="Find in note dialog with the search phrase order feed"></a>
+</p>
+
+### Follow links and backlinks
+
+Type `[[Note name]]` or use a relative Markdown link. The Connections panel shows the active note’s graph along with its incoming and outgoing links.
+
+<p align="center">
+  <a href="docs/assets/connections-hover.webp"><img src="docs/assets/connections-hover.webp" width="344" alt="The Connections panel highlights links to and from Composite Indexes while it is hovered"></a>
+</p>
+
+### Keep the active line in view
+
+Focus mode keeps the line you’re writing bright and dims the surrounding text and workspace.
+
+<p align="center">
+  <a href="docs/assets/focus-active-line.webp"><img src="docs/assets/focus-active-line.webp" width="740" alt="The active paragraph stays readable on black while nearby text fades"></a>
+</p>
+
+### Set a timer and choose an accent
+
+Set focus and break lengths in the toolbar Pomodoro, then run one cycle or repeat. Choose an accent preset or enter your own hex color.
+
+<p align="center">
+  <a href="docs/assets/pomodoro-controls.webp"><img src="docs/assets/pomodoro-controls.webp" width="304" align="top" alt="Pomodoro controls with editable focus and break durations and Repeat selected"></a>
+  <a href="docs/assets/accent-palette.webp"><img src="docs/assets/accent-palette.webp" width="360" align="top" alt="Accent color picker with red, blue, yellow, green, white, and custom choices"></a>
 </p>
 
 ## Bring your notes
