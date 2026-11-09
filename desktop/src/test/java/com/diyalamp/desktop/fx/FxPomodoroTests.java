@@ -14,6 +14,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
@@ -173,6 +174,22 @@ public final class FxPomodoroTests {
       var breakField = (TextField) popup.getContentNode().lookup("#pomodoro-break-minutes");
       check(focusField.getWidth() == focus.getWidth() && breakField.getWidth() == rest.getWidth(),
           "Duration fields must align with the phase and schedule columns");
+      Region phaseIndicator = (Region) focus.getParent().lookup(".segmented-indicator");
+      Region scheduleIndicator = (Region) once.getParent().lookup(".segmented-indicator");
+      check(phaseIndicator.getLayoutX() == rest.getLayoutX() && phaseIndicator.getBackground() != null
+              && scheduleIndicator.getLayoutX() == once.getLayoutX() && scheduleIndicator.getBackground() != null,
+          "Opening the popover must show the correct phase and schedule indicators in place");
+      String preference = System.getProperty("diyalamp.reduceMotion");
+      try {
+        System.setProperty("diyalamp.reduceMotion", "true");
+        focus.fire(); repeat.fire();
+        check(focus.isSelected() && repeat.isSelected() && phaseIndicator.getLayoutX() == focus.getLayoutX()
+                && scheduleIndicator.getLayoutX() == repeat.getLayoutX(),
+            "Both indicators must follow the native radio selections immediately under reduced motion");
+      } finally {
+        if (preference == null) System.clearProperty("diyalamp.reduceMotion");
+        else System.setProperty("diyalamp.reduceMotion", preference);
+      }
     } finally { stage.close(); }
   }
 }

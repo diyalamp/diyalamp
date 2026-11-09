@@ -188,7 +188,9 @@ final class FxPomodoro implements AutoCloseable {
   }
 
   private static HBox segments(RadioButton first, RadioButton second) {
-    HBox group = row(first, second);
+    first.setPrefWidth(128);
+    second.setPrefWidth(128);
+    HBox group = new FxSegmentedControl(8, first, second);
     group.getStyleClass().add("pomodoro-segments");
     return group;
   }
@@ -290,10 +292,8 @@ final class FxPomodoro implements AutoCloseable {
     start.setText(clock.running() ? "Pause" : clock.paused() ? "Resume" : "Start");
     start.setGraphic(clock.running() ? pauseIcon : playIcon);
     start.setDisable(!clock.running() && !validDurations);
-    focus.setSelected(clock.phase() == PomodoroClock.Phase.FOCUS);
-    rest.setSelected(clock.phase() == PomodoroClock.Phase.BREAK);
-    once.setSelected(!clock.repeating());
-    repeat.setSelected(clock.repeating());
+    focus.getToggleGroup().selectToggle(clock.phase() == PomodoroClock.Phase.FOCUS ? focus : rest);
+    once.getToggleGroup().selectToggle(clock.repeating() ? repeat : once);
     settingsHelp.setText(clock.repeating() ? "Alternate focus and break continuously."
         : "Focus, then a break, then stop.");
     if (clock.running()) ticker.play(); else ticker.stop();

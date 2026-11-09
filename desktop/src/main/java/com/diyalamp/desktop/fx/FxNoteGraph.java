@@ -26,6 +26,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Rectangle;
@@ -88,7 +89,7 @@ final class FxNoteGraph implements AutoCloseable {
   private final Set<Node> watchedVertices = Collections.newSetFromMap(new WeakHashMap<>());
   private final Label placeholder = new Label();
   private boolean viewDirty, needsReheat, graphInitialized, updatingGraph;
-  private Path hovered;
+  private Path hovered, dragged;
   // Track only the class we add, so stable graph states avoid CSS invalidation.
 
   private final Map<SmartStylableNode, String> highlightStates = new WeakHashMap<>();
@@ -365,6 +366,7 @@ final class FxNoteGraph implements AutoCloseable {
     LinkedHashSet<Path> visible = new LinkedHashSet<>(); visible.add(active);
     neighbors.stream().limit(MAX_VISIBLE_NODES - 1).forEach(visible::add);
     if (!visible.contains(hovered)) hovered = null;
+    if (!visible.contains(dragged)) dragged = null;
     Set<NoteLinkIndex.Edge> wantedEdges = new LinkedHashSet<>();
     snapshot.edges().stream().filter(edge -> visible.contains(edge.from()) && visible.contains(edge.to()))
         .forEach(wantedEdges::add);
@@ -411,7 +413,13 @@ final class FxNoteGraph implements AutoCloseable {
     zoom.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> reheat());
     zoom.addEventFilter(MouseEvent.MOUSE_DRAGGED, event -> reheat());
     zoom.addEventFilter(MouseEvent.MOUSE_RELEASED, event -> {
-      if (graph != null && !graph.automaticLayoutProperty().get()) updateLabels();
+      // SmartGraph consumes the release on the vertex. The pick still tells us
+      // what's under the pointer after JavaFX's press-drag-release gesture.
+      if (dragged != null && event.getButton() == MouseButton.PRIMARY) {
+        dragged = null;
+        hovered = pickedVertex(event);
+        updateHighlights();
+      } else if (graph != null && !graph.automaticLayoutProperty().get()) updateLabels();
     });
     graph.widthProperty().addListener((observable, previous, value) -> resizeGraph());
     graph.heightProperty().addListener((observable, previous, value) -> resizeGraph());
@@ -448,11 +456,14 @@ final class FxNoteGraph implements AutoCloseable {
         if (vertex instanceof Node node && watchedVertices.add(node)) {
           Path path = vertex.getUnderlyingVertex().element();
           positionLabel(vertex);
+          node.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+            if (event.getButton() == MouseButton.PRIMARY) { dragged = path; updateHighlights(); }
+          });
           node.addEventFilter(MouseEvent.MOUSE_ENTERED, event -> {
-            if (!path.equals(hovered)) { hovered = path; updateHighlights(); }
+            if (dragged == null && !path.equals(hovered)) { hovered = path; updateHighlights(); }
           });
           node.addEventFilter(MouseEvent.MOUSE_EXITED, event -> {
-            if (path.equals(hovered)) { hovered = null; updateHighlights(); }
+            if (dragged == null && path.equals(hovered)) { hovered = null; updateHighlights(); }
           });
         }
       }
@@ -466,24 +477,33 @@ final class FxNoteGraph implements AutoCloseable {
       positions.put(vertex.getUnderlyingVertex().element(), new Point2D(vertex.getPositionCenterX(), vertex.getPositionCenterY()));
   }
 
+  private Path pickedVertex(MouseEvent event) {
+    for (Node node = event.getPickResult().getIntersectedNode(); node != null && node != graph; node = node.getParent()) {
+      if (node instanceof SmartGraphVertex<?> vertex && vertex.getUnderlyingVertex().element() instanceof Path path)
+        return path;
+    }
+    return null;
+  }
+
   private void updateHighlights() {
     if (graph == null) return;
+    Path inspected = dragged == null ? hovered : dragged;
     Set<Path> neighbors = new HashSet<>();
-    if (hovered != null) for (var edge : edges.keySet()) {
-      if (edge.from().equals(hovered)) neighbors.add(edge.to());
-      if (edge.to().equals(hovered)) neighbors.add(edge.from());
+    if (inspected != null) for (var edge : edges.keySet()) {
+      if (edge.from().equals(inspected)) neighbors.add(edge.to());
+      if (edge.to().equals(inspected)) neighbors.add(edge.from());
     }
     for (SmartGraphVertex<Path> vertex : graph.getSmartVertices()) {
       Path path = vertex.getUnderlyingVertex().element();
-      String state = path.equals(active) ? "current-note" : path.equals(hovered) ? "inspected-note"
-          : neighbors.contains(path) ? "related-note" : hovered != null ? "muted-note" : null;
+      String state = path.equals(active) ? "current-note" : path.equals(inspected) ? "inspected-note"
+          : neighbors.contains(path) ? "related-note" : inspected != null ? "muted-note" : null;
       applyHighlight(vertex, state);
       applyHighlight(vertex.getStylableLabel(), state);
     }
     for (SmartGraphEdge<NoteLinkIndex.Edge, Path> edge : graph.getSmartEdges()) {
       NoteLinkIndex.Edge link = edge.getUnderlyingEdge().element();
-      boolean highlighted = touches(link, hovered);
-      String state = highlighted ? "highlighted-link" : hovered != null ? "muted-link"
+      boolean highlighted = touches(link, inspected);
+      String state = highlighted ? "highlighted-link" : inspected != null ? "muted-link"
           : touches(link, active) ? null : "secondary-link";
       applyHighlight(edge, state);
       // SmartGraph mirrors edge classes to arrows. Use visibility to keep
@@ -495,19 +515,21 @@ final class FxNoteGraph implements AutoCloseable {
 
   private void updateLabels() {
     if (graph == null || zoom == null) return;
+    Path inspected = dragged == null ? hovered : dragged;
     double scale = zoom.scaleFactorProperty().get();
     int count = vertices.size();
     double labelScale = count <= SPARSE_GRAPH_NODES ? .85 : Math.min(2.5, 1.4 + count / 40.0);
-    // Inspect one note at a time. During motion, keep the active name in
-    // place and defer the fit check until the layout settles.
-    Path prominent = hovered == null ? active : hovered;
-    Set<Path> fitted = hovered == null && !graph.automaticLayoutProperty().get() && scale >= labelScale
+    // Keep only the grabbed or hovered note's name during inspection. During
+    // unassisted motion, defer the fit check until the layout settles.
+    Path prominent = inspected == null ? active : inspected;
+    Set<Path> fitted = inspected == null && !graph.automaticLayoutProperty().get() && scale >= labelScale
         ? fittingLabels() : Collections.emptySet();
     for (SmartGraphVertex<Path> vertex : graph.getSmartVertices()) {
       if (!(vertex.getStylableLabel() instanceof SmartLabel label)) continue;
       Path path = vertex.getUnderlyingVertex().element();
       boolean visible = path.equals(prominent) || fitted.contains(path);
       label.setVisible(visible);
+      label.setMouseTransparent(dragged != null);
       // SmartGraph reserves space for label text even when the label is hidden.
       label.setText(visible ? graphTitle(path) : "");
       if (path.equals(prominent)) label.toFront();
@@ -626,7 +648,11 @@ final class FxNoteGraph implements AutoCloseable {
   private void detail(String text) {
     detail.setText(text); detail.setVisible(!text.isBlank()); detail.setManaged(!text.isBlank());
   }
-  private void stopLayout() { settle.stop(); if (graph != null) graph.setAutomaticLayout(false); }
+  private void stopLayout() {
+    settle.stop();
+    if (dragged != null) { dragged = null; hovered = null; updateHighlights(); }
+    if (graph != null) graph.setAutomaticLayout(false);
+  }
   @Override public void close() {
     closed = true; generation++; debounce.stop(); stopLayout();
     if (animation != null) animation.stop(); if (pending != null) pending.cancel(true); worker.shutdownNow();
