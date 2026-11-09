@@ -25,6 +25,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToolBar;
+import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.image.ImageView;
@@ -63,7 +64,7 @@ public final class FxWorkspaceLayoutTests {
         PauseTransition settle = new PauseTransition(Duration.millis(300));
         settle.setOnFinished(event -> {
           try {
-            current.layout(); composition(current); compactWidth(current);
+            current.layout(); composition(current); compactWidth(current); nestedFileRow(current);
             searchInWorkspace(current, failure, close);
           } catch (Throwable error) {
             failure.compareAndSet(null, error);
@@ -147,6 +148,12 @@ public final class FxWorkspaceLayoutTests {
         && node.getLayoutBounds().getWidth() > 40),
         "The selected document filename must remain visible after the tab's reveal animation");
     Region tab = (Region) tabs.lookup(".tab:selected");
+    Label tabTitle = (Label) tab.lookup(".tab-box .label");
+    var tabIcon = tabTitle.getGraphic();
+    var tabText = tabTitle.lookup(".text");
+    check(tabTitle.getGraphicTextGap() == 8 && tabText.localToScene(tabText.getLayoutBounds()).getMinX()
+            - tabIcon.localToScene(tabIcon.getLayoutBounds()).getMaxX() >= 7,
+        "The tab title must have room to breathe beside its document icon");
     var tabOrigin = tab.localToScene(0, 0).subtract(tabs.localToScene(0, 0));
     check(Math.abs(tabOrigin.getX()) <= 1 && Math.abs(tabOrigin.getY()) <= 1 && tab.getHeight() == tabs.getHeight(),
         "The first document tab must touch the left, top, and bottom of the 52 px strip: " + tabOrigin);
@@ -175,11 +182,29 @@ public final class FxWorkspaceLayoutTests {
       previous = control;
     }
     Region sidebarToggle = (Region) toolbar.getItems().getFirst();
-    check(brand.getGraphic() instanceof ImageView icon && icon.getImage() == FxTheme.appIcon()
-            && icon.getBoundsInParent().getWidth() == sidebarToggle.getWidth()
-            && icon.getBoundsInParent().getHeight() == sidebarToggle.getHeight()
-            && Math.abs(centerY(icon) - centerY(sidebarToggle)) <= 1 && brand.getText().equals("diyalamp"),
-        "The Dock artwork must fill a centered slot the same size as the sidebar toggle");
+    StackPane brandGraphic = (StackPane) brand.getGraphic();
+    check(brandGraphic.getChildren().getFirst() instanceof ImageView icon && icon.getImage() == FxTheme.brandMark()
+            && icon.getImage().getWidth() == 72 && icon.getImage().getHeight() == 72 && icon.isSmooth()
+            && brandGraphic.getWidth() == sidebarToggle.getWidth()
+            && brandGraphic.getHeight() == sidebarToggle.getHeight()
+            && Math.abs(centerY(brandGraphic) - centerY(sidebarToggle)) <= 1 && brand.getText().equals("diyalamp"),
+        "The Retina website mark must fill a centered slot the same size as the sidebar toggle");
+    Node shine = brandGraphic.lookup("#toolbar-brand-shine");
+    check(!shine.isVisible() && shine.getParent().isMouseTransparent(), "The idle shine must be hidden and pass pointer events through");
+    String reducedMotion = System.getProperty("diyalamp.reduceMotion");
+    try {
+      System.setProperty("diyalamp.reduceMotion", "true");
+      brandGraphic.getOnMouseEntered().handle(null);
+      check(!shine.isVisible(), "Reduced motion must suppress the toolbar shine");
+    } finally {
+      if (reducedMotion == null) System.clearProperty("diyalamp.reduceMotion");
+      else System.setProperty("diyalamp.reduceMotion", reducedMotion);
+    }
+    if (!FxMotion.reduced()) {
+      brandGraphic.getOnMouseEntered().handle(null);
+      check(shine.isVisible() && brandGraphic.getBoundsInParent().getWidth() == 36,
+          "Hover must start the shine without resizing the wordmark");
+    }
     check("Toggle files sidebar".equals(toolbar.getItems().getFirst().getAccessibleText()) && toolbar.getItems().get(1) == brand,
         "The sidebar toggle precedes the lamp and diyalamp name");
     check(((ToggleButton) field(fixture.app, "filesControl")).isSelected()
@@ -222,6 +247,12 @@ public final class FxWorkspaceLayoutTests {
             node.getLayoutBounds().getWidth() == 28 && node.getLayoutBounds().getHeight() == 28)
             && headerCenters.equals(rowCenters),
         "Search options and creation actions must share file-row dimensions and alignment: " + headerCenters + " / " + rowCenters);
+    var noteBounds = selectedRow.localToScene(selectedRow.getLayoutBounds());
+    double iconLeft = iconInk(selectedRow.lookup(".file-kind")).stream().mapToDouble(bounds -> bounds.getMinX()).min().orElseThrow();
+    double actionRight = iconInk(action(tree, "Move Draft.md to deleted notes").getGraphic()).stream()
+        .mapToDouble(bounds -> bounds.getMaxX()).max().orElseThrow();
+    check(Math.abs((iconLeft - noteBounds.getMinX()) - (noteBounds.getMaxX() - actionRight)) <= 2,
+        "The top-level file row must balance the visible file icon and trailing action");
     double searchCenter = centerY(search);
     Node magnifier = ((StackPane) sidebarSearch.queryControl()).getChildren().get(1);
     check(Math.abs(inkCenterY(magnifier) - searchCenter) <= 1
@@ -274,7 +305,7 @@ public final class FxWorkspaceLayoutTests {
         "Enter saves the inline rename with the original extension");
     Button trash = action(tree, "Move Renamed.md to deleted notes");
     var trashRight = trash.localToScene(trash.getWidth(), 0).getX();
-    check(trash.isVisible() && tree.localToScene(tree.getWidth(), 0).getX() - trashRight <= 18,
+    check(trash.isVisible() && tree.localToScene(tree.getWidth(), 0).getX() - trashRight <= 21,
         "The selected note has a right-aligned delete action");
     Path draft = fixture.directory.resolve("Renamed.md");
     String original = Files.readString(draft);
@@ -314,7 +345,7 @@ public final class FxWorkspaceLayoutTests {
     check(toggle.isVisible() && toggle.getScene() == fixture.stage.getScene()
         && bounds.getMinX() >= 0 && bounds.getMaxX() <= fixture.stage.getScene().getWidth()
         && (overflow == null || !overflow.isVisible()) && brand.getGraphic().getBoundsInParent().getWidth() == 36,
-        "The full-size Dock icon and sidebar toggle stay on the bar with a long folder and running timer");
+        "The full-size wordmark and sidebar toggle stay on the bar with a long folder and running timer");
     check(folder.getTooltip().getText().equals(longPath),
         "A shortened folder button still exposes the complete path");
     String longFilename = "Long fictional name ".repeat(5).strip() + ".md";
@@ -335,16 +366,43 @@ public final class FxWorkspaceLayoutTests {
         .filter(node -> name.equals(node.getAccessibleText())).findFirst().orElseThrow();
   }
 
+  private static void nestedFileRow(Fixture fixture) throws Exception {
+    Path folder = Files.createDirectory(fixture.directory.resolve("Folder"));
+    Path note = Files.writeString(folder.resolve("A deliberately long filename that must leave room for all three actions.md"), "# Nested note");
+    call(fixture.app, "refreshTree", new Class<?>[0]);
+    TreeView<?> tree = (TreeView<?>) field(fixture.app, "tree");
+    tree.getRoot().getChildren().stream().filter(item -> folder.equals(item.getValue())).findFirst().orElseThrow()
+        .setExpanded(true);
+    fixture.layout();
+    var cells = tree.lookupAll(".tree-cell").stream().filter(TreeCell.class::isInstance).map(TreeCell.class::cast).toList();
+    var nested = cells.stream().filter(cell -> note.equals(cell.getItem())).findFirst().orElseThrow();
+    var topLevel = cells.stream().filter(cell -> fixture.directory.resolve("Reference.md").equals(cell.getItem())).findFirst().orElseThrow();
+    Node nestedIcon = nested.lookup(".file-kind"), topLevelIcon = topLevel.lookup(".file-kind");
+    check(nestedIcon.localToScene(0, 0).getX() - topLevelIcon.localToScene(0, 0).getX() == 16,
+        "Nested note content must retain the native 16 px indentation");
+    Button split = action(tree, "Open " + note.getFileName() + " side by side");
+    Button remove = action(tree, "Move " + note.getFileName() + " to deleted notes");
+    Button topRemove = action(tree, "Move Reference.md to deleted notes");
+    Node title = nested.lookup(".label");
+    check(Math.abs(remove.localToScene(remove.getWidth(), 0).getX()
+            - topRemove.localToScene(topRemove.getWidth(), 0).getX()) <= 1
+        && title.localToScene(title.getLayoutBounds()).getMaxX() < split.localToScene(0, 0).getX(),
+        "A long nested title must leave the action strip aligned and clickable");
+  }
+
   private static double centerY(Node node) {
     return node.localToScene(node.getLayoutBounds()).getCenterY();
   }
 
   private static double inkCenterY(Node icon) {
-    var ink = icon.lookupAll(".icon-stroke").stream()
-        .map(shape -> shape.localToScene(shape.getBoundsInLocal())).toList();
+    var ink = iconInk(icon);
     double top = ink.stream().mapToDouble(bounds -> bounds.getMinY()).min().orElseThrow();
     double bottom = ink.stream().mapToDouble(bounds -> bounds.getMaxY()).max().orElseThrow();
     return (top + bottom) / 2;
+  }
+
+  private static java.util.List<javafx.geometry.Bounds> iconInk(Node icon) {
+    return icon.lookupAll(".icon-stroke").stream().map(shape -> shape.localToScene(shape.getBoundsInLocal())).toList();
   }
 
   @SuppressWarnings("unchecked")

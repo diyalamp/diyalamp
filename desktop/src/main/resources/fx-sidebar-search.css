@@ -30,6 +30,10 @@
   -fx-border-radius: 8;
   -fx-padding: 2;
 }
+.sidebar-search-modes > .segmented-indicator {
+  -fx-background-color: -diyalamp-accent-subtle;
+  -fx-background-radius: 6;
+}
 .sidebar-search .sidebar-search-mode,
 .sidebar-search .sidebar-search-option {
   -fx-font-size: 16px;
@@ -48,23 +52,26 @@
   -fx-padding: 0 8;
   -fx-graphic-text-gap: 0;
 }
+.sidebar-search .sidebar-search-mode { -fx-border-radius: 6; }
 .sidebar-search-mode > .radio, .sidebar-search-mode > .radio > .dot {
   -fx-padding: 0;
   -fx-border-width: 0;
   -fx-background-color: transparent;
   -fx-opacity: 0;
 }
-.sidebar-search .sidebar-search-mode:hover, .sidebar-search .sidebar-search-option:hover {
+.sidebar-search .sidebar-search-option:hover {
   -fx-border-color: -color-border-default;
   -fx-text-fill: -color-fg-default;
 }
-.sidebar-search .sidebar-search-mode:selected, .sidebar-search .sidebar-search-option:selected {
+.sidebar-search .sidebar-search-mode:selected { -fx-text-fill: -color-fg-emphasis; }
+.sidebar-search .sidebar-search-option:selected {
   -fx-border-color: -diyalamp-focus;
   -fx-text-fill: -color-fg-emphasis;
 }
-.sidebar-search .sidebar-search-mode:focused, .sidebar-search .sidebar-search-option:focused {
+.sidebar-search .sidebar-search-mode:focus-visible, .sidebar-search .sidebar-search-option:focused {
   -fx-border-color: -diyalamp-focus;
 }
+.sidebar-search-mode:hover .icon-stroke { -fx-stroke: -color-fg-default; }
 .sidebar-search-mode:selected .icon-stroke,
 .sidebar-search-option:selected .icon-stroke { -fx-stroke: -color-accent-fg; }
 .sidebar-search-options .label { -fx-text-fill: -color-fg-muted; }

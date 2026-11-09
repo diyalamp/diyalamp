@@ -324,6 +324,24 @@ public final class FxNoteGraphTests {
     check(activeLabel.isVisible() && visibleLabels(graph) == 1,
         "Moving nodes keep only the active name visible");
     graph.setAutomaticLayout(false);
+
+    Node grabbed = (Node) separateNode, underPointer = (Node) overlapNode;
+    var start = position(graph, separate);
+    Event.fireEvent(grabbed, dragMouse(MouseEvent.MOUSE_PRESSED, grabbed, 10, 10));
+    Event.fireEvent(grabbed, dragMouse(MouseEvent.MOUSE_DRAGGED, grabbed, 35, 20));
+    check(!position(graph, separate).equals(start), "The graph library still moves the grabbed node");
+    Event.fireEvent(grabbed, mouse(MouseEvent.MOUSE_EXITED));
+    Event.fireEvent(underPointer, mouse(MouseEvent.MOUSE_ENTERED));
+    graph.setAutomaticLayout(false);
+    zoom.scaleFactorProperty().set(1.5);
+    check(separateLabel.isVisible() && visibleLabels(graph) == 1,
+        "Dragging keeps only the grabbed name through pointer transitions, settling, and zoom");
+    Event.fireEvent(grabbed, dragMouse(MouseEvent.MOUSE_RELEASED, underPointer, 35, 20));
+    check(overlapLabel.isVisible() && visibleLabels(graph) == 1,
+        "Release restores hover for the note actually under the pointer");
+    Event.fireEvent(underPointer, mouse(MouseEvent.MOUSE_EXITED));
+    check(activeLabel.isVisible() && separateLabel.isVisible() && !overlapLabel.isVisible(),
+        "Normal fitted labels return when the pointer leaves after a drag");
   }
 
   private static SmartGraphVertex<Path> graphVertex(SmartGraphPanel<Path, NoteLinkIndex.Edge> graph, Path path) {
@@ -409,6 +427,10 @@ public final class FxNoteGraphTests {
   private static MouseEvent mouse(javafx.event.EventType<MouseEvent> type) {
     return new MouseEvent(type, 10, 10, 10, 10, MouseButton.PRIMARY, 1,
         false, false, false, false, true, false, false, false, false, true, null);
+  }
+  private static MouseEvent dragMouse(javafx.event.EventType<MouseEvent> type, Node picked, double x, double y) {
+    return new MouseEvent(type, x, y, x, y, MouseButton.PRIMARY, 1, false, false, false, false,
+        type != MouseEvent.MOUSE_RELEASED, false, false, false, false, false, new PickResult(picked, x, y));
   }
   private static javafx.geometry.Point2D position(SmartGraphPanel<Path, NoteLinkIndex.Edge> graph, Path path) {
     var vertex = graph.getModel().vertices().stream().filter(item -> item.element().equals(path)).findFirst().orElseThrow();

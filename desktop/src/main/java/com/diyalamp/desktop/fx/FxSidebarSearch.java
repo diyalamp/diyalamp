@@ -214,9 +214,7 @@ public final class FxSidebarSearch extends VBox {
     for (RadioButton button : new RadioButton[] {files, contents}) {
       button.setToggleGroup(mode);
       button.setMinWidth(0);
-      button.setMaxWidth(Double.MAX_VALUE);
       button.getStyleClass().add("sidebar-search-mode");
-      HBox.setHgrow(button, Priority.ALWAYS);
     }
     files.setGraphic(FxTheme.icon("files"));
     files.setAccessibleText("Search filenames");
@@ -225,7 +223,7 @@ public final class FxSidebarSearch extends VBox {
     contents.setAccessibleText("Search note contents");
     contents.setTooltip(new Tooltip("Search note contents"));
     files.setSelected(true);
-    HBox modes = new HBox(files, contents);
+    HBox modes = new FxSegmentedControl(0, files, contents);
     modes.getStyleClass().add("sidebar-search-modes");
 
     styleToggle(matchCase, "Match case");

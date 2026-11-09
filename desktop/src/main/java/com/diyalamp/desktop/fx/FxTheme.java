@@ -9,6 +9,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import javafx.animation.Animation;
+import javafx.animation.Interpolator;
+import javafx.animation.TranslateTransition;
 import javafx.application.Application;
 import javafx.collections.MapChangeListener;
 import javafx.css.PseudoClass;
@@ -20,12 +23,17 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.paint.LinearGradient;
+import javafx.scene.paint.Stop;
 import javafx.scene.shape.*;
 import javafx.scene.transform.Scale;
 import javafx.scene.text.Font;
 import javafx.stage.WindowEvent;
+import javafx.util.Duration;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Element;
 
@@ -197,14 +205,57 @@ public final class FxTheme {
     private static final Image IMAGE = image("app-icon.png");
   }
 
+  private static final class BrandMark {
+    // Decoded from the website's 72 px lamp-mark.webp for a 36 pt slot at 2x.
+    private static final Image IMAGE = image("brand-mark.png");
+  }
+
   static Image appIcon() { return AppIcon.IMAGE; }
 
+  static Image brandMark() { return BrandMark.IMAGE; }
+
   static ImageView brandIcon(double size) {
-    ImageView view = new ImageView(appIcon());
+    ImageView view = new ImageView(brandMark());
     view.setFitWidth(size);
     view.setFitHeight(size);
     view.setPreserveRatio(true);
+    view.setSmooth(true);
     return view;
+  }
+
+  static StackPane toolbarBrandIcon(double size) {
+    Rectangle sweep = new Rectangle(size * 1.4, size);
+    sweep.setId("toolbar-brand-shine");
+    sweep.setManaged(false);
+    sweep.setVisible(false);
+    sweep.setFill(new LinearGradient(0, 0, 1, 1, true, CycleMethod.NO_CYCLE,
+        new Stop(.28, Color.TRANSPARENT), new Stop(.5, Color.rgb(255, 255, 255, .16)),
+        new Stop(.72, Color.TRANSPARENT)));
+    Pane overlay = new Pane(sweep);
+    overlay.setMouseTransparent(true);
+    overlay.setClip(brandIcon(size));
+    StackPane graphic = new StackPane(brandIcon(size), overlay);
+    graphic.setMinSize(size, size);
+    graphic.setPrefSize(size, size);
+    graphic.setMaxSize(size, size);
+
+    TranslateTransition shine = new TranslateTransition(Duration.millis(620), sweep);
+    shine.setFromX(-sweep.getWidth());
+    shine.setToX(size);
+    shine.setInterpolator(Interpolator.EASE_BOTH);
+    shine.setOnFinished(event -> sweep.setVisible(false));
+    sweep.translateXProperty().addListener((observable, previous, position) -> {
+      if (FxMotion.reduced()) {
+        shine.stop();
+        sweep.setVisible(false);
+      }
+    });
+    graphic.setOnMouseEntered(event -> {
+      if (FxMotion.reduced() || shine.getStatus() == Animation.Status.RUNNING) return;
+      sweep.setVisible(true);
+      shine.playFromStart();
+    });
+    return graphic;
   }
 
   static Node icon(String name) { return icon(name, 16); }
