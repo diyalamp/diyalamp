@@ -46,7 +46,7 @@ For another release, replace `1.3.7` with that release's version in the command.
 3. Eject the mounted diyalamp disk image.
 4. Open diyalamp from Applications.
 
-This release is **ad hoc signed**, without Developer ID or Apple notarization. macOS may require approval on first launch. If you trust the release source and choose to approve this app, try opening it once, then use System Settings → Privacy & Security → **Open Anyway** and review the confirmation. This is Apple's per-app approval flow; see [Apple's current instructions](https://support.apple.com/en-us/102445). If macOS reports malware or a damaged app, stop and report the message instead of trying to bypass it. Organization-managed Macs may require an administrator's approval.
+Releases through **1.3.7** are ad hoc signed. macOS may block them on first launch. Look for a release whose notes confirm Developer ID signing and Apple notarization. If macOS rejects a notarized release, [report an issue](https://github.com/diyalamp/diyalamp/issues) with the exact message and macOS version. Organization-managed Macs may also enforce their own installation policy.
 
 ## Updating from the app
 
@@ -54,7 +54,7 @@ From version 1.1.1 onward, choose Help → **Check for updates**. Checking is ex
 
 The updater uses only this project's GitHub release channel and the installer for your Mac architecture. It verifies the SHA-256 checksum, disk image, bundle identity/version, architecture, and staged app. It keeps the previous app as a hidden `.diyalamp-backup-….bundle` beside the installation, and attempts rollback if replacement or launch fails. It does not request administrator rights or change macOS security settings. If your Applications folder is not writable by your account, [update from a DMG](#update-from-a-dmg).
 
-Earlier versions without the updater need one manual replacement. Checksums verify download integrity. This release does not carry a Developer ID signature.
+Earlier versions without the updater need one manual replacement. Checksums verify download integrity. The release notes identify whether Apple notarized the installer.
 
 ## Start writing
 
