@@ -315,7 +315,7 @@ public final class FxDiyalamp extends Application {
 
   private ToolBar buildToolbar() {
     toolbar.getStyleClass().add("workspace-toolbar");
-    Label brand = new Label("diyalamp", FxTheme.brandIcon(36));
+    Label brand = new Label("diyalamp", FxTheme.toolbarBrandIcon(36));
     brand.setMinWidth(Region.USE_PREF_SIZE);
     brand.setAlignment(Pos.CENTER_LEFT); brand.getStyleClass().add("workspace-brand");
     ToggleButton files = new ToggleButton(null, FxTheme.icon("panel-left", 16));
@@ -418,7 +418,6 @@ public final class FxDiyalamp extends Application {
     HBox.setHgrow(query, Priority.ALWAYS);
     HBox actionStrip = new HBox(options, createFolder, create);
     actionStrip.setAlignment(Pos.CENTER_LEFT);
-    HBox.setMargin(actionStrip, new Insets(0, 4, 0, 0)); // Match the file cell's inner right inset.
     HBox actions = new HBox(8, query, actionStrip);
     actions.setAlignment(Pos.CENTER_LEFT);
     actions.getStyleClass().addAll("workspace-band", "files-heading-row");
@@ -497,10 +496,8 @@ public final class FxDiyalamp extends Application {
       Node kind = FxTheme.icon(directory ? "folder-open" : "file-text", 15);
       kind.getStyleClass().add("file-kind");
       row = new HBox(8, kind, title);
-      int depth = Math.max(0, tree.getTreeItemLevel(getTreeItem()) - 1);
-      // Leave the native disclosure gutter and keep the actions within the viewport.
+      // Let the tree skin account for disclosure, nesting, and the scroll viewport.
       row.setMinWidth(0);
-      row.prefWidthProperty().bind(Bindings.max(0, widthProperty().subtract(24 + 16 * depth)));
       row.setAlignment(Pos.CENTER_LEFT); row.setMaxWidth(Double.MAX_VALUE);
       if (!directory) row.getChildren().add(fileActions(path));
       setTooltip(new Tooltip(path.getFileName().toString()));

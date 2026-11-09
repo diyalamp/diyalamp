@@ -1,5 +1,9 @@
 package com.diyalamp.desktop.fx;
 
+import atlantafx.base.controls.Tab;
+import atlantafx.base.controls.TabLine;
+import atlantafx.base.controls.TabSkin;
+import atlantafx.base.theme.Styles;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -7,9 +11,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import javafx.application.Platform;
 import javafx.css.TransitionEvent;
 import javafx.geometry.Bounds;
+import javafx.geometry.Insets;
+import javafx.scene.AccessibleAction;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
@@ -31,13 +39,21 @@ public final class FxHoverThemeTests {
         FxTheme.setup();
         Button tool = FxTheme.iconButton("folder-open", "Fictional action", () -> {});
         Label metric = new Label("12 words"); metric.getStyleClass().add("note-metric");
-        HBox root = new HBox(8, tool, metric); root.setFillHeight(false);
+        TabLine tabs = new TabLine(); tabs.getStyleClass().addAll(Styles.DENSE, Styles.TABS_FLOATING, "document-tabs");
+        tabs.setAnimated(false); tabs.setTabClosingPolicy(Tab.ClosingPolicy.ALL_TABS);
+        Tab first = new Tab("first", "First.md"), second = new Tab("second", "Second.md");
+        tabs.getTabs().addAll(first, second); tabs.getSelectionModel().select(first);
+        HBox root = new HBox(8, tool, metric, tabs); root.setFillHeight(false);
         root.getStyleClass().add("workspace-root");
         root.getStylesheets().add(FxTheme.class.getResource("/fx-workspace.css").toExternalForm());
         FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
         Scene scene = new Scene(root, 400, 200);
         stage.setScene(scene); stage.show(); root.applyCss(); root.layout();
         Bounds originalBounds = tool.getBoundsInParent();
+        TabSkin inactive = tabs.lookupAll(".tab").stream().filter(TabSkin.class::isInstance).map(TabSkin.class::cast)
+            .filter(header -> header.getTab() == second).findFirst().orElseThrow();
+        Region close = (Region) inactive.lookup(".close-button");
+        Bounds originalTabBounds = inactive.getBoundsInParent(), originalCloseBounds = close.getBoundsInParent();
         AtomicInteger starts = new AtomicInteger();
         tool.addEventHandler(TransitionEvent.START, event -> starts.incrementAndGet());
         Robot pointer = new Robot();
@@ -47,6 +63,7 @@ public final class FxHoverThemeTests {
         scene.addPostLayoutPulseListener(new Runnable() {
           private boolean hoverStarted;
           private boolean checkingReducedMotion;
+          private boolean checkingTabHover;
           private boolean geometryUnchanged = true;
           private int startsBeforeReducedMotion;
 
@@ -55,7 +72,8 @@ public final class FxHoverThemeTests {
             try {
               if (System.nanoTime() >= deadline) {
                 throw new AssertionError("Hover did not settle. Toolbar hovered=" + tool.isHover()
-                    + " paint=" + paint(tool) + " starts=" + starts.get() + ", metric hovered=" + metric.isHover());
+                    + " paint=" + paint(tool) + " starts=" + starts.get() + ", metric hovered=" + metric.isHover()
+                    + ", tab hovered=" + inactive.isHover() + ", close hovered=" + close.isHover());
               }
               if (!hoverStarted) {
                 // The headless Robot uses JavaFX picking with one pointer and one hovered sibling.
@@ -76,10 +94,29 @@ public final class FxHoverThemeTests {
                   moveToCenter(pointer, metric);
                   checkingReducedMotion = true;
                 }
-              } else if (metric.isHover() && !tool.isHover()) {
+              } else if (!checkingTabHover && metric.isHover() && !tool.isHover()) {
                 check(target.equals(paint(metric)), "Metric hover immediately reaches the subdued surface: " + paint(metric));
                 check(paint(tool).getOpacity() == 0, "Reduced motion applies the final toolbar paint immediately");
                 check(startsBeforeReducedMotion == starts.get(), "Reduced motion must not start new CSS transitions");
+                moveToCenter(pointer, close);
+                checkingTabHover = true;
+              } else if (checkingTabHover && inactive.isHover() && close.isHover()) {
+                check(paint(inactive).equals(Color.web("#FFFFFF0F"))
+                    && inactive.getBackground().getFills().stream().allMatch(fill ->
+                        fill.getInsets().equals(Insets.EMPTY) && fill.getRadii().equals(CornerRadii.EMPTY)),
+                    "The hovered tab must have a flat, full-width tint: " + paint(inactive) + " / "
+                        + inactive.getBackground().getFills().stream().map(fill -> fill.getInsets() + " " + fill.getRadii()).toList());
+                check(paint(close).equals(Color.TRANSPARENT) && paint((Region) close.lookup(".graphic")).equals(Color.WHITE),
+                    "Hovering close must brighten its glyph without adding a second surface");
+                check(originalTabBounds.equals(inactive.getBoundsInParent()) && originalCloseBounds.equals(close.getBoundsInParent()),
+                    "Tab hover must keep both hit areas in place");
+                Region active = (Region) tabs.lookup(".tab:selected");
+                check(Color.web("#FF6B6B").equals(active.getBorder().getStrokes().getFirst().getTopStroke()),
+                    "Hovering a different tab must leave the selected tab's accent in place");
+                check(close.getAccessibleRole() == AccessibleRole.BUTTON, "The close action remains an accessible button");
+                close.executeAccessibleAction(AccessibleAction.FIRE);
+                check(tabs.getTabs().size() == 1 && tabs.getTabs().getFirst() == first,
+                    "The accessible close action must close only its own tab");
                 complete = true;
               }
             } catch (Throwable error) {

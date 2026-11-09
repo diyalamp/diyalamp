@@ -35,15 +35,18 @@
   -fx-text-fill: -color-fg-default;
 }
 .diyalamp-popover .accent-choice { -fx-alignment: center-left; }
-.diyalamp-popover .accent-choice:hover, .diyalamp-popover .pomodoro-phase:hover {
+.diyalamp-popover .accent-choice:hover {
   -fx-background-color: -diyalamp-control-hover;
   -fx-text-fill: -color-fg-emphasis;
 }
-.diyalamp-popover .accent-choice:pressed, .diyalamp-popover .pomodoro-phase:pressed {
+.diyalamp-popover .accent-choice:pressed {
   -fx-background-color: -diyalamp-control-pressed;
 }
-.diyalamp-popover .accent-choice:selected, .diyalamp-popover .pomodoro-phase:selected {
+.diyalamp-popover .accent-choice:selected {
   -fx-background-color: -diyalamp-accent-subtle;
+  -fx-text-fill: -color-fg-emphasis;
+}
+.diyalamp-popover .pomodoro-phase:hover, .diyalamp-popover .pomodoro-phase:selected {
   -fx-text-fill: -color-fg-emphasis;
 }
 .diyalamp-popover .accent-choice:focus-visible, .diyalamp-popover .pomodoro-phase:focus-visible {
@@ -60,10 +63,13 @@
   -fx-background-insets: 0, 1;
   -fx-background-radius: 8, 7;
 }
-.pomodoro-segments .pomodoro-phase {
+.pomodoro-segments > .segmented-indicator {
+  -fx-background-color: -diyalamp-accent-subtle;
   -fx-background-insets: 3;
-  -fx-border-insets: 3;
   -fx-background-radius: 5;
+}
+.pomodoro-segments .pomodoro-phase {
+  -fx-border-insets: 3;
   -fx-border-radius: 5;
 }
 

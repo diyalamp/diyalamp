@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.geometry.Insets;
@@ -24,6 +25,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
@@ -57,7 +59,7 @@ public final class FxSidebarSearchTests {
     System.out.println("Passed " + checks + " sidebar search checks.");
   }
 
-  private static void search() {
+  private static void search() throws ReflectiveOperationException {
     FxSidebarSearch panel = new FxSidebarSearch();
     AtomicReference<FxWorkspaceSearch.Query> request = new AtomicReference<>();
     AtomicReference<FxSidebarSearch.OpenResult> opened = new AtomicReference<>();
@@ -128,6 +130,7 @@ public final class FxSidebarSearchTests {
                       && item.getGraphic() != null
                       && item.getGraphic().lookup(".icon-stroke") != null && item.getAccessibleText() != null),
           "All scope and filter controls must have an icon and an accessible name");
+      scopeIndicator(panel);
       toggle(panel, "Include and exclude files").fire();
       check(treeBelowOptions(workspace, panel, files) > compactTreeY + 36,
           "Expanding the include and exclude fields must make room above the files view");
@@ -228,6 +231,41 @@ public final class FxSidebarSearchTests {
     }
   }
 
+  private static void scopeIndicator(FxSidebarSearch panel) throws ReflectiveOperationException {
+    ToggleButton files = toggle(panel, "Search filenames"), contents = toggle(panel, "Search note contents");
+    Region indicator = (Region) panel.lookup(".segmented-indicator");
+    check(indicator.isMouseTransparent() && !indicator.isManaged() && indicator.getBackground() != null
+            && indicator.getLayoutX() == files.getLayoutX() && indicator.getWidth() == files.getWidth(),
+        "The indicator must paint behind the selected segment without taking layout or pointer input");
+
+    String preference = System.getProperty("diyalamp.reduceMotion");
+    try {
+      System.clearProperty("diyalamp.reduceMotion");
+      if (!FxMotion.reduced()) {
+        double left = files.getLayoutX(), right = contents.getLayoutX();
+        contents.fire();
+        var motion = FxSegmentedControl.class.getDeclaredField("motion");
+        motion.setAccessible(true);
+        Timeline slide = (Timeline) motion.get(files.getParent());
+        slide.jumpTo(slide.getTotalDuration().divide(2));
+        double middle = indicator.getLayoutX();
+        check(middle > left && middle < right && contents.isSelected(),
+            "The selection must update immediately while the decorative indicator slides");
+        files.fire();
+        check(indicator.getLayoutX() == middle && files.isSelected(),
+            "Reversing the selection must start at the current indicator position");
+      }
+      System.setProperty("diyalamp.reduceMotion", "true");
+      contents.fire();
+      check(indicator.getLayoutX() == contents.getLayoutX() && indicator.getWidth() == contents.getWidth(),
+          "Reduced motion must place the indicator on the newly selected scope immediately");
+      files.fire();
+    } finally {
+      if (preference == null) System.clearProperty("diyalamp.reduceMotion");
+      else System.setProperty("diyalamp.reduceMotion", preference);
+    }
+  }
+
   private static void snippetRows(VBox workspace, FxSidebarSearch panel, TreeView<?> results, Path notePath) {
     String excerpt = "Find the Original passage inside this longer result excerpt.";
     var matches = IntStream.rangeClosed(1, 100).mapToObj(line -> line == 1
@@ -269,7 +307,8 @@ public final class FxSidebarSearchTests {
   }
 
   private static ToggleButton toggle(FxSidebarSearch panel, String name) {
-    return panel.lookupAll(".sidebar-search-option").stream().filter(node -> name.equals(node.getAccessibleText()))
+    return java.util.stream.Stream.concat(panel.lookupAll(".sidebar-search-option").stream(),
+            panel.lookupAll(".sidebar-search-mode").stream()).filter(node -> name.equals(node.getAccessibleText()))
         .map(ToggleButton.class::cast).findFirst().orElseThrow();
   }
 
