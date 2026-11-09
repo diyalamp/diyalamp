@@ -1,5 +1,8 @@
-## diyalamp 1.3.7
+## diyalamp 1.3.8
 
-- Match the toolbar Dock icon’s size to the sidebar toggle beside it.
+- Sign the Apple silicon and Intel downloads with Developer ID and staple Apple notarization tickets.
+- Polish tab hover, file row spacing, and the toolbar mark.
+- Keep just the dragged note's label visible while moving a node in the Connections graph.
+- Slide the selection indicator in search and Pomodoro controls.
 
-The integrated Markdown editor uses files in the folder you choose. The Apple silicon and Intel installers include the runtime and have SHA-256 checksums. Both installers are ad hoc signed. See the [installation guide](https://github.com/diyalamp/diyalamp/blob/main/docs/install.md) for first launch and updates.
+Both Mac installers include the runtime and have SHA-256 checksums. See the [installation guide](https://github.com/diyalamp/diyalamp/blob/main/docs/install.md) for first launch and updates.

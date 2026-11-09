@@ -39,9 +39,11 @@ sh desktop/package-macos.sh
 
 This produces a self-contained `.app`, a compressed DMG for the current processor architecture, and a SHA-256 file. The runtime is included, so users can run the app directly. FlatLaf, FlatLaf Extras, and JSVG remain available to the source build and Swing tests. The packaging script uses stronger lossless DMG compression when it makes the download smaller.
 
-The manual GitHub packaging workflow builds separate Apple silicon and Intel artifacts and tests each bundled runtime from its mounted DMG. Select **Build and test installers without staging a release** to validate a branch. A release dispatch stages both verified installers in a draft using the version declared in `DesktopLauncher.VERSION`.
+The manual GitHub packaging workflow builds separate Apple silicon and Intel artifacts and tests each app after copying it from its mounted DMG. Select **Build and test installers without staging a release** to run an ad hoc signed validation build. A signed run on a branch verifies the installers without staging them. A signed run on `main` stages both verified installers in a draft using the version declared in `DesktopLauncher.VERSION`.
 
-The community installers are ad hoc signed. Developer ID signing and Apple notarization require a separate release setup. See the [install guide](../docs/install.md) for the current first-launch process.
+Release runs require an Apple **Developer ID Application** identity. Configure GitHub Actions secrets with the base64-encoded PKCS#12 export in `APPLE_DEVELOPER_ID_P12`, its password in `APPLE_DEVELOPER_ID_PASSWORD`, and an App Store Connect team API key in `APPLE_NOTARY_KEY` (the .p8 contents), `APPLE_NOTARY_KEY_ID`, and `APPLE_NOTARY_ISSUER`. For a signed local build, set `DIYALAMP_MAC_SIGNING_IDENTITY` to the full identity name and `DIYALAMP_NOTARY_PROFILE` to a saved `notarytool` keychain profile. Set `DIYALAMP_MAC_SIGNING_KEYCHAIN` if the identity and profile are in a separate keychain.
+
+The release workflow verifies the signature and Apple ticket for the finished DMG and checks the copied app with Gatekeeper's distribution verifier. Before publishing a draft, also open an actual browser-downloaded installer on a clean Mac and launch the copied app from Applications.
 
 ## Interface design
 
