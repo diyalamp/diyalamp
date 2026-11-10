@@ -1,6 +1,5 @@
 package com.diyalamp.desktop.fx;
 
-import atlantafx.base.controls.CustomTextField;
 import atlantafx.base.controls.Popover;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +10,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -44,7 +44,7 @@ final class FxQuickTasks {
   private final Preferences preferences;
   private final List<Task> tasks = new ArrayList<>();
   private final Button control = FxTheme.iconButton("list-checks", "Quick tasks", this::show);
-  private final CustomTextField input = new CustomTextField();
+  private final TextField input = new TextField();
   private final Button add = FxTheme.iconButton("plus", "Add task", this::add);
   private final Label summary = new Label(), empty = new Label("No tasks yet."), status = new Label();
   private final VBox rows = new VBox(4);
@@ -78,9 +78,11 @@ final class FxQuickTasks {
     header.setAlignment(Pos.CENTER_LEFT);
     summary.getStyleClass().add("quick-tasks-summary");
     input.setPromptText("Add a task…");
-    input.setAccessibleText("New task");
     input.setAccessibleHelp("Type a task and press Enter to add it.");
-    input.getStyleClass().addAll("note-search-field", "quick-task-input");
+    input.getStyleClass().add("quick-task-input");
+    input.setMinWidth(0);
+    input.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+    HBox.setHgrow(input, Priority.ALWAYS);
     input.setTextFormatter(new TextFormatter<>(change -> {
       String text = change.getControlNewText();
       return validText(text) ? change : null;
@@ -91,7 +93,10 @@ final class FxQuickTasks {
     });
     input.textProperty().addListener(observable -> refreshAdd());
     add.getStyleClass().addAll("file-row-action", "quick-task-add");
-    input.setRight(add);
+    // Keep the button out of the editable field's accessibility tree.
+    HBox entry = new HBox(4, input, add);
+    entry.setAlignment(Pos.CENTER_LEFT);
+    entry.getStyleClass().addAll("note-search-field", "quick-task-entry");
     empty.getStyleClass().add("quick-tasks-empty");
     status.getStyleClass().add("quick-tasks-status");
     status.setWrapText(true);
@@ -107,7 +112,7 @@ final class FxQuickTasks {
     empty.managedProperty().bind(empty.visibleProperty());
     rows.getStyleClass().add("quick-tasks-rows");
     for (Task task : tasks) rows.getChildren().add(row(task));
-    VBox content = new VBox(12, header, input, empty, checklist, status);
+    VBox content = new VBox(12, header, entry, empty, checklist, status);
     content.getStyleClass().addAll("popover-panel", "quick-tasks-panel");
     content.setPrefWidth(PANEL_WIDTH);
     popup = new Popover(content);

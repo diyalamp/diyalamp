@@ -82,6 +82,7 @@ public final class FxDiyalamp extends Application {
   private static final double MIN_WRITING_WIDTH = 240;
   private static final double SIDEBAR_DIVIDER_WIDTH = 6;
   private static final double TOOLBAR_GAP = 4;
+  private static final double FOLDER_CONTROL_CHROME = 40;
   private final Preferences preferences;
   private final Map<Path, Session> sessions = new LinkedHashMap<>();
   private final TreeView<Path> tree = new TreeView<>();
@@ -94,6 +95,7 @@ public final class FxDiyalamp extends Application {
   private FxWorkspaceSearch.Query searchQuery;
   private Future<?> searchTask;
   private long searchGeneration;
+  private final ObjectProperty<Path> workspacePath = new SimpleObjectProperty<>();
   private final Button folderControl = new Button("Open folder…", FxTheme.icon("folder-open", 16));
   private final Label status = new Label("Local workspace");
   private final Label characters = metricLabel("type", "Characters in the note text (Unicode code points)"),
@@ -375,7 +377,7 @@ public final class FxDiyalamp extends Application {
     forward.disableProperty().bind(historyForward.not().or(privacyMode));
     ToggleButton files = new ToggleButton(null, FxTheme.icon("panel-left", 16));
     filesControl = files;
-    files.getStyleClass().addAll("flat", "button-icon", "workspace-tool");
+    files.getStyleClass().addAll("flat", "button-icon", "workspace-tool", "sidebar-toggle");
     files.setAccessibleText("Toggle files sidebar");
     Tooltip filesHelp = new Tooltip();
     filesHelp.textProperty().bind(Bindings.when(files.selectedProperty())
@@ -386,12 +388,8 @@ public final class FxDiyalamp extends Application {
     folderControl.getStyleClass().addAll("flat", "workspace-tool", "workspace-folder");
     folderControl.setAlignment(Pos.CENTER_LEFT);
     folderControl.setMaxWidth(Region.USE_PREF_SIZE);
-    folderControl.setTextOverrun(OverrunStyle.LEADING_ELLIPSIS);
+    folderControl.setTextOverrun(OverrunStyle.ELLIPSIS);
     folderControl.setAccessibleText("Open folder");
-    folderControl.accessibleHelpProperty().bind(folderControl.textProperty());
-    Tooltip folderPath = new Tooltip();
-    folderPath.textProperty().bind(folderControl.textProperty());
-    folderControl.setTooltip(folderPath);
     folderControl.setOnAction(event -> chooseFolder());
     folderControl.visibleProperty().bind(privacyMode.not());
     folderControl.managedProperty().bind(folderControl.visibleProperty());
@@ -400,7 +398,7 @@ public final class FxDiyalamp extends Application {
     HBox.setHgrow(toolbarDragHandle, Priority.SOMETIMES);
     ToggleButton connections = new ToggleButton(null, FxTheme.icon("panel-right", 16));
     connectionsControl = connections;
-    connections.getStyleClass().addAll("flat", "button-icon", "workspace-tool");
+    connections.getStyleClass().addAll("flat", "button-icon", "workspace-tool", "sidebar-toggle");
     connections.setAccessibleText("Toggle right sidebar");
     connections.setAccessibleHelp("Show or hide incoming and outgoing note connections. The state is remembered.");
     Tooltip connectionHelp = new Tooltip();
@@ -415,7 +413,10 @@ public final class FxDiyalamp extends Application {
     zen.setTooltip(zenHelp); zen.setAccessibleText("Zen mode");
     zen.setAccessibleHelp("Keep the current line clear while dimming surrounding text and workspace controls.");
     zen.selectedProperty().bindBidirectional(zenMode);
-    toolbar.getItems().setAll(back, forward, files, brand, folderControl, toolbarDragHandle);
+    Region folderDivider = toolbarDivider();
+    folderDivider.visibleProperty().bind(folderControl.visibleProperty());
+    folderDivider.managedProperty().bind(folderDivider.visibleProperty());
+    toolbar.getItems().setAll(back, forward, files, brand, folderDivider, folderControl, toolbarDragHandle);
     if (pomodoro != null) {
       toolbar.getItems().add(pomodoro.button());
       toolbar.widthProperty().addListener((observable, previous, width) -> pomodoro.setCompact(width.doubleValue() < 820));
@@ -434,7 +435,7 @@ public final class FxDiyalamp extends Application {
     }
     Button reset = FxTheme.iconButton("layout-template", "Reset sidebar widths", this::resetSidebarWidths);
     reset.setAccessibleHelp("Restore both sidebars to 30 percent of the workspace when space allows.");
-    toolbar.getItems().addAll(privacy, accentButton(), zen, reset, connections);
+    toolbar.getItems().addAll(privacy, accentButton(), zen, reset, toolbarDivider(), connections);
     for (ButtonBase control : List.of(files, accentButton(), zen, reset, connections))
       control.disableProperty().bind(privacyMode);
     if (pomodoro != null) pomodoro.button().disableProperty().bind(privacyMode);
@@ -443,18 +444,43 @@ public final class FxDiyalamp extends Application {
   }
 
   private void fitFolderControl() {
-    Text path = new Text();
-    path.textProperty().bind(folderControl.textProperty());
-    path.fontProperty().bind(folderControl.fontProperty());
+    var fullPath = Bindings.createStringBinding(() -> workspacePath.get() == null
+        ? "Open folder…" : workspacePath.get().toString(), workspacePath);
+    folderControl.accessibleHelpProperty().bind(fullPath);
+    Tooltip folderPath = new Tooltip();
+    folderPath.textProperty().bind(fullPath);
+    folderControl.setTooltip(folderPath);
+
+    Text fullPathText = new Text();
+    fullPathText.textProperty().bind(fullPath);
+    fullPathText.fontProperty().bind(folderControl.fontProperty());
     var timerWidth = pomodoro == null ? toolbar.widthProperty() : pomodoro.button().prefWidthProperty();
-    folderControl.prefWidthProperty().bind(Bindings.createDoubleBinding(() -> {
+    var available = Bindings.createDoubleBinding(() -> {
       Insets insets = toolbar.getInsets();
       // Leave one extra gap for pixel rounding in the toolbar skin.
       double reserved = insets.getLeft() + insets.getRight() + TOOLBAR_GAP * toolbar.getItems().size();
       for (Node item : toolbar.getItems()) if (item != folderControl && item.isManaged()) reserved += item.prefWidth(-1);
-      double natural = path.getLayoutBounds().getWidth() + 40;
-      return Math.max(36, Math.min(natural, toolbar.getWidth() - reserved));
-    }, toolbar.widthProperty(), toolbar.insetsProperty(), path.layoutBoundsProperty(), timerWidth));
+      return Math.max(36, toolbar.getWidth() - reserved);
+    }, toolbar.widthProperty(), toolbar.insetsProperty(), folderControl.visibleProperty(), timerWidth);
+    folderControl.textProperty().bind(Bindings.createStringBinding(() -> {
+      Path path = workspacePath.get();
+      return path != null && path.getFileName() != null
+          && fullPathText.getLayoutBounds().getWidth() + FOLDER_CONTROL_CHROME > available.get()
+          ? path.getFileName().toString() : fullPath.get();
+    }, workspacePath, fullPathText.layoutBoundsProperty(), available));
+    Text displayedPath = new Text();
+    displayedPath.textProperty().bind(folderControl.textProperty());
+    displayedPath.fontProperty().bind(folderControl.fontProperty());
+    folderControl.prefWidthProperty().bind(Bindings.createDoubleBinding(() ->
+        Math.min(available.get(), Math.ceil(displayedPath.getLayoutBounds().getWidth()) + FOLDER_CONTROL_CHROME),
+        available, displayedPath.layoutBoundsProperty()));
+  }
+
+  private static Region toolbarDivider() {
+    Region divider = new Region();
+    divider.getStyleClass().add("workspace-toolbar-divider");
+    divider.setMouseTransparent(true);
+    return divider;
   }
 
   private void buildExplorer() {
@@ -968,7 +994,7 @@ public final class FxDiyalamp extends Application {
       primary.tabs.getTabs().clear(); secondary.tabs.getTabs().clear();
       split.getItems().setAll(primary.container);
       primary.container.setCenter(emptyPage()); secondary.container.setCenter(emptyPage());
-      folderControl.setText(store.root().toString());
+      workspacePath.set(store.root());
       scheduleSearch(null);
       sidebarSearch.setWorkspaceRoot(store.root());
       sidebarSearch.reset();

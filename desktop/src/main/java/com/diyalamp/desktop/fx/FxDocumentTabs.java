@@ -13,16 +13,22 @@ import javafx.animation.KeyValue;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Bounds;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.ScrollEvent;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
 /** AtlantaFX headers reordered through its permutation API during a native drag gesture. */
 final class FxDocumentTabs extends TabLine {
+  private static final double MAX_TAB_WIDTH = 240;
   private final Region insertionGuide = new Region();
   private final Runnable revealAfterLayout = this::revealSelectedTab;
   private final PauseTransition revealAfterOpening = new PauseTransition(ANIMATION_SPEED);
@@ -54,6 +60,34 @@ final class FxDocumentTabs extends TabLine {
       if (next == null) revealAfterOpening.stop();
       else queueSelectedTabReveal();
     });
+  }
+
+  @Override protected void layoutChildren() {
+    double limit = Math.min(MAX_TAB_WIDTH, Math.floor(getWidth() - snappedLeftInset() - snappedRightInset()));
+    if (limit > 0) {
+      for (TabSkin header : headers(strip())) {
+        if (!(header.getChildrenUnmodifiable().getFirst() instanceof HBox row)
+            || !(row.getChildren().getFirst() instanceof Label title)) continue;
+        // Keep AtlantaFX's natural header widths until the title would crowd out the close action.
+        double natural = Math.ceil(row.prefWidth(-1) + header.getInsets().getLeft() + header.getInsets().getRight());
+        double width = Math.min(limit, Math.max(getTabMinWidth(), natural));
+        if (header.getPrefWidth() != width) {
+          header.setPrefWidth(width);
+          if (header.getTab().isSelected()) queueSelectedTabReveal();
+        }
+        if (!title.tooltipProperty().isBound()) {
+          Tooltip fullName = new Tooltip();
+          fullName.textProperty().bind(title.textProperty());
+          var original = header.getTab().tooltipProperty();
+          title.tooltipProperty().bind(Bindings.createObjectBinding(
+              () -> original.get() == null && title.isTextTruncated() ? fullName : null,
+              original, title.textTruncatedProperty()));
+          Node close = header.lookup(".close-button");
+          if (close != null) close.accessibleTextProperty().bind(Bindings.concat("Close ", title.textProperty()));
+        }
+      }
+    }
+    super.layoutChildren();
   }
 
   int insertionAt(double sceneX) {

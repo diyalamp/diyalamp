@@ -104,6 +104,11 @@
   -fx-min-height: 52; -fx-pref-height: 52; -fx-max-height: 52;
 }
 .workspace-window-header .workspace-toolbar { -fx-border-width: 0; }
+.workspace-toolbar-divider {
+  -fx-min-width: 1; -fx-pref-width: 1; -fx-max-width: 1;
+  -fx-min-height: 16; -fx-pref-height: 16; -fx-max-height: 16;
+  -fx-background-color: -diyalamp-divider;
+}
 .workspace-tool, .workspace-brand, .workspace-root .note-search-field,
 .context-menu.slash-menu .menu-item,
 .diyalamp-dialog .dialog-action, .diyalamp-dialog .text-field, .diyalamp-dialog .combo-box-base,
@@ -218,6 +223,12 @@
 }
 .workspace-tool:hover .icon-stroke { -fx-stroke: -color-fg-default; }
 .workspace-tool:selected .icon-stroke { -fx-stroke: -color-accent-fg; }
+.workspace-toolbar .sidebar-toggle:selected {
+  -fx-background-color: -diyalamp-control-hover; -fx-background-insets: 0; -fx-background-radius: 8;
+}
+.workspace-toolbar .sidebar-toggle:selected:hover,
+.workspace-toolbar .sidebar-toggle:selected:pressed { -fx-background-color: -diyalamp-control-pressed; }
+.workspace-toolbar .sidebar-toggle:selected .icon-stroke { -fx-stroke: -color-fg-emphasis; }
 .workspace-root .workspace-tool:focus-visible {
   -fx-background-color: -diyalamp-focus, -color-bg-subtle;
   -fx-background-insets: 0, 1; -fx-background-radius: 8, 7;
@@ -316,7 +327,10 @@
 .writing-split > .split-pane-divider { -fx-padding: 0 .5; -fx-background-color: -diyalamp-divider; }
 .document-pane { -fx-background-color: -color-bg-default; -fx-min-width: 200; }
 .document-pane:drop-target { -fx-border-color: -diyalamp-focus; -fx-border-width: 2; }
-.document-tabs.workspace-band, .document-tabs.floating.dense > .root-container { -fx-padding: 0; }
+.document-tabs.workspace-band, .document-tabs.floating.dense > .root-container {
+  -fx-min-width: 0; -fx-padding: 0;
+}
+.document-tabs.floating.dense > .root-container > .tabs { -fx-min-width: 0; }
 .document-tabs.floating.dense > .root-container > .tabs > .tab {
   -fx-padding: 2 7 4 7; -fx-pref-height: 40;
   -fx-background-radius: 0; -fx-background-insets: 0;
@@ -353,8 +367,21 @@
 .document-tabs .tab:selected > .tab-box > .label { -fx-text-fill: -color-fg-emphasis; }
 .document-tabs .tab:selected .icon-stroke { -fx-stroke: -color-accent-fg; }
 .document-tabs.floating > .root-container > .tabs > .tab > .tab-box > .close-button {
-  -fx-max-height: 28; -fx-padding: 7; -fx-background-color: transparent;
+  -fx-max-height: 28; -fx-padding: 7;
+  -fx-background-color: transparent; -fx-background-insets: 2; -fx-background-radius: 6;
 }
+.document-tabs.floating > .root-container > .tabs > .tab > .tab-box > .close-button:hover {
+  -fx-background-color: -diyalamp-control-hover;
+}
+.document-tabs.floating > .root-container > .tabs > .tab > .tab-box > .close-button:pressed {
+  -fx-background-color: -diyalamp-control-pressed;
+}
+.document-tabs .tab > .tab-box > .close-button {
+  transition-property: -fx-background-color;
+  transition-duration: 140ms;
+  transition-timing-function: ease-out;
+}
+.workspace-root:reduced-motion .document-tabs .tab > .tab-box > .close-button { transition-duration: 0s; }
 .document-tabs .tab > .tab-box > .close-button > .graphic { -fx-background-color: -color-fg-muted; }
 .document-tabs .tab > .tab-box > .close-button:hover > .graphic { -fx-background-color: -color-fg-emphasis; }
 .document-tabs .tab > .tab-box > .close-button:pressed > .graphic { -fx-opacity: .72; }

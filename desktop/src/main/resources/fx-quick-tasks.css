@@ -3,8 +3,16 @@
 .diyalamp-popover .quick-tasks-empty,
 .diyalamp-popover .quick-task-row:completed .check-box { -fx-text-fill: -color-fg-muted; }
 .quick-tasks-panel .quick-tasks-empty { -fx-padding: 4 0; }
-.workspace-root .quick-task-input.note-search-field { -fx-padding: 0 4 0 10; }
-.quick-task-input .right-pane { -fx-padding: 0 0 0 4; }
+.workspace-root .quick-task-entry.note-search-field { -fx-padding: 0 3 0 11; }
+.workspace-root .quick-task-entry:focus-within { -fx-border-color: -diyalamp-focus; }
+.workspace-root .quick-task-input,
+.workspace-root .quick-task-input:focused {
+  -fx-background-color: transparent;
+  -fx-border-width: 0;
+  -fx-effect: null;
+  -fx-padding: 0;
+  -fx-prompt-text-fill: -color-fg-muted;
+}
 .quick-tasks-list,
 .quick-tasks-list > .viewport,
 .quick-tasks-list > .corner {

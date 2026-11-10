@@ -234,8 +234,8 @@ final class FxPomodoro implements AutoCloseable {
 
   private static VBox labeledMinutes(String title, TextField field) {
     Label label = new Label(title);
+    label.setAccessibleText(title + " minutes");
     label.setLabelFor(field);
-    field.setAccessibleText(title + " minutes");
     return new VBox(4, label, field);
   }
 

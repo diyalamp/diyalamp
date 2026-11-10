@@ -1,6 +1,5 @@
 package com.diyalamp.desktop.fx;
 
-import atlantafx.base.controls.CustomTextField;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -9,12 +8,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.prefs.Preferences;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -57,8 +58,9 @@ public final class FxQuickTasksTests {
       Parent surface = popup.getRoot();
       Parent content = (Parent) popup.getContentNode();
       layout(surface);
-      var input = (CustomTextField) content.lookup(".quick-task-input");
-      var add = (Button) input.getRight();
+      var entry = (HBox) content.lookup(".quick-task-entry");
+      var input = (TextField) entry.lookup(".quick-task-input");
+      var add = (Button) entry.lookup(".quick-task-add");
       var empty = (Label) content.lookup(".quick-tasks-empty");
       var summary = (Label) content.lookup(".quick-tasks-summary");
       var status = (Label) content.lookup(".quick-tasks-status");
@@ -67,18 +69,29 @@ public final class FxQuickTasksTests {
           "The toolbar opens the shared dismissible AtlantaFX popover");
       check(empty.isVisible() && !list.isManaged() && add.isDisabled(),
           "An empty checklist must show its empty state without a blank viewport");
+      check(entry.getHeight() == 36 && input.getParent() == entry && add.getParent() == entry
+              && add.getBoundsInParent().getMaxX() <= entry.getWidth(),
+          "The editable field and Add button share a compact surface as separate controls");
 
       input.setText("  ");
       input.fireEvent(new ActionEvent());
       check(rows(list).isEmpty(), "Blank text cannot create a task");
       String title = "Review résumé λ 🗒";
       input.setText(title);
+      check(title.equals(input.queryAccessibleAttribute(AccessibleAttribute.TEXT))
+              && "Add task".equals(add.getAccessibleText()),
+          "Accessibility exposes the typed task and Add button independently");
       input.fireEvent(new ActionEvent());
       input.setText(title);
       add.fire();
       check(rows(list).size() == 2 && !empty.isVisible() && input.getText().isEmpty()
               && summary.getText().equals("2 remaining"),
           "Enter and the add button create distinct rows with the same task text");
+      layout(surface);
+      HBox firstRow = rows(list).getFirst();
+      double addInset = entry.getWidth() - add.getBoundsInParent().getMaxX();
+      double removeInset = firstRow.getWidth() - remove(firstRow).getBoundsInParent().getMaxX();
+      check(addInset == removeInset, "The Add and remove buttons use the same right inset");
       CheckBox completed = checkbox(rows(list).getFirst());
       completed.fire();
       check(completed.isSelected() && completed.getText().equals(title) && summary.getText().equals("1 remaining"),

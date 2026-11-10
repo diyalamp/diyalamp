@@ -106,8 +106,11 @@ public final class FxHoverThemeTests {
                         fill.getInsets().equals(Insets.EMPTY) && fill.getRadii().equals(CornerRadii.EMPTY)),
                     "The hovered tab must have a flat, full-width tint: " + paint(inactive) + " / "
                         + inactive.getBackground().getFills().stream().map(fill -> fill.getInsets() + " " + fill.getRadii()).toList());
-                check(paint(close).equals(Color.TRANSPARENT) && paint((Region) close.lookup(".graphic")).equals(Color.WHITE),
-                    "Hovering close must brighten its glyph without adding a second surface");
+                check(paint(close).equals(Color.web("#FFFFFF0F"))
+                        && close.getBackground().getFills().size() == 1
+                        && close.getBackground().getFills().getFirst().getInsets().equals(new Insets(2))
+                        && close.getBorder() == null && paint((Region) close.lookup(".graphic")).equals(Color.WHITE),
+                    "Hovering close adds one quiet inset fill and brightens its glyph");
                 check(originalTabBounds.equals(inactive.getBoundsInParent()) && originalCloseBounds.equals(close.getBoundsInParent()),
                     "Tab hover must keep both hit areas in place");
                 Region active = (Region) tabs.lookup(".tab:selected");

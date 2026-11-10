@@ -14,6 +14,7 @@ import java.util.prefs.Preferences;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.animation.PauseTransition;
+import javafx.beans.property.ObjectProperty;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
@@ -68,9 +69,12 @@ public final class FxWorkspaceLayoutTests {
         PauseTransition settle = new PauseTransition(Duration.millis(300));
         settle.setOnFinished(event -> {
           try {
-            current.layout(); composition(current); compactWidth(current); nestedFileRow(current);
-            Platform.runLater(() -> {
+            current.layout(); composition(current);
+            current.stage.setWidth(820);
+            PauseTransition resize = new PauseTransition(Duration.millis(150));
+            resize.setOnFinished(ignored -> Platform.runLater(() -> {
               try {
+                current.layout(); compactWidth(current); nestedFileRow(current);
                 folderControls(current);
                 navigationAndPrivacy(current);
                 sidebarAndTabNavigation(current);
@@ -79,7 +83,8 @@ public final class FxWorkspaceLayoutTests {
                 failure.compareAndSet(null, error);
                 close.run();
               }
-            });
+            }));
+            resize.play();
           } catch (Throwable error) {
             failure.compareAndSet(null, error);
             close.run();
@@ -221,12 +226,19 @@ public final class FxWorkspaceLayoutTests {
     }
     check("Toggle files sidebar".equals(toolbar.getItems().get(2).getAccessibleText()) && toolbar.getItems().get(3) == brand,
         "The sidebar toggle precedes the lamp and diyalamp name");
-    check(((ToggleButton) field(fixture.app, "filesControl")).isSelected()
-        && ((ToggleButton) field(fixture.app, "connectionsControl")).isSelected(),
-        "Both visible sidebars must have selected toolbar toggles");
+    ToggleButton filesToggle = (ToggleButton) field(fixture.app, "filesControl");
+    ToggleButton connectionsToggle = (ToggleButton) field(fixture.app, "connectionsControl");
+    check(java.util.List.of(filesToggle, connectionsToggle).stream().allMatch(toggle -> toggle.isSelected()
+        && toggle.getBackground().getFills().size() == 1
+        && ((Color) toggle.getBackground().getFills().getFirst().getFill()).getSaturation() < .2),
+        "Both open sidebars use the same quiet selected appearance");
+    var toolbarDividers = toolbar.lookupAll(".workspace-toolbar-divider");
+    check(toolbarDividers.size() == 2 && toolbarDividers.stream().allMatch(divider -> divider.isMouseTransparent()
+        && divider.getLayoutBounds().getWidth() == 1 && divider.getLayoutBounds().getHeight() == 16
+        && Math.abs(centerY(divider) - center) <= 1), "Toolbar groups have slim centered dividers");
     Button path = (Button) field(fixture.app, "folderControl");
     check(path.isVisible() && path.getText().equals(fixture.directory.toString())
-        && path.getTooltip().getText().equals(path.getText()) && path.getGraphic() != null
+        && path.getTooltip().getText().equals(fixture.directory.toString()) && path.getGraphic() != null
         && path.getWidth() > 100 && path.getOnAction() != null,
         "One toolbar button exposes the full workspace path and opens the folder picker");
     String imagePath = System.getProperty("diyalamp.workspace.snapshot");
@@ -326,14 +338,17 @@ public final class FxWorkspaceLayoutTests {
     check(Files.readString(draft).equals(original), "The same note can be restored without changing its Markdown");
   }
 
+  @SuppressWarnings("unchecked")
   private static void compactWidth(Fixture fixture) throws Exception {
     ((FxNoteGraph) field(fixture.app, "noteGraph")).showingProperty().set(false);
     call(fixture.app, "layoutSidebars", new Class<?>[] {boolean.class}, false);
     Button folder = (Button) field(fixture.app, "folderControl");
-    String longPath = "/workspace" + "/long folder name".repeat(12);
-    folder.setText(longPath);
+    Path longPath = Path.of("/workspace" + "/Department Archive".repeat(3), "Database Notes");
+    var folderPath = (ObjectProperty<Path>) field(fixture.app, "workspacePath");
+    folderPath.set(longPath);
     FxPomodoro pomodoro = (FxPomodoro) field(fixture.app, "pomodoro");
-    fixture.stage.setWidth(820); fixture.layout();
+    fixture.layout();
+    check(fixture.stage.getScene().getWidth() <= 822, "Compact checks run after the scene reaches its minimum width");
     Region sidebar = (Region) field(fixture.app, "explorer");
     Region queryChrome = (Region) sidebar.lookup(".sidebar-search-query");
     Region queryField = (Region) queryChrome.lookup(".sidebar-search-query-field");
@@ -359,8 +374,11 @@ public final class FxWorkspaceLayoutTests {
         && bounds.getMinX() >= 0 && bounds.getMaxX() <= fixture.stage.getScene().getWidth()
         && (overflow == null || !overflow.isVisible()) && brand.getGraphic().getBoundsInParent().getWidth() == 36,
         "The full-size wordmark and sidebar toggle stay on the bar with a long folder and running timer");
-    check(folder.getTooltip().getText().equals(longPath),
-        "A shortened folder button still exposes the complete path");
+    check(folder.getText().equals("Database Notes") && folder.getTooltip().getText().equals(longPath.toString())
+        && folder.getAccessibleHelp().equals(longPath.toString()),
+        "Compact windows keep the workspace name visible and expose its complete path on hover and to assistive tools");
+    folderPath.set(fixture.directory);
+    fixture.layout();
     String longFilename = "Long fictional name ".repeat(5).strip() + ".md";
     Files.writeString(fixture.directory.resolve(longFilename), "Test note.");
     call(fixture.app, "refreshTree", new Class<?>[0]); fixture.layout();
@@ -670,6 +688,7 @@ public final class FxWorkspaceLayoutTests {
           + "```java\nString idea = \"A small beginning\";\nSystem.out.println(idea);\n```\n");
       Files.writeString(directory.resolve("Reference.md"), "# Reference\n\nReturn to [[Draft]].\n");
       app.start(stage);
+      stage.setWidth(1920);
       call(app, "setFolder", new Class<?>[] {Path.class}, directory);
       call(app, "open", new Class<?>[] {Path.class, boolean.class}, directory.resolve("Draft.md"), false);
       layout();
