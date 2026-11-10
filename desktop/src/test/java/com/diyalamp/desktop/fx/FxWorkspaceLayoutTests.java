@@ -1,6 +1,5 @@
 package com.diyalamp.desktop.fx;
 
-import atlantafx.base.controls.CustomTextField;
 import atlantafx.base.controls.TabLine;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
@@ -74,6 +73,7 @@ public final class FxWorkspaceLayoutTests {
               try {
                 folderControls(current);
                 navigationAndPrivacy(current);
+                sidebarAndTabNavigation(current);
                 searchInWorkspace(current, failure, close);
               } catch (Throwable error) {
                 failure.compareAndSet(null, error);
@@ -231,10 +231,11 @@ public final class FxWorkspaceLayoutTests {
         "One toolbar button exposes the full workspace path and opens the folder picker");
     String imagePath = System.getProperty("diyalamp.workspace.snapshot");
     if (imagePath != null && !imagePath.isBlank()) snapshot(fixture.stage, Path.of(imagePath));
-    CustomTextField search = (CustomTextField) filesContext.lookup(".sidebar-search-query-field");
-    check(search.isVisible() && search.getHeight() == 32 && search.getFont().getSize() == 16
-        && search.getBorder().getStrokes().getFirst().getRadii().getTopLeftHorizontalRadius() == 8,
-        "The AtlantaFX search field shares the workspace's control size and type");
+    Region searchChrome = (Region) filesContext.lookup(".sidebar-search-query");
+    TextField search = (TextField) searchChrome.lookup(".sidebar-search-query-field");
+    check(search.isVisible() && searchChrome.getHeight() == 32 && search.getFont().getSize() == 16
+        && searchChrome.getBorder().getStrokes().getFirst().getRadii().getTopLeftHorizontalRadius() == 8,
+        "The integrated search shares the workspace's control size and type");
     search.setText("Reference");
     check(!tree.isVisible() && sidebarSearch.hasQuery() && path.isVisible(),
         "Search replaces the sidebar list while leaving the top folder control in place");
@@ -263,7 +264,7 @@ public final class FxWorkspaceLayoutTests {
     check(iconLeft - noteBounds.getMinX() <= 23 && noteBounds.getMaxX() - actionRight <= 16,
         "The file row uses a compact leading disclosure slot and a compact action gutter");
     double searchCenter = centerY(search);
-    Node magnifier = search.getLeft();
+    Node magnifier = ((Labeled) searchChrome.lookup(".sidebar-search-query-label")).getGraphic();
     Node advanced = sidebarSearch.optionsButton();
     check(Math.abs(inkCenterY(magnifier) - searchCenter) <= 1
         && Math.abs(centerY(advanced) - searchCenter) <= 1
@@ -334,8 +335,10 @@ public final class FxWorkspaceLayoutTests {
     FxPomodoro pomodoro = (FxPomodoro) field(fixture.app, "pomodoro");
     fixture.stage.setWidth(820); fixture.layout();
     Region sidebar = (Region) field(fixture.app, "explorer");
-    Region queryField = (Region) sidebar.lookup(".sidebar-search-query-field");
-    check(queryField.getWidth() >= 144 && sidebar.lookupAll(".files-heading-row .file-row-action").size() == 2,
+    Region queryChrome = (Region) sidebar.lookup(".sidebar-search-query");
+    Region queryField = (Region) queryChrome.lookup(".sidebar-search-query-field");
+    check(queryChrome.getWidth() >= 144 && queryField.getWidth() >= 80
+        && sidebar.lookupAll(".files-heading-row .file-row-action").size() == 2,
         "At minimum window width the compact controls must leave room to type in the search field");
     Node toggle = (Node) field(fixture.app, "connectionsControl");
     var readyBounds = toggle.localToScene(toggle.getBoundsInLocal());
@@ -506,6 +509,58 @@ public final class FxWorkspaceLayoutTests {
 
   private static Button toolbarButton(ToolBar toolbar, String name) {
     return (Button) toolbar.getItems().stream().filter(node -> name.equals(node.getAccessibleText())).findFirst().orElseThrow();
+  }
+
+  private static void sidebarAndTabNavigation(Fixture fixture) throws Exception {
+    TreeView<?> tree = (TreeView<?>) field(fixture.app, "tree");
+    TabLine tabs = (TabLine) field(field(fixture.app, "primary"), "tabs");
+    Object reference = field(fixture.app, "active");
+    int historyIndex = (int) field(fixture.app, "historyIndex"), tabCount = tabs.getTabs().size();
+    tree.requestFocus();
+    tree.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.DOWN, false, false, false, false));
+    check(tree.getSelectionModel().getSelectedItem().getValue().equals(fixture.directory.resolve("Renamed.md"))
+        && field(fixture.app, "active") == reference && tabs.getTabs().size() == tabCount
+        && (int) field(fixture.app, "historyIndex") == historyIndex,
+        "Arrow keys select a file without opening it or adding to document history");
+    tree.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ENTER, false, false, false, false));
+    check(fixture.stage.getTitle().startsWith("Renamed.md") && tree.getEditingItem() == null,
+        "Enter opens the selected note without starting an inline rename");
+    tree.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.F2, false, false, false, false));
+    TextField rename = (TextField) tree.lookup(".file-rename-field");
+    check(rename != null && rename.getSelectedText().equals("Renamed"), "F2 still starts inline rename");
+    rename.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ESCAPE, false, false, false, false));
+
+    fixture.layout();
+    Path referencePath = fixture.directory.resolve("Reference.md");
+    Node row = tree.lookupAll(".tree-cell").stream()
+        .filter(node -> node instanceof TreeCell<?> cell && referencePath.equals(cell.getItem()))
+        .findFirst().orElseThrow();
+    row.fireEvent(new MouseEvent(MouseEvent.MOUSE_CLICKED, 0, 0, 0, 0, MouseButton.PRIMARY, 1,
+        false, false, false, false, false, false, false, false, false, true, null));
+    check(field(fixture.app, "active") == reference && tree.getSelectionModel().getSelectedItem().getValue().equals(referencePath),
+        "A row click opens the existing note and synchronizes the sidebar selection");
+
+    Class<?>[] open = {Path.class, boolean.class};
+    call(fixture.app, "open", open, fixture.directory.resolve("Transcript.txt"), true);
+    Object beside = field(fixture.app, "active");
+    historyIndex = (int) field(fixture.app, "historyIndex");
+    var backgroundTab = tabs.getSelectionModel().getSelectedItem();
+    tabs.getTabs().remove(backgroundTab);
+    backgroundTab.getOnClosed().handle(new javafx.event.Event(backgroundTab, null, atlantafx.base.controls.Tab.CLOSED_EVENT));
+    check(field(fixture.app, "active") == beside && fixture.stage.getTitle().startsWith("Transcript.txt")
+        && (int) field(fixture.app, "historyIndex") == historyIndex,
+        "Closing a tab in the background pane preserves the current document and history");
+    var location = (FxDocumentLocation) field(field(fixture.app, "primary"), "breadcrumb");
+    var replacement = tabs.getSelectionModel().getSelectedItem();
+    check(replacement != null && location.getTooltip().getText().endsWith(replacement.getText()),
+        "The background pane breadcrumb follows the tab revealed by closing a tab");
+
+    TabLine secondary = (TabLine) field(field(fixture.app, "secondary"), "tabs");
+    for (int remaining = tabs.getTabs().size() + secondary.getTabs().size(); remaining > 0; remaining--)
+      call(fixture.app, "closeActive", new Class<?>[0]);
+    check(tabs.getTabs().isEmpty() && secondary.getTabs().isEmpty() && fixture.stage.getTitle().equals("diyalamp"),
+        "Closing the last document clears the native window title");
+    call(fixture.app, "open", open, referencePath, false);
   }
 
   private static double centerY(Node node) {

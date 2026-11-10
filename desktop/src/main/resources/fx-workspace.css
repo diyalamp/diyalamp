@@ -253,7 +253,7 @@
 .sidebar-search-results { -fx-padding: 4 8; }
 .workspace-band.files-heading-row { -fx-padding: 0 12 0 16; }
 .workspace-band.files-search-row { -fx-padding: 0 12; }
-.workspace-root .files-search-row .sidebar-search-query-field {
+.workspace-root .files-search-row .sidebar-search-query {
   -fx-min-height: 32; -fx-pref-height: 32; -fx-max-height: 32;
 }
 .sidebar-search-results .tree-cell {
@@ -376,13 +376,29 @@
 .file-preview, .file-preview-scroll, .file-preview-scroll > .viewport,
 .file-preview-text, .file-preview-text .content { -fx-background-color: -color-bg-default; }
 .file-preview-text .content { -fx-padding: 16 24; }
+.workspace-root .file-preview-zoom {
+  -fx-min-width: 76; -fx-pref-width: 76; -fx-max-width: 76;
+  -fx-min-height: 28; -fx-pref-height: 28; -fx-max-height: 28;
+  -fx-padding: 0; -fx-opacity: 1;
+  -color-button-fg: -color-fg-muted;
+  -color-button-fg-hover: -color-fg-emphasis;
+}
+.workspace-root .file-preview-zoom:disabled { -fx-opacity: 0.4; }
+.workspace-root .file-preview-zoom > .label { -fx-padding: 0 4 0 8; }
+.workspace-root .file-preview-zoom > .arrow-button { -fx-padding: 0 8 0 0; }
+.workspace-root .file-preview-zoom:hover, .workspace-root .file-preview-zoom:showing {
+  -fx-background-color: -diyalamp-control-hover; -fx-background-insets: 0;
+}
+.workspace-root .file-preview-zoom:focus-visible {
+  -fx-background-color: -diyalamp-focus, -color-bg-subtle; -fx-background-insets: 0, 1;
+}
 .diyalamp-editor, .diyalamp-editor > .viewport, .writing-area { -fx-background-color: -color-bg-default; }
 .writing-area { -fx-background-insets: 0; }
 .writing-area .paragraph-box { -fx-padding: 0; }
 .writing-area .caret { -fx-stroke: -color-editor-fg; }
 .writing-area .selection { -fx-fill: -diyalamp-selection; }
 .writing-area .md-link { -fx-fill: -color-accent-fg; }
-.workspace-root .writing-area .md-paragraph { -fx-line-spacing: 4; -fx-padding: 0 0 8 0; }
+.workspace-root .writing-area .md-paragraph { -fx-line-spacing: 4; -fx-padding: 0 0 4 0; }
 .workspace-root .writing-area .md-paragraph.md-heading { -fx-padding: 8 0 8 0; }
 .workspace-root .writing-area .md-paragraph.md-quote {
   -fx-background-color: -color-bg-subtle; -fx-background-radius: 8; -fx-background-insets: 0 0 8 0;

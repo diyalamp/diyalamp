@@ -1,6 +1,5 @@
 package com.diyalamp.desktop.fx;
 
-import atlantafx.base.controls.CustomTextField;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -38,7 +37,10 @@ public final class FxSidebarSearch extends VBox {
 
   private static final PseudoClass ERROR = PseudoClass.getPseudoClass("error");
   private static final PseudoClass OPTIONS_ACTIVE = PseudoClass.getPseudoClass("options-active");
-  private final CustomTextField query = new CustomTextField();
+  private static final PseudoClass QUERY_FOCUS_VISIBLE = PseudoClass.getPseudoClass("query-focus-visible");
+  private final HBox queryControl = new HBox(8);
+  private final TextField query = new TextField();
+  private final Label queryLabel = new Label(null, FxTheme.icon("search"));
   private final TextField include = new TextField(), exclude = new TextField();
   private final ToggleButton searchOptions = new ToggleButton(null, FxTheme.icon("settings-2"));
   private final RadioButton files = new RadioButton(), contents = new RadioButton();
@@ -59,7 +61,7 @@ public final class FxSidebarSearch extends VBox {
   public FxSidebarSearch() {
     String stylesheet = FxSidebarSearch.class.getResource("/fx-sidebar-search.css").toExternalForm();
     getStylesheets().add(stylesheet);
-    query.getStylesheets().add(stylesheet);
+    queryControl.getStylesheets().add(stylesheet);
     getStyleClass().add("sidebar-search");
     setMinWidth(0);
     setFillWidth(true);
@@ -89,7 +91,7 @@ public final class FxSidebarSearch extends VBox {
     VBox.setVgrow(results, Priority.ALWAYS);
     getChildren().addAll(options, status, results);
     addEventFilter(KeyEvent.KEY_PRESSED, this::dismissOnEscape);
-    query.addEventFilter(KeyEvent.KEY_PRESSED, this::dismissOnEscape);
+    queryControl.addEventFilter(KeyEvent.KEY_PRESSED, this::dismissOnEscape);
 
     query.textProperty().addListener(observable -> changed());
     include.textProperty().addListener(observable -> changed());
@@ -103,7 +105,7 @@ public final class FxSidebarSearch extends VBox {
   }
 
   /** Mount the search field with its integrated clear and options controls. */
-  public Region queryControl() { return query; }
+  public Region queryControl() { return queryControl; }
   public ToggleButton optionsButton() { return searchOptions; }
   public BooleanBinding hasQueryProperty() { return hasQuery; }
   public boolean hasQuery() { return hasQuery.get(); }
@@ -168,9 +170,21 @@ public final class FxSidebarSearch extends VBox {
     optionsTooltip.textProperty().bind(Bindings.when(searchOptions.selectedProperty())
         .then("Hide search options").otherwise("Show search options"));
     searchOptions.setTooltip(optionsTooltip);
-    query.getStyleClass().addAll("note-search-field", "sidebar-search-query-field");
+    queryControl.setAlignment(Pos.CENTER_LEFT);
+    queryControl.setMinWidth(0);
+    queryControl.getStyleClass().add("sidebar-search-query");
+    query.getStyleClass().add("sidebar-search-query-field");
     query.setMinWidth(0);
     query.setMaxWidth(Double.MAX_VALUE);
+    query.setMaxHeight(Double.MAX_VALUE);
+    HBox.setHgrow(query, Priority.ALWAYS);
+    queryLabel.getStyleClass().add("sidebar-search-query-label");
+    queryLabel.setLabelFor(query);
+    queryLabel.setOnMousePressed(event -> {
+      if (event.getButton() == MouseButton.PRIMARY) query.requestFocus();
+    });
+    query.focusVisibleProperty().addListener((observable, previous, visible) ->
+        queryControl.pseudoClassStateChanged(QUERY_FOCUS_VISIBLE, visible));
     describeQuery();
     query.setOnAction(event -> {
       TreeItem<OpenResult> first = firstResult();
@@ -185,8 +199,6 @@ public final class FxSidebarSearch extends VBox {
       }
     });
 
-    Node searchIcon = FxTheme.icon("search");
-    searchIcon.setMouseTransparent(true);
     Button clear = FxTheme.iconButton("x", "Clear search", this::dismiss);
     clear.getStyleClass().add("sidebar-search-clear");
     clear.visibleProperty().bind(hasQuery);
@@ -194,8 +206,7 @@ public final class FxSidebarSearch extends VBox {
     HBox controls = new HBox(2, clear, searchOptions);
     controls.setAlignment(Pos.CENTER_RIGHT);
     controls.getStyleClass().add("sidebar-search-tools");
-    query.setLeft(searchIcon);
-    query.setRight(controls);
+    queryControl.getChildren().addAll(queryLabel, query, controls);
   }
 
   private VBox buildOptions() {
@@ -266,7 +277,6 @@ public final class FxSidebarSearch extends VBox {
   private static VBox filterField(String name, String hint, TextField input) {
     Label label = new Label(name);
     label.setLabelFor(input);
-    input.setAccessibleText(name);
     input.setPromptText(hint);
     input.getStyleClass().addAll("note-search-field", "sidebar-search-filter-field");
     input.setMinWidth(0);
@@ -275,7 +285,8 @@ public final class FxSidebarSearch extends VBox {
 
   private void describeQuery() {
     query.setPromptText(contents.isSelected() ? "Find text…" : "Find a note…");
-    query.setAccessibleText(contents.isSelected() ? "Search note contents" : "Search filenames");
+    // Keep the accessible field value equal to the query, and name it through its label.
+    queryLabel.setAccessibleText(contents.isSelected() ? "Search note contents" : "Search filenames");
     query.setAccessibleHelp("Press Down to browse results, Enter to open the first match, or Escape to clear search.");
   }
 

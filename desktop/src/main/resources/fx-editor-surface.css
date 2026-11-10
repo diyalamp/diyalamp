@@ -1,6 +1,6 @@
 /* Reading geometry is scoped to RichTextFX; the workspace owns palette and controls. */
 .workspace-root .editor-surface .writing-area .md-paragraph { -fx-line-spacing: 5; }
-.workspace-root .editor-surface .writing-area .md-paragraph.md-heading { -fx-padding: 6 0 2 0; }
+.workspace-root .editor-surface .writing-area .md-paragraph.md-heading { -fx-padding: 4 0 0 0; }
 .workspace-root .editor-surface .writing-area .md-paragraph.md-code {
   -fx-line-spacing: 2;
   -fx-padding: 3 12;

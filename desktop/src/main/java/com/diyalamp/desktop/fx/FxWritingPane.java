@@ -732,7 +732,7 @@ public final class FxWritingPane {
 
   private void gutters() {
     double horizontal = Math.max(24, (area.getWidth() - WRITING_COLUMN_WIDTH) / 2);
-    Insets padding = new Insets(28, horizontal, 48, horizontal);
+    Insets padding = new Insets(24, horizontal, 48, horizontal);
     if (!padding.equals(area.getPadding())) area.setPadding(padding);
   }
 

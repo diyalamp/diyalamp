@@ -19,13 +19,18 @@ import javax.imageio.ImageIO;
 import javax.imageio.stream.MemoryCacheImageInputStream;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuButton;
 import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelFormat;
@@ -50,6 +55,7 @@ final class FxFilePreview extends BorderPane {
   private static final long MAX_IMAGE_PIXELS = 32_000_000;
   private static final long MAX_PDF_BYTES = 100L * MEBIBYTE;
   private static final int MAX_RASTER_EDGE = 2400;
+  private static final int MAX_DISPLAY_EDGE = 32_768;
   private static final double MAX_PAGE_PIXELS = 4_000_000;
   private static final double IMAGE_GUTTER = 24;
   private static final ScheduledThreadPoolExecutor LOADER = new ScheduledThreadPoolExecutor(2, action -> {
@@ -68,6 +74,8 @@ final class FxFilePreview extends BorderPane {
   private final Label pageNumber = new Label();
   private final Button previous = FxTheme.iconButton("chevron-right", "Previous PDF page", () -> loadPage(page - 1));
   private final Button next = FxTheme.iconButton("chevron-right", "Next PDF page", () -> loadPage(page + 1));
+  private final IntegerProperty zoomPercent = new SimpleIntegerProperty();
+  private final MenuButton zoom = new MenuButton("Fit");
   private Future<?> loading;
   private long generation;
   private boolean disposed;
@@ -80,24 +88,52 @@ final class FxFilePreview extends BorderPane {
     setFocusTraversable(true);
     describePath();
     showLoading();
+    if (kind == DocumentKind.PDF || kind == DocumentKind.IMAGE) buildImageControls();
+    loadCurrent();
+  }
+
+  private void buildImageControls() {
+    zoom.getStyleClass().addAll("workspace-tool", "file-preview-zoom");
+    zoom.disableProperty().bind(Bindings.createBooleanBinding(
+        () -> !(getCenter() instanceof ScrollPane), centerProperty()));
+    ToggleGroup options = new ToggleGroup();
+    for (int percent : new int[] {0, 100, 150, 200}) {
+      String label = percent == 0 ? (kind == DocumentKind.PDF ? "Fit to width" : "Fit image") : percent + "%";
+      RadioMenuItem item = new RadioMenuItem(label);
+      item.setToggleGroup(options);
+      item.setOnAction(event -> {
+        zoomPercent.set(percent);
+        zoom.setText(percent == 0 ? "Fit" : label);
+        zoom.setAccessibleText("Preview zoom, " + label);
+      });
+      zoom.getItems().add(item);
+    }
+    RadioMenuItem fit = (RadioMenuItem) zoom.getItems().getFirst();
+    fit.setSelected(true);
+    zoom.setAccessibleText("Preview zoom, " + fit.getText());
+
+    HBox navigation = new HBox(4);
+    navigation.getStyleClass().add("workspace-band");
     if (kind == DocumentKind.PDF) {
       previous.getGraphic().setRotate(180);
       previous.getStyleClass().add("file-row-action");
       next.getStyleClass().add("file-row-action");
       pageNumber.getStyleClass().add("document-breadcrumb");
-      HBox navigation = new HBox(8, previous, pageNumber, next);
-      navigation.getStyleClass().add("workspace-band");
+      pageNumber.setMinWidth(0);
       navigation.setAlignment(Pos.CENTER);
-      setTop(navigation);
+      navigation.getChildren().addAll(previous, pageNumber, next);
+    } else {
+      navigation.setAlignment(Pos.CENTER_RIGHT);
     }
-    loadCurrent();
+    navigation.getChildren().add(zoom);
+    setTop(navigation);
   }
 
   private void loadCurrent() {
     Path source = path;
     switch (kind) {
       case TEXT -> submit(() -> loadText(source), this::showText);
-      case IMAGE -> submit(() -> loadImage(source), image -> showImage(image, false));
+      case IMAGE -> submit(() -> loadImage(source), result -> showImage(result.image(), result.naturalWidth(), false));
       case PDF -> loadPage(page);
       default -> showError("This file type cannot be previewed.");
     }
@@ -119,6 +155,7 @@ final class FxFilePreview extends BorderPane {
 
   void dispose() {
     disposed = true;
+    zoom.hide();
     generation++;
     if (loading != null) loading.cancel(true);
     loading = null;
@@ -128,7 +165,8 @@ final class FxFilePreview extends BorderPane {
     if (requested < 0 || pageCount > 0 && requested >= pageCount) return;
     page = requested;
     updateNavigation();
-    pageNumber.setText("Loading page " + (requested + 1) + "…");
+    pageNumber.setText("…");
+    pageNumber.setAccessibleText("Loading page " + (requested + 1));
     Path source = path;
     submit(() -> renderPage(source, requested), this::showPage);
   }
@@ -139,17 +177,18 @@ final class FxFilePreview extends BorderPane {
     WritableImage image = new WritableImage(result.width(), result.height());
     image.getPixelWriter().setPixels(0, 0, result.width(), result.height(),
         PixelFormat.getIntArgbInstance(), result.pixels(), 0, result.width());
-    showImage(image, true);
+    showImage(image, result.naturalWidth(), true);
     updateNavigation();
   }
 
   private void updateNavigation() {
-    pageNumber.setText(pageCount == 0 ? "PDF" : "Page " + (page + 1) + " of " + pageCount);
+    pageNumber.setText(pageCount == 0 ? "PDF" : (page + 1) + " / " + pageCount);
+    pageNumber.setAccessibleText(pageCount == 0 ? "PDF" : "Page " + (page + 1) + " of " + pageCount);
     previous.setDisable(pageCount == 0 || page == 0);
     next.setDisable(pageCount == 0 || page >= pageCount - 1);
   }
 
-  private void showImage(Image image, boolean pdf) {
+  private void showImage(Image image, double naturalWidth, boolean pdf) {
     ImageView view = new ImageView(image);
     view.setPreserveRatio(true);
     view.setSmooth(true);
@@ -163,10 +202,14 @@ final class FxFilePreview extends BorderPane {
     scroll.setPannable(true);
     scroll.setFocusTraversable(true);
     scroll.setAccessibleText(pdf ? "PDF page " + (page + 1) : "Image preview");
-    view.fitWidthProperty().bind(Bindings.createDoubleBinding(() -> Math.min(image.getWidth(),
-        Math.max(1, scroll.getViewportBounds().getWidth() - 2 * IMAGE_GUTTER)), scroll.viewportBoundsProperty()));
-    if (!pdf) view.fitHeightProperty().bind(Bindings.createDoubleBinding(() -> Math.min(image.getHeight(),
-        Math.max(1, scroll.getViewportBounds().getHeight() - 2 * IMAGE_GUTTER)), scroll.viewportBoundsProperty()));
+    // Bound layout as well as raster memory, including PDFs that report enormous page dimensions.
+    double maxWidth = MAX_DISPLAY_EDGE * image.getWidth() / Math.max(image.getWidth(), image.getHeight());
+    view.fitWidthProperty().bind(Bindings.createDoubleBinding(() -> zoomPercent.get() == 0
+        ? Math.min(image.getWidth(), Math.max(1, scroll.getViewportBounds().getWidth() - 2 * IMAGE_GUTTER))
+        : Math.min(maxWidth, naturalWidth * zoomPercent.get() / 100), zoomPercent, scroll.viewportBoundsProperty()));
+    if (!pdf) view.fitHeightProperty().bind(Bindings.createDoubleBinding(() -> zoomPercent.get() == 0
+        ? Math.min(image.getHeight(), Math.max(1, scroll.getViewportBounds().getHeight() - 2 * IMAGE_GUTTER))
+        : 0, zoomPercent, scroll.viewportBoundsProperty()));
     setCenter(scroll);
   }
 
@@ -225,7 +268,8 @@ final class FxFilePreview extends BorderPane {
     Platform.runLater(() -> {
       if (disposed || generation != request) return;
       loading = null;
-      boolean focused = isFocused();
+      var owner = getScene() == null ? null : getScene().getFocusOwner();
+      boolean focused = owner != null && (owner == this || owner == getCenter());
       display.run();
       if (focused) focus();
     });
@@ -237,7 +281,7 @@ final class FxFilePreview extends BorderPane {
     return text.startsWith("\uFEFF") ? text.substring(1) : text;
   }
 
-  private static Image loadImage(Path path) throws IOException {
+  private static PreviewImage loadImage(Path path) throws IOException {
     byte[] bytes = readBounded(path, MAX_IMAGE_BYTES, "This image file is larger than 32 MiB.");
     int width, height, frames = 1;
     try (var stream = new MemoryCacheImageInputStream(new ByteArrayInputStream(bytes))) {
@@ -265,7 +309,7 @@ final class FxFilePreview extends BorderPane {
     Image image = new Image(new ByteArrayInputStream(bytes), Math.min(width, MAX_RASTER_EDGE),
         Math.min(height, MAX_RASTER_EDGE), true, true);
     if (image.isError()) throw new PreviewProblem("This image could not be opened.");
-    return image;
+    return new PreviewImage(image, width);
   }
 
   private static PdfPage renderPage(Path path, int requested) throws IOException {
@@ -276,7 +320,8 @@ final class FxFilePreview extends BorderPane {
       int count = document.getNumberOfPages();
       if (count == 0) throw new PreviewProblem("This PDF has no pages.");
       int index = Math.min(requested, count - 1);
-      var box = document.getPage(index).getCropBox();
+      var page = document.getPage(index);
+      var box = page.getCropBox();
       double width = box.getWidth(), height = box.getHeight();
       if (!Double.isFinite(width * height) || width <= 0 || height <= 0)
         throw new PreviewProblem("This PDF page has invalid dimensions.");
@@ -286,7 +331,8 @@ final class FxFilePreview extends BorderPane {
       renderer.setSubsamplingAllowed(true);
       BufferedImage image = renderer.renderImage(index, scale, ImageType.RGB);
       int renderedWidth = image.getWidth(), renderedHeight = image.getHeight();
-      return new PdfPage(index, count, renderedWidth, renderedHeight,
+      double naturalWidth = page.getRotation() % 180 == 0 ? width : height;
+      return new PdfPage(index, count, renderedWidth, renderedHeight, naturalWidth,
           image.getRGB(0, 0, renderedWidth, renderedHeight, null, 0, renderedWidth));
     }
   }
@@ -299,7 +345,9 @@ final class FxFilePreview extends BorderPane {
     }
   }
 
-  private record PdfPage(int index, int count, int width, int height, int[] pixels) {}
+  private record PreviewImage(Image image, double naturalWidth) {}
+
+  private record PdfPage(int index, int count, int width, int height, double naturalWidth, int[] pixels) {}
 
   @FunctionalInterface
   private interface ReadPreview<T> { T read() throws IOException; }

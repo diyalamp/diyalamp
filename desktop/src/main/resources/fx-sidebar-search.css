@@ -1,22 +1,30 @@
-/* AtlantaFX owns the icon slots and keeps the editable text between them. */
-.workspace-root .note-search-field.sidebar-search-query-field {
-  -fx-padding: 0 2 0 0;
+/* A single surface holds the label, editable field and independent actions. */
+.workspace-root .sidebar-search-query {
+  -fx-padding: 0 1 0 9;
   -fx-background-color: -diyalamp-control-hover;
+  -fx-background-radius: 8;
   -fx-border-color: transparent;
+  -fx-border-radius: 8;
+  -fx-border-width: 1;
   transition-property: -fx-background-color, -fx-border-color;
   transition-duration: 140ms;
   transition-timing-function: ease-out;
 }
-.workspace-root .note-search-field.sidebar-search-query-field:focused {
+.workspace-root .sidebar-search-query:focus-within {
   -fx-background-color: -diyalamp-control-pressed;
-  -fx-border-color: transparent;
 }
-.workspace-root .note-search-field.sidebar-search-query-field:focus-visible {
+.workspace-root .sidebar-search-query:query-focus-visible {
   -fx-border-color: -diyalamp-focus;
 }
-.workspace-root:reduced-motion .note-search-field.sidebar-search-query-field { transition-duration: 0s; }
-.sidebar-search-query-field .left-pane { -fx-padding: 0 8 0 10; }
-.sidebar-search-query-field .right-pane { -fx-padding: 0 0 0 2; }
+.workspace-root:reduced-motion .sidebar-search-query { transition-duration: 0s; }
+.workspace-root .sidebar-search-query-field,
+.workspace-root .sidebar-search-query-field:focused {
+  -fx-background-color: transparent;
+  -fx-border-width: 0;
+  -fx-padding: 0;
+  -fx-effect: null;
+}
+.sidebar-search-query-label { -fx-padding: 0; }
 .workspace-root .sidebar-search-tools .workspace-tool:hover {
   -fx-background-color: -diyalamp-control-hover;
   -fx-background-insets: 0;
@@ -30,7 +38,7 @@
   -fx-background-insets: 0, 1;
 }
 .sidebar-search-toggle:options-active .icon-stroke { -fx-stroke: -color-accent-fg; }
-.sidebar-search-query-field .sidebar-search-clear {
+.sidebar-search-tools .sidebar-search-clear {
   -fx-min-width: 28;
   -fx-pref-width: 28;
   -fx-max-width: 28;
@@ -97,7 +105,7 @@
 .sidebar-search-mode:selected .icon-stroke,
 .sidebar-search-option:selected .icon-stroke { -fx-stroke: -color-accent-fg; }
 .sidebar-search-options .label { -fx-text-fill: -color-fg-muted; }
-.sidebar-search .sidebar-search-status { -fx-padding: 0 8 8 8; -fx-text-fill: -color-fg-muted; }
+.sidebar-search .sidebar-search-status { -fx-padding: 6 16; -fx-text-fill: -color-fg-muted; }
 .sidebar-search .sidebar-search-status:error { -fx-text-fill: #F3A39E; }
 
 .sidebar-search-results, .sidebar-search-results .virtual-flow {

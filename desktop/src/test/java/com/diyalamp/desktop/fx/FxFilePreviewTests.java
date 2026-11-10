@@ -9,8 +9,13 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
 import javafx.application.Platform;
+import javafx.geometry.Orientation;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.RadioMenuItem;
+import javafx.scene.control.ScrollBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.Image;
@@ -18,6 +23,8 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -67,6 +74,12 @@ public final class FxFilePreviewTests {
       fx(() -> {
         Image displayed = image(image);
         check(displayed.getWidth() == 66 && displayed.getHeight() == 42, "Image dimensions survive decoding");
+        selectZoom(image, "150%");
+        check(imageView(image).getFitWidth() == 99 && imageView(image).getFitHeight() == 0,
+            "Photo zoom scales from original pixels without fitting the view height");
+        selectZoom(image, "Fit image");
+        check(imageView(image).getFitWidth() < 99 && imageView(image).getFitHeight() > 0,
+            "Photo fit returns to the viewport's dimensions");
         image.dispose();
         return null;
       });
@@ -77,10 +90,36 @@ public final class FxFilePreviewTests {
     Path source = folder.resolve("pages.pdf");
     writePdf(source, false);
     FxFilePreview pdf = fx(() -> new FxFilePreview(source));
-    await("the first PDF page", () -> pageLabel(pdf).getText().equals("Page 1 of 2"));
+    Stage stage = fx(() -> {
+      StackPane root = new StackPane(pdf);
+      root.getStyleClass().add("workspace-root");
+      Stage window = new Stage(StageStyle.UNDECORATED);
+      Scene scene = new Scene(root, 200, 220);
+      scene.getStylesheets().add(FxFilePreviewTests.class.getResource("/fx-workspace.css").toExternalForm());
+      window.setScene(scene);
+      window.show();
+      return window;
+    });
+    await("the first PDF page", () -> onPage(pdf, "Page 1 of 2"));
     fx(() -> {
       check(previous(pdf).isDisabled() && !next(pdf).isDisabled(), "The first page has only forward navigation");
       check(colorAtCenter(pdf).getBlue() > .9, "The first page rendered its own contents");
+      MenuButton zoom = zoom(pdf);
+      check(zoom.isFocusTraversable() && zoom.getAccessibleText().equals("Preview zoom, Fit to width"),
+          "The zoom menu announces its current mode and is reachable by keyboard");
+      selectZoom(pdf, "100%");
+      check(imageView(pdf).getFitWidth() == 100, "Actual size uses PDF points rather than doubled raster pixels");
+      selectZoom(pdf, "200%");
+      pdf.applyCss();
+      pdf.layout();
+      check(imageView(pdf).getFitWidth() == 200 && visibleBar(scroll(pdf), Orientation.HORIZONTAL)
+              && visibleBar(scroll(pdf), Orientation.VERTICAL),
+          "An enlarged PDF can scroll on both axes within a compact split");
+      check(zoom.getBoundsInParent().getMaxX() <= pdf.getWidth()
+              && previous(pdf).getBoundsInParent().getMinX() >= 0,
+          "Page navigation and zoom stay visible in a 200 px preview");
+      pdf.focus();
+      check(stage.getScene().getFocusOwner() == scroll(pdf), "Keyboard focus starts on the page viewport");
       return null;
     });
 
@@ -90,14 +129,22 @@ public final class FxFilePreviewTests {
       next(pdf).fire();
       return null;
     });
-    await("the next page after relocating the open PDF", () -> pageLabel(pdf).getText().equals("Page 2 of 2"));
+    await("the next page after relocating the open PDF", () -> onPage(pdf, "Page 2 of 2"));
     fx(() -> {
       check(!previous(pdf).isDisabled() && next(pdf).isDisabled(), "The last page has only backward navigation");
       check(colorAtCenter(pdf).getRed() > .9, "The second page rendered from the new path");
+      check(imageView(pdf).getFitWidth() == 240 && zoom(pdf).getText().equals("200%")
+              && stage.getScene().getFocusOwner() == scroll(pdf),
+          "Page changes preserve zoom and viewport focus, including a rotated page");
+      selectZoom(pdf, "Fit to width");
+      pdf.applyCss();
+      pdf.layout();
+      check(imageView(pdf).getFitWidth() <= scroll(pdf).getViewportBounds().getWidth(),
+          "Fit to width brings the rotated page back inside the viewport");
       previous(pdf).fire();
       return null;
     });
-    await("the previous PDF page", () -> pageLabel(pdf).getText().equals("Page 1 of 2"));
+    await("the previous PDF page", () -> onPage(pdf, "Page 1 of 2"));
 
     FxFilePreview closed = fx(() -> {
       FxFilePreview pending = new FxFilePreview(relocated);
@@ -106,6 +153,7 @@ public final class FxFilePreviewTests {
     });
     fx(() -> {
       pdf.dispose();
+      stage.hide();
       check(!(closed.getCenter() instanceof ScrollPane), "A cancelled request must leave no rendered page");
       return null;
     });
@@ -135,6 +183,7 @@ public final class FxFilePreviewTests {
     try (PDDocument document = new PDDocument()) {
       for (int index = 0; index < 2; index++) {
         PDPage page = new PDPage(new PDRectangle(100, 120));
+        if (index == 1) page.setRotation(90);
         document.addPage(page);
         try (var stream = new PDPageContentStream(document, page)) {
           stream.setNonStrokingColor(index, 0, 1 - index);
@@ -148,8 +197,19 @@ public final class FxFilePreviewTests {
   }
 
   private static Image image(FxFilePreview preview) {
-    StackPane sheet = (StackPane) ((ScrollPane) preview.getCenter()).getContent();
-    return ((ImageView) sheet.getChildren().getFirst()).getImage();
+    return imageView(preview).getImage();
+  }
+
+  private static ImageView imageView(FxFilePreview preview) {
+    StackPane sheet = (StackPane) scroll(preview).getContent();
+    return (ImageView) sheet.getChildren().getFirst();
+  }
+
+  private static ScrollPane scroll(FxFilePreview preview) { return (ScrollPane) preview.getCenter(); }
+
+  private static boolean visibleBar(ScrollPane scroll, Orientation orientation) {
+    return scroll.lookupAll(".scroll-bar").stream()
+        .anyMatch(node -> node instanceof ScrollBar bar && bar.getOrientation() == orientation && bar.isVisible());
   }
 
   private static Color colorAtCenter(FxFilePreview preview) {
@@ -157,9 +217,19 @@ public final class FxFilePreviewTests {
     return page.getPixelReader().getColor((int) (page.getWidth() / 2), (int) (page.getHeight() / 2));
   }
 
-  private static Label pageLabel(FxFilePreview pdf) { return (Label) ((HBox) pdf.getTop()).getChildren().get(1); }
+  private static boolean onPage(FxFilePreview pdf, String page) {
+    return page.equals(((HBox) pdf.getTop()).getChildren().get(1).getAccessibleText());
+  }
   private static Button previous(FxFilePreview pdf) { return (Button) ((HBox) pdf.getTop()).getChildren().getFirst(); }
-  private static Button next(FxFilePreview pdf) { return (Button) ((HBox) pdf.getTop()).getChildren().getLast(); }
+  private static Button next(FxFilePreview pdf) { return (Button) ((HBox) pdf.getTop()).getChildren().get(2); }
+  private static MenuButton zoom(FxFilePreview preview) { return (MenuButton) ((HBox) preview.getTop()).getChildren().getLast(); }
+
+  private static void selectZoom(FxFilePreview preview, String label) {
+    var item = (RadioMenuItem) zoom(preview).getItems().stream().filter(option -> option.getText().equals(label))
+        .findFirst().orElseThrow();
+    item.setSelected(true);
+    item.fire();
+  }
 
   private static void await(String description, Callable<Boolean> ready) throws Exception {
     long end = System.nanoTime() + TimeUnit.SECONDS.toNanos(8);

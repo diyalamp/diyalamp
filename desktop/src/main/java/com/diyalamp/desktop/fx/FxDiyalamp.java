@@ -134,7 +134,7 @@ public final class FxDiyalamp extends Application {
   private View active;
   private final ObjectProperty<View> focusView = new SimpleObjectProperty<>();
   private NoteStore.Deleted lastDeleted;
-  private boolean persistentFolder = true, refreshing, sidebarOpen = true;
+  private boolean persistentFolder = true, sidebarOpen = true;
   private Timeline sidebarAnimation;
   private final ChangeListener<Boolean> motionPreference = (observable, before, after) -> applyMotionPreference();
   private final PauseTransition sidebarSave = new PauseTransition(Duration.millis(180));
@@ -236,7 +236,13 @@ public final class FxDiyalamp extends Application {
       tabs.getSelectionModel().selectedItemProperty().addListener((observable, previous, selected) -> {
         View view = selected == null ? null : (View) selected.getUserData();
         if (view != null && !view.disposed) {
-          container.setCenter(view.content); syncFileSelection(view.session.path); activate(view);
+          container.setCenter(view.content);
+          // Removing a selected tab in the other pane must not change the active document.
+          if (active != null && active.host != this && previous != null && !tabs.getTabs().contains(previous)) {
+            breadcrumb.show(store.root(), view.session.path);
+            return;
+          }
+          syncFileSelection(view.session.path); activate(view);
         } else {
           container.setCenter(emptyPage()); breadcrumb.show(null, null);
           if (active != null && active.host == this) setActive(null);
@@ -465,9 +471,10 @@ public final class FxDiyalamp extends Application {
     tree.setCellFactory(view -> new FileCell());
     tree.getStyleClass().addAll("file-tree", "edge-to-edge");
     FxTreeMotion.install(tree);
-    tree.setOnKeyPressed(event -> {
+    tree.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
       TreeItem<Path> selected = tree.getSelectionModel().getSelectedItem();
-      if (tree.getEditingItem() != null || selected == null || selected.getValue() == null || store == null) return;
+      if (event.getTarget() != tree || tree.getEditingItem() != null || selected == null
+          || selected.getValue() == null || store == null) return;
       Path path = selected.getValue();
       if (event.getCode() == KeyCode.ENTER) {
         if (store.isDirectory(path)) selected.setExpanded(!selected.isExpanded());
@@ -476,10 +483,6 @@ public final class FxDiyalamp extends Application {
       } else if (event.getCode() == KeyCode.F2) {
         beginRename(path); event.consume();
       }
-    });
-    tree.getSelectionModel().selectedItemProperty().addListener((observable, previous, selected) -> {
-      if (!refreshing && selected != null && selected.getValue() != null && store != null
-          && !store.isDirectory(selected.getValue())) open(selected.getValue(), false);
     });
     Button createFolder = fileAction("folder-plus", "New folder", () -> newFolder(null));
     Button create = fileAction("plus", "New note", () -> newNote(null));
@@ -640,8 +643,10 @@ public final class FxDiyalamp extends Application {
         board.setContent(content); event.consume();
       });
       setOnMouseClicked(event -> {
-        if (!directory && !isEditing() && event.getClickCount() == 2) {
-          open(path, false); if (active != null) active.focus();
+        if (!directory && !isEditing() && event.getButton() == MouseButton.PRIMARY
+            && event.isStillSincePress() && !event.isPopupTrigger()) {
+          open(path, false);
+          if (event.getClickCount() == 2 && active != null && path.equals(active.session.path)) active.focus();
         }
       });
     }
@@ -657,7 +662,7 @@ public final class FxDiyalamp extends Application {
       if (row == null || renameInput != null) return;
       Path path = getItem();
       boolean directory = store.isDirectory(path);
-      if ((!directory && !NoteStore.isMarkdown(path)) || (directory && !path.equals(renameRequested))) {
+      if (!path.equals(renameRequested) || (!directory && !NoteStore.isMarkdown(path))) {
         if (tree.getEditingItem() == getTreeItem()) tree.edit(null);
         return;
       }
@@ -746,12 +751,9 @@ public final class FxDiyalamp extends Application {
     if (store == null) return;
     if (noteGraph != null) noteGraph.filesChanged();
     Path selected = selectedPath();
-    refreshing = true;
-    try {
-      DirectoryItem rootItem = new DirectoryItem(store.root());
-      rootItem.populate(); rootItem.setExpanded(true); tree.setRoot(rootItem);
-      if (selected != null) selectTree(tree.getRoot(), selected);
-    } finally { refreshing = false; }
+    DirectoryItem rootItem = new DirectoryItem(store.root());
+    rootItem.populate(); rootItem.setExpanded(true); tree.setRoot(rootItem);
+    if (selected != null) selectTree(tree.getRoot(), selected);
     if (searchQuery != null) scheduleSearch(searchQuery);
   }
 
@@ -835,9 +837,7 @@ public final class FxDiyalamp extends Application {
   }
 
   private void syncFileSelection(Path path) {
-    if (refreshing || path.equals(selectedPath())) return;
-    refreshing = true;
-    try { selectTree(tree.getRoot(), path); } finally { refreshing = false; }
+    if (!path.equals(selectedPath())) selectTree(tree.getRoot(), path);
   }
 
   private void revealFolder(Path folder) {
@@ -870,7 +870,6 @@ public final class FxDiyalamp extends Application {
     setActive(view);
     view.host.breadcrumb.show(store.root(), view.session.path);
     if (!privacyMode.get()) rememberLocation(view);
-    updateWindowTitle();
     updateStatus();
   }
 
@@ -913,7 +912,6 @@ public final class FxDiyalamp extends Application {
         open(entry.path(), entry.beside());
         if (active != null && active.session.path.equals(entry.path())) {
           historyIndex = target;
-          syncFileSelection(entry.path());
           active.focus();
         }
       } finally {
@@ -932,6 +930,7 @@ public final class FxDiyalamp extends Application {
   private void setActive(View view) {
     active = view;
     focusView.set(view);
+    updateWindowTitle();
   }
 
   private void chooseFolder() {
@@ -1023,8 +1022,7 @@ public final class FxDiyalamp extends Application {
         session.views.forEach(this::updateView);
       }
       refreshTree();
-      refreshing = true;
-      try { selectTree(tree.getRoot(), moved); } finally { refreshing = false; }
+      selectTree(tree.getRoot(), moved);
       if (active != null) activate(active);
       status.setText("Note moved to " + directory.getFileName()); return true;
     } catch (IOException error) { error("Note could not be moved", error); return false; }
@@ -1044,7 +1042,7 @@ public final class FxDiyalamp extends Application {
       PaneHost host = beside ? secondary : primary;
       if (beside) showSecondary();
       for (View view : session.views) if (view.host == host) {
-        host.tabs.getSelectionModel().select(view.tab); activate(view); return;
+        host.tabs.getSelectionModel().select(view.tab); syncFileSelection(path); activate(view); return;
       }
       View view = new View(session, host);
       host.tabs.getTabs().add(view.tab); host.tabs.getSelectionModel().select(view.tab);
@@ -1248,11 +1246,7 @@ public final class FxDiyalamp extends Application {
     if (!NoteStore.isMarkdown(path) && !store.isDirectory(path)) return;
     if (!sidebarOpen) toggleSidebar();
     if (sidebarSearch.hasQuery()) { sidebarSearch.reset(); scheduleSearch(null); }
-    refreshing = true;
-    boolean found;
-    try { found = selectTree(tree.getRoot(), path); }
-    finally { refreshing = false; }
-    if (!found) return;
+    if (!selectTree(tree.getRoot(), path)) return;
     TreeItem<Path> selected = tree.getSelectionModel().getSelectedItem();
     boolean visible = tree.lookupAll(".tree-cell").stream()
         .anyMatch(node -> node instanceof TreeCell<?> cell && cell.getTreeItem() == selected && cell.isVisible());
@@ -1302,8 +1296,7 @@ public final class FxDiyalamp extends Application {
 
   private void refreshAfterRename(Path renamed, boolean directory) {
     refreshTree();
-    refreshing = true;
-    try { selectTree(tree.getRoot(), renamed); } finally { refreshing = false; }
+    selectTree(tree.getRoot(), renamed);
     if (active != null) activate(active);
     status.setText((directory ? "Folder" : "Note") + " renamed to " + renamed.getFileName());
   }
@@ -1391,11 +1384,15 @@ public final class FxDiyalamp extends Application {
       view.host.container.setCenter(emptyPage()); view.host.breadcrumb.show(null, null);
       if (view.host == secondary) split.getItems().remove(secondary.container);
     }
-    Tab selected = view.host.tabs.getSelectionModel().getSelectedItem();
-    if (selected != null && selected.getUserData() instanceof View next) activate(next);
-    else if (!primary.tabs.getTabs().isEmpty()) {
-      Tab tab = primary.tabs.getSelectionModel().getSelectedItem();
-      if (tab != null) activate((View) tab.getUserData());
+    if (active == null) {
+      Tab selected = view.host.tabs.getSelectionModel().getSelectedItem();
+      if (selected == null) {
+        PaneHost other = view.host == primary ? secondary : primary;
+        selected = other.tabs.getSelectionModel().getSelectedItem();
+      }
+      if (selected != null && selected.getUserData() instanceof View next) {
+        syncFileSelection(next.session.path); activate(next);
+      }
     }
     updateStatus();
   }
