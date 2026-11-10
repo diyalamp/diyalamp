@@ -78,7 +78,7 @@ public final class FxDiyalamp extends Application {
   private static final PseudoClass INVALID = PseudoClass.getPseudoClass("invalid");
   private static final double SIDEBAR_WIDTH = 272;
   private static final double MIN_FILES_WIDTH = 200;
-  private static final double SIDEBAR_RATIO = .30;
+  private static final double SIDEBAR_RATIO = .20;
   private static final double MIN_WRITING_WIDTH = 240;
   private static final double SIDEBAR_DIVIDER_WIDTH = 6;
   private static final double TOOLBAR_GAP = 4;
@@ -86,6 +86,7 @@ public final class FxDiyalamp extends Application {
   private final Preferences preferences;
   private final Map<Path, Session> sessions = new LinkedHashMap<>();
   private final TreeView<Path> tree = new TreeView<>();
+  private HiddenFileSelection hiddenFileSelection;
   private final Set<Path> expandedFolders = new HashSet<>();
   private Path renameRequested;
   private final FxSidebarSearch sidebarSearch = new FxSidebarSearch();
@@ -137,6 +138,7 @@ public final class FxDiyalamp extends Application {
   private final ObjectProperty<View> focusView = new SimpleObjectProperty<>();
   private NoteStore.Deleted lastDeleted;
   private boolean persistentFolder = true, sidebarOpen = true;
+  private boolean workspaceRemembered, restoringWorkspace;
   private Timeline sidebarAnimation;
   private final ChangeListener<Boolean> motionPreference = (observable, before, after) -> applyMotionPreference();
   private final PauseTransition sidebarSave = new PauseTransition(Duration.millis(180));
@@ -239,8 +241,8 @@ public final class FxDiyalamp extends Application {
         View view = selected == null ? null : (View) selected.getUserData();
         if (view != null && !view.disposed) {
           container.setCenter(view.content);
-          // Removing a selected tab in the other pane must not change the active document.
-          if (active != null && active.host != this && previous != null && !tabs.getTabs().contains(previous)) {
+          // Restoring or closing a background tab can update this pane without activating it.
+          if (restoringWorkspace || active != null && active.host != this && previous != null && !tabs.getTabs().contains(previous)) {
             breadcrumb.show(store.root(), view.session.path);
             return;
           }
@@ -338,7 +340,11 @@ public final class FxDiyalamp extends Application {
         if (within(focused, view.content)) { activate(view); return; }
     });
     stage.setScene(scene);
-    stage.setOnCloseRequest(event -> { if (!saveAll(true)) event.consume(); else disposeAll(); });
+    stage.setOnCloseRequest(event -> {
+      if (!saveAll(true)) { event.consume(); return; }
+      rememberWorkspace();
+      disposeAll();
+    });
     autosave.setOnFinished(event -> saveAll(false));
     serialization.setOnFinished(event -> {
       for (Session session : new ArrayList<>(sessions.values())) flush(session);
@@ -354,7 +360,10 @@ public final class FxDiyalamp extends Application {
     if (!requested.isBlank()) {
       try {
         Path folder = Path.of(requested);
-        if (Files.isDirectory(folder, LinkOption.NOFOLLOW_LINKS)) setFolder(folder);
+        if (Files.isDirectory(folder, LinkOption.NOFOLLOW_LINKS)) {
+          setFolder(folder);
+          if (persistentFolder && store != null) restoreWorkspace();
+        }
       } catch (Exception e) { status.setText("Choose a folder to start writing"); }
     }
     stage.toFront();
@@ -434,7 +443,7 @@ public final class FxDiyalamp extends Application {
       toolbar.getItems().add(quickTasks.button());
     }
     Button reset = FxTheme.iconButton("layout-template", "Reset sidebar widths", this::resetSidebarWidths);
-    reset.setAccessibleHelp("Restore both sidebars to 30 percent of the workspace when space allows.");
+    reset.setAccessibleHelp("Restore both sidebars to 20 percent of the workspace when space allows.");
     toolbar.getItems().addAll(privacy, accentButton(), zen, reset, toolbarDivider(), connections);
     for (ButtonBase control : List.of(files, accentButton(), zen, reset, connections))
       control.disableProperty().bind(privacyMode);
@@ -497,6 +506,13 @@ public final class FxDiyalamp extends Application {
     tree.setCellFactory(view -> new FileCell());
     tree.getStyleClass().addAll("file-tree", "edge-to-edge");
     FxTreeMotion.install(tree);
+    tree.getSelectionModel().selectedItemProperty().addListener((observable, previous, selected) -> {
+      if (hiddenFileSelection != null && selected != hiddenFileSelection.folder()) hiddenFileSelection = null;
+    });
+    tree.focusedProperty().addListener((observable, previous, focused) -> {
+      if (!focused) hiddenFileSelection = null;
+    });
+    focusView.addListener((observable, previous, focused) -> hiddenFileSelection = null);
     tree.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
       TreeItem<Path> selected = tree.getSelectionModel().getSelectedItem();
       if (event.getTarget() != tree || tree.getEditingItem() != null || selected == null
@@ -744,6 +760,22 @@ public final class FxDiyalamp extends Application {
     }
   }
 
+  private record HiddenFileSelection(TreeItem<Path> folder, TreeItem<Path> file) {}
+
+  private void rememberHiddenFileSelection(TreeItem<Path> folder) {
+    TreeItem<Path> selected = tree.getSelectionModel().getSelectedItem();
+    if (active != null && selected != null && selected != folder && active.session.path.equals(selected.getValue())
+        && active.session.path.startsWith(folder.getValue())) hiddenFileSelection = new HiddenFileSelection(folder, selected);
+  }
+
+  private void restoreHiddenFileSelection(TreeItem<Path> folder) {
+    HiddenFileSelection saved = hiddenFileSelection;
+    if (saved == null || saved.folder() != folder) return;
+    hiddenFileSelection = null;
+    if (tree.getSelectionModel().getSelectedItem() == folder && tree.getRow(saved.file()) >= 0)
+      tree.getSelectionModel().select(saved.file());
+  }
+
   private final class DirectoryItem extends TreeItem<Path> {
     boolean loaded;
     DirectoryItem(Path path) {
@@ -754,6 +786,7 @@ public final class FxDiyalamp extends Application {
           if (expanded) {
             expandedFolders.add(path);
             populate();
+            restoreHiddenFileSelection(this);
           } else {
             expandedFolders.remove(path);
           }
@@ -778,6 +811,9 @@ public final class FxDiyalamp extends Application {
     if (noteGraph != null) noteGraph.filesChanged();
     Path selected = selectedPath();
     DirectoryItem rootItem = new DirectoryItem(store.root());
+    hiddenFileSelection = null;
+    // Capture the active row before the native selection falls back to its collapsing ancestor.
+    rootItem.addEventFilter(TreeItem.<Path>branchCollapsedEvent(), event -> rememberHiddenFileSelection(event.getTreeItem()));
     rootItem.populate(); rootItem.setExpanded(true); tree.setRoot(rootItem);
     if (selected != null) selectTree(tree.getRoot(), selected);
     if (searchQuery != null) scheduleSearch(searchQuery);
@@ -987,7 +1023,11 @@ public final class FxDiyalamp extends Application {
     if (!saveAll(true)) return;
     try {
       NoteStore next = new NoteStore(folder);
-      if (store == null || !store.root().equals(next.root())) expandedFolders.clear();
+      if (store != null && store.root().equals(next.root())) {
+        refreshTree();
+        return;
+      }
+      expandedFolders.clear();
       disposeAll(); store = next; lastDeleted = null;
       history.clear(); historyIndex = -1; updateHistoryButtons();
       if (noteGraph != null) noteGraph.workspace(store);
@@ -1057,24 +1097,29 @@ public final class FxDiyalamp extends Application {
   private void open(Path path, boolean beside) {
     if (store == null || privacyMode.get()) return;
     try {
-      path = path.toAbsolutePath().normalize();
-      Session session = sessions.get(path);
-      if (session == null) {
-        path = store.checkedDocument(path);
-        NoteStore.Loaded loaded = NoteStore.isMarkdown(path) ? store.load(path) : new NoteStore.Loaded("", "");
-        session = new Session(path, loaded);
-        sessions.put(path, session);
-      } else flush(session);
       PaneHost host = beside ? secondary : primary;
-      if (beside) showSecondary();
-      for (View view : session.views) if (view.host == host) {
-        host.tabs.getSelectionModel().select(view.tab); syncFileSelection(path); activate(view); return;
-      }
-      View view = new View(session, host);
-      host.tabs.getTabs().add(view.tab); host.tabs.getSelectionModel().select(view.tab);
-      syncFileSelection(path);
-      activate(view); updateView(view);
+      View view = documentView(path, host);
+      host.tabs.getSelectionModel().select(view.tab);
+      syncFileSelection(view.session.path);
+      activate(view);
     } catch (IOException e) { error("File could not be opened", e); }
+  }
+
+  private View documentView(Path path, PaneHost host) throws IOException {
+    path = path.toAbsolutePath().normalize();
+    Session session = sessions.get(path);
+    if (session == null) {
+      path = store.checkedDocument(path);
+      NoteStore.Loaded loaded = NoteStore.isMarkdown(path) ? store.load(path) : new NoteStore.Loaded("", "");
+      session = new Session(path, loaded);
+      sessions.put(path, session);
+    } else flush(session);
+    if (host == secondary) showSecondary();
+    for (View view : session.views) if (view.host == host) return view;
+    View view = new View(session, host);
+    host.tabs.getTabs().add(view.tab);
+    updateView(view);
+    return view;
   }
 
   private void changed(View source) {
@@ -1431,6 +1476,67 @@ public final class FxDiyalamp extends Application {
     sessions.clear(); setActive(null);
   }
 
+  private void rememberWorkspace() {
+    if (workspaceRemembered || !persistentFolder || store == null || primary == null || secondary == null) return;
+    workspaceRemembered = true;
+    if (privacyMode.get()) {
+      FxWorkspaceState.clear(preferences);
+      return;
+    }
+    var dividers = split.getDividers();
+    double divider = dividers.isEmpty() ? .5 : dividers.getFirst().getPosition();
+    new FxWorkspaceState(store.root(), rememberPane(primary), rememberPane(secondary),
+        active != null && active.host == secondary, divider).write(preferences);
+  }
+
+  private FxWorkspaceState.Pane rememberPane(PaneHost host) {
+    List<Path> tabs = host.tabs.getTabs().stream().map(tab -> (View) tab.getUserData())
+        .filter(view -> !view.disposed).map(view -> store.root().relativize(view.session.path)).toList();
+    Tab selected = host.tabs.getSelectionModel().getSelectedItem();
+    Path selectedPath = selected == null ? null : store.root().relativize(((View) selected.getUserData()).session.path);
+    return new FxWorkspaceState.Pane(tabs, selectedPath);
+  }
+
+  private void restoreWorkspace() {
+    FxWorkspaceState workspace = FxWorkspaceState.read(preferences, store.root());
+    if (workspace == null) return;
+    restoringWorkspace = true;
+    primary.tabs.setAnimated(false);
+    secondary.tabs.setAnimated(false);
+    View left, right;
+    try {
+      left = restorePane(primary, workspace.primary());
+      right = restorePane(secondary, workspace.secondary());
+      if (right != null) split.setDividerPositions(workspace.divider());
+    } finally {
+      primary.tabs.applyMotionPreference();
+      secondary.tabs.applyMotionPreference();
+      restoringWorkspace = false;
+    }
+    View preferred = workspace.activeBeside() ? right : left;
+    View restored = preferred != null ? preferred : left != null ? left : right;
+    if (restored != null) {
+      syncFileSelection(restored.session.path);
+      activate(restored);
+      restored.focus();
+    }
+  }
+
+  private View restorePane(PaneHost host, FxWorkspaceState.Pane pane) {
+    Tab selected = null;
+    for (Path path : pane.tabs()) {
+      try {
+        Tab tab = documentView(store.root().resolve(path), host).tab;
+        if (selected == null || path.equals(pane.selected())) selected = tab;
+      } catch (IOException unavailable) {
+        // A file can be moved, removed or edited outside DiyaLamp between runs.
+      }
+    }
+    if (selected == null) return null;
+    host.tabs.getSelectionModel().select(selected);
+    return (View) selected.getUserData();
+  }
+
   private void showSecondary() {
     if (!split.getItems().contains(secondary.container)) {
       split.getItems().add(secondary.container); split.setDividerPositions(.5);
@@ -1579,6 +1685,8 @@ public final class FxDiyalamp extends Application {
 
   private double sidebarRatio(String key) {
     double value = preferences.getDouble(key, SIDEBAR_RATIO);
+    // Older builds saved the default ratio even when the user never dragged a divider.
+    if (!preferences.getBoolean("sidebarDefaults20", false) && value == .30) return SIDEBAR_RATIO;
     return value > 0 && value < 1 ? value : SIDEBAR_RATIO;
   }
 
@@ -1616,6 +1724,7 @@ public final class FxDiyalamp extends Application {
   private void persistSidebarWidths() {
     preferences.putDouble("filesRatio", filesRatio);
     preferences.putDouble("connectionsRatio", connectionsRatio);
+    preferences.putBoolean("sidebarDefaults20", true);
   }
 
   private void queueSidebarLayout() {
@@ -1966,6 +2075,7 @@ public final class FxDiyalamp extends Application {
       }
     }
     if (noteGraph != null) noteGraph.close();
+    rememberWorkspace();
     disposeAll();
   }
 

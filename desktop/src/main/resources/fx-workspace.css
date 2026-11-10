@@ -316,6 +316,15 @@
   -fx-min-height: 28; -fx-pref-height: 28; -fx-max-height: 28;
   -fx-padding: 6;
 }
+.file-tree .file-row-action:hover {
+  -fx-background-color: -diyalamp-control-hover; -fx-background-insets: 2; -fx-background-radius: 6;
+}
+.file-tree .file-row-action:pressed {
+  -fx-background-color: -diyalamp-control-pressed; -fx-background-insets: 2; -fx-background-radius: 6;
+}
+.workspace-root .file-tree .file-row-action:focus-visible {
+  -fx-background-color: -diyalamp-focus, -color-bg-subtle; -fx-background-insets: 2, 3; -fx-background-radius: 6, 5;
+}
 .file-row-action:hover .icon-stroke { -fx-stroke: -color-fg-default; }
 .workspace-root .file-rename-field {
   -fx-min-height: 28; -fx-max-height: 28; -fx-padding: 0 4;

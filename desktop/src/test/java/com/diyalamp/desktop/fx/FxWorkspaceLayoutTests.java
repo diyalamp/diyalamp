@@ -574,10 +574,38 @@ public final class FxWorkspaceLayoutTests {
         "The background pane breadcrumb follows the tab revealed by closing a tab");
 
     TabLine secondary = (TabLine) field(field(fixture.app, "secondary"), "tabs");
+    var primaryTabs = java.util.List.copyOf(tabs.getTabs());
+    var secondaryTabs = java.util.List.copyOf(secondary.getTabs());
+    call(fixture.app, "setFolder", new Class<?>[] {Path.class}, fixture.directory.resolve("."));
+    check(tabs.getTabs().equals(primaryTabs) && secondary.getTabs().equals(secondaryTabs)
+        && field(fixture.app, "active") == beside && (int) field(fixture.app, "historyIndex") == historyIndex,
+        "Choosing the same canonical folder preserves both panes, the active document, and history");
     for (int remaining = tabs.getTabs().size() + secondary.getTabs().size(); remaining > 0; remaining--)
       call(fixture.app, "closeActive", new Class<?>[0]);
     check(tabs.getTabs().isEmpty() && secondary.getTabs().isEmpty() && fixture.stage.getTitle().equals("diyalamp"),
         "Closing the last document clears the native window title");
+
+    Path previewFolder = Files.createDirectory(fixture.directory.resolve("Study files"));
+    Path previewPath = Files.writeString(previewFolder.resolve("Folded reference.txt"), "Preview in a folder");
+    call(fixture.app, "refreshTree", new Class<?>[0]);
+    call(fixture.app, "open", open, previewPath, false);
+    Object preview = field(fixture.app, "active");
+    TreeItem<?> previewRow = tree.getSelectionModel().getSelectedItem(), folder = previewRow.getParent();
+    tree.requestFocus();
+    folder.setExpanded(false);
+    check(tree.getSelectionModel().getSelectedItem() == folder && field(fixture.app, "active") == preview,
+        "Collapsing an active preview's folder keeps its tab open while the tree selects the folder");
+    folder.setExpanded(true);
+    check(tree.getSelectionModel().getSelectedItem() == previewRow && field(fixture.app, "active") == preview,
+        "Reopening the folder restores the active preview row when its selection stayed on the folder");
+    folder.setExpanded(false);
+    tree.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.UP, false, false, false, false));
+    TreeItem<?> navigated = tree.getSelectionModel().getSelectedItem();
+    folder.setExpanded(true);
+    check(navigated != folder && tree.getSelectionModel().getSelectedItem() == navigated
+            && field(fixture.app, "active") == preview,
+        "Arrow-key browsing after a collapse keeps its selection without switching the active preview tab");
+    call(fixture.app, "closeActive", new Class<?>[0]);
     call(fixture.app, "open", open, referencePath, false);
   }
 

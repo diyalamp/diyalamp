@@ -34,6 +34,7 @@ public final class FxSidebarLayoutTests {
     Path note = Files.writeString(root.resolve("Fictional.md"), "Original fictional note\n");
     MemoryPreferences preferences = new MemoryPreferences();
     preferences.put("folder", root.toString()); preferences.putBoolean("connectionsVisible", true);
+    preferences.putDouble("filesRatio", .30);
     Fixture fixture = null;
     try {
       fixture = fx(() -> new Fixture(preferences, note)); Fixture current = fixture;
@@ -41,8 +42,8 @@ public final class FxSidebarLayoutTests {
       fx(() -> {
         current.layout();
         check(current.body.getDividers().size() == 2, "Both sidebars use real native SplitPane dividers");
-        near(current.left.getWidth(), current.body.getWidth() * .30, "Default files width");
-        near(current.right.getWidth(), current.body.getWidth() * .30, "Default connections width");
+        near(current.left.getWidth(), current.body.getWidth() * .20, "Migrate the previous default files width");
+        near(current.right.getWidth(), current.body.getWidth() * .20, "Default connections width");
         current.body.setDividerPositions(.35, .65); current.layout();
         check(current.left.getWidth() > 320 && current.right.getWidth() > 320, "Native divider positions resize both sidebars");
         return null;
@@ -66,7 +67,7 @@ public final class FxSidebarLayoutTests {
       });
       await(() -> fx(current::stable));
       fx(() -> {
-        near(current.left.getWidth(), current.body.getWidth() * .30, "Reset files width"); near(current.right.getWidth(), current.body.getWidth() * .30, "Reset connections width");
+        near(current.left.getWidth(), current.body.getWidth() * .20, "Reset files width"); near(current.right.getWidth(), current.body.getWidth() * .20, "Reset connections width");
         check(field(current.app, "active") == current.active && current.editor.area().getText().equals(current.text), "Reset keeps the same open editor and note content");
         check(current.editor.area().getAnchor() == 2 && current.editor.area().getCaretPosition() == 8, "Reset keeps the editor selection");
         check(((BooleanProperty) field(current.app, "zenMode")).get(), "Reset preserves current-line Zen");
@@ -100,7 +101,7 @@ public final class FxSidebarLayoutTests {
       });
       await(() -> fx(() -> current.stable() && current.body.getItems().size() == 3));
       fx(() -> {
-        near(current.left.getWidth(), current.body.getWidth() * .30, "Reopened default files width"); near(current.right.getWidth(), current.body.getWidth() * .30, "Reopened default connections width");
+        near(current.left.getWidth(), current.body.getWidth() * .20, "Reopened default files width"); near(current.right.getWidth(), current.body.getWidth() * .20, "Reopened default connections width");
         current.stage.setWidth(820); current.layout(); return null;
       });
       await(() -> fx(current::stable));
@@ -142,7 +143,7 @@ public final class FxSidebarLayoutTests {
       fixture = fx(() -> new Fixture(preferences, note)); Fixture invalid = fixture;
       await(() -> fx(invalid::stable));
       fx(() -> {
-        near(invalid.left.getWidth(), invalid.body.getWidth() * .30, "Invalid files width falls back safely"); near(invalid.right.getWidth(), invalid.body.getWidth() * .30, "Invalid connections width falls back safely");
+        near(invalid.left.getWidth(), invalid.body.getWidth() * .20, "Invalid files width falls back safely"); near(invalid.right.getWidth(), invalid.body.getWidth() * .20, "Invalid connections width falls back safely");
         return null;
       });
       check(Files.readString(note).contains("Preserved through layout"), "Closing retains edits through all layout changes");
