@@ -485,9 +485,11 @@ public final class FxDiyalamp extends Application {
       chevron.getStyleClass().add("file-disclosure-chevron");
       StackPane disclosure = new StackPane(chevron);
       disclosure.getStyleClass().add("file-disclosure");
-      disclosure.setMinSize(18, 28);
-      disclosure.setPrefSize(18, 28);
-      disclosure.setMaxSize(18, 28);
+      // The skin top-aligns this slot. Fill the row to center the chevron.
+      double rowHeight = tree.getFixedCellSize();
+      disclosure.setMinSize(18, rowHeight);
+      disclosure.setPrefSize(18, rowHeight);
+      disclosure.setMaxSize(18, rowHeight);
       setDisclosureNode(disclosure);
     }
 

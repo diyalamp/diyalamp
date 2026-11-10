@@ -387,6 +387,9 @@ public final class FxWorkspaceLayoutTests {
     var cells = tree.lookupAll(".tree-cell").stream().filter(TreeCell.class::isInstance).map(TreeCell.class::cast).toList();
     var nested = cells.stream().filter(cell -> note.equals(cell.getItem())).findFirst().orElseThrow();
     var topLevel = cells.stream().filter(cell -> fixture.directory.resolve("Reference.md").equals(cell.getItem())).findFirst().orElseThrow();
+    var folderRow = cells.stream().filter(cell -> folder.equals(cell.getItem())).findFirst().orElseThrow();
+    check(Math.abs(centerY(folderRow.getDisclosureNode()) - centerY(folderRow.lookup(".file-kind"))) <= 1,
+        "Folder chevrons stay centered with folder icons across the full row height");
     Node nestedIcon = nested.lookup(".file-kind"), topLevelIcon = topLevel.lookup(".file-kind");
     check(nestedIcon.localToScene(0, 0).getX() - topLevelIcon.localToScene(0, 0).getX() == 12,
         "Nested note content uses one compact indentation step");

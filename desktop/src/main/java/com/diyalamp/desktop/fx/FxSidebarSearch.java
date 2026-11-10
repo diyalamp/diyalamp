@@ -76,7 +76,7 @@ public final class FxSidebarSearch extends VBox {
     status.setMaxWidth(Double.MAX_VALUE);
     status.visibleProperty().bind(hasQuery.and(status.textProperty().isNotEmpty()));
     status.managedProperty().bind(status.visibleProperty());
-    results.getStyleClass().add("sidebar-search-results");
+    results.getStyleClass().addAll("sidebar-search-results", "alt-icon", "edge-to-edge");
     results.setAccessibleText("Workspace search results grouped by file");
     results.setAccessibleHelp("Use arrow keys to move between results. Press Enter to open a result or Escape to clear search.");
     results.setShowRoot(false);
