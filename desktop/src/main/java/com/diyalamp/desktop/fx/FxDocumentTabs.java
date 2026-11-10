@@ -39,6 +39,7 @@ final class FxDocumentTabs extends TabLine {
     // The library's mouse-only gesture cannot become an external native drag halfway through.
     // Native DND owns the gesture; the maintained reorder API still owns the tab/skin permutation.
     setTabDragPolicy(Tab.DragPolicy.FIXED);
+    setEllipsisString("…");
     insertionGuide.getStyleClass().add("tab-insertion-guide");
     insertionGuide.setManaged(false);
     insertionGuide.setMouseTransparent(true);

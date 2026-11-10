@@ -217,7 +217,8 @@ public final class FxTabTransferTests {
               && closeBounds.getMinX() >= pane.getMinX() - 1,
           "The selected long tab and its close target fit inside a 200-pixel split");
       Label title = (Label) selected.lookup(".label");
-      check(title.isTextTruncated() && title.getTooltip() != null && title.getTooltip().getText().equals(filename)
+      check(title.isTextTruncated() && title.getEllipsisString().equals("…")
+              && title.getTooltip() != null && title.getTooltip().getText().equals(filename)
               && filename.equals(selected.queryAccessibleAttribute(AccessibleAttribute.TEXT))
               && close.getAccessibleText().equals("Close " + filename),
           "A clipped visual title must expose the full filename in the tooltip and accessibility tree");
