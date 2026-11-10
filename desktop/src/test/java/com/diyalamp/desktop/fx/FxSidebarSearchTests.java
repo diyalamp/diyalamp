@@ -140,15 +140,24 @@ public final class FxSidebarSearchTests {
       check(advanced.isSelected() && "Hide search options".equals(advanced.getTooltip().getText()),
           "The options icon must expose its expanded state");
       double compactTreeY = treeBelowOptions(workspace, panel, files);
-      var modeIcons = panel.lookupAll(".sidebar-search-mode");
-      var filterIcons = panel.lookupAll(".sidebar-search-option");
-      check(modeIcons.size() == 2 && modeIcons.stream().map(Labeled.class::cast).map(Labeled::getText)
-              .collect(java.util.stream.Collectors.toSet()).equals(java.util.Set.of("Files", "Text"))
-              && filterIcons.size() == 4
-              && java.util.stream.Stream.concat(modeIcons.stream(), filterIcons.stream()).allMatch(node ->
-                  node instanceof Labeled item && item.getGraphic() != null
-                      && item.getGraphic().lookup(".icon-stroke") != null && item.getAccessibleText() != null),
-          "Scope choices must have readable labels, and all options must have an icon and an accessible name");
+      var modes = panel.lookupAll(".sidebar-search-mode");
+      var matchingOptions = panel.lookupAll(".sidebar-search-option");
+      check(modes.size() == 2 && modes.stream().map(Labeled.class::cast).map(Labeled::getText)
+              .collect(java.util.stream.Collectors.toSet()).equals(java.util.Set.of("File names", "Note text"))
+              && matchingOptions.size() == 4 && matchingOptions.stream().map(Labeled.class::cast).map(Labeled::getText)
+                  .collect(java.util.stream.Collectors.toSet()).equals(java.util.Set.of("Case", "Whole word", "Regex", "Paths"))
+              && java.util.stream.Stream.concat(modes.stream(), matchingOptions.stream()).allMatch(node ->
+                  node instanceof Labeled item && item.getTooltip() == null && item.getAccessibleText() != null),
+          "Search options must be named in the panel and accessible without covering it with a tooltip");
+      optionGeometry(workspace, panel, files);
+      press(advanced, KeyCode.TAB);
+      check(workspace.getScene().getFocusOwner() == toggle(panel, "Search filenames"),
+          "Tab from Search options must reach the selected search scope");
+      ToggleButton caseOption = toggle(panel, "Match case");
+      caseOption.requestFocus();
+      press(caseOption, KeyCode.TAB);
+      check(workspace.getScene().getFocusOwner() == toggle(panel, "Match whole word"),
+          "Keyboard order must follow the visible matching options");
       scopeIndicator(panel);
       toggle(panel, "Include and exclude files").fire();
       check(treeBelowOptions(workspace, panel, files) > compactTreeY + 36,
@@ -179,6 +188,12 @@ public final class FxSidebarSearchTests {
       check("Research/**".equals(field(panel, "Include files").queryAccessibleAttribute(AccessibleAttribute.TEXT))
           && "Drafts/**".equals(field(panel, "Exclude files").queryAccessibleAttribute(AccessibleAttribute.TEXT)),
           "Advanced fields must expose their typed values independently of their labels");
+      ToggleButton paths = toggle(panel, "Include and exclude files");
+      paths.fire();
+      check(!paths.isSelected() && paths.getAccessibleHelp().contains("are applied")
+              && paths.getPseudoClassStates().stream().anyMatch(state -> state.getPseudoClassName().equals("options-active")),
+          "Collapsed Paths must still show that its filters apply");
+      paths.fire();
 
       FxWorkspaceSearch.Match match = new FxWorkspaceSearch.Match(3, 6, 19, 27, "Some Original text", 5, 13);
       var grouped = new FxWorkspaceSearch.Result(
@@ -259,6 +274,32 @@ public final class FxSidebarSearchTests {
     } finally {
       stage.close();
     }
+  }
+
+  private static void optionGeometry(VBox workspace, FxSidebarSearch panel, TreeView<?> tree) {
+    ToggleButton files = toggle(panel, "Search filenames"), text = toggle(panel, "Search note contents");
+    ToggleButton matchCase = toggle(panel, "Match case"), wholeWord = toggle(panel, "Match whole word");
+    ToggleButton regex = toggle(panel, "Use regular expression"), paths = toggle(panel, "Include and exclude files");
+    for (int width : new int[] {200, 236, 384}) {
+      workspace.resize(width, workspace.getHeight());
+      treeBelowOptions(workspace, panel, tree);
+      workspace.layout();
+      var controls = List.of(files, text, matchCase, wholeWord, regex, paths);
+      check(Math.abs(files.getWidth() - text.getWidth()) <= 1
+              && controls.stream().allMatch(option ->
+                  option.getHeight() == 30 && !option.isTextTruncated()
+                      && option.localToScene(option.getLayoutBounds()).getMaxX() <= width - 11),
+          "All search labels must fit their compact controls at sidebar width " + width + ": "
+              + controls.stream().map(option -> option.getText() + " " + option.getWidth() + "×" + option.getHeight()
+                  + (option.isTextTruncated() ? " (clipped)" : "")).toList());
+      check(Math.abs(matchCase.getLayoutY() - wholeWord.getLayoutY()) <= 1
+              && Math.abs(regex.getLayoutY() - paths.getLayoutY()) <= 1
+              && (width == 384 ? Math.abs(matchCase.getLayoutY() - regex.getLayoutY()) <= 1
+                  : regex.getLayoutY() >= matchCase.getLayoutY() + matchCase.getHeight() + 5),
+          "Matching options must form two aligned rows when narrow and a single row when wide: " + width);
+    }
+    workspace.resize(272, workspace.getHeight());
+    workspace.layout();
   }
 
   private static void scopeIndicator(FxSidebarSearch panel) throws ReflectiveOperationException {
