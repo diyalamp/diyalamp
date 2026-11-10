@@ -1,14 +1,16 @@
-/* The query fills the header beside a strip of compact file controls. */
-.sidebar-search-query {
-  -fx-min-height: 36;
-  -fx-pref-height: 36;
-  -fx-max-height: 36;
+/* AtlantaFX owns the icon slots and keeps the editable text between them. */
+.workspace-root .note-search-field.sidebar-search-query-field {
+  -fx-padding: 0 8 0 0;
+  transition-property: -fx-background-color, -fx-border-color;
+  transition-duration: 140ms;
+  transition-timing-function: ease-out;
 }
-.workspace-root .sidebar-search-query-field:search-icon { -fx-padding: 0 8 0 32; }
-.workspace-root .sidebar-search-query-field:clear-button { -fx-padding: 0 36 0 8; }
-.workspace-root .sidebar-search-query-field:search-icon:clear-button { -fx-padding: 0 36 0 32; }
+.workspace-root:reduced-motion .note-search-field.sidebar-search-query-field { transition-duration: 0s; }
+.workspace-root .note-search-field.sidebar-search-query-field:right-node-visible { -fx-padding: 0 4 0 0; }
+.sidebar-search-query-field .left-pane { -fx-padding: 0 8 0 10; }
+.sidebar-search-query-field .right-pane { -fx-padding: 0 0 0 4; }
 .sidebar-search-toggle:options-active .icon-stroke { -fx-stroke: -color-accent-fg; }
-.sidebar-search-query .sidebar-search-clear {
+.sidebar-search-query-field .sidebar-search-clear {
   -fx-min-width: 28;
   -fx-pref-width: 28;
   -fx-max-width: 28;
@@ -19,7 +21,7 @@
 }
 
 .sidebar-search-options {
-  -fx-padding: 8;
+  -fx-padding: 4 12 12;
   -fx-background-color: -diyalamp-divider, -color-bg-inset;
   -fx-background-insets: 0, 0 0 1 0;
 }
@@ -50,7 +52,7 @@
 .sidebar-search-mode {
   -fx-min-height: 36;
   -fx-padding: 0 8;
-  -fx-graphic-text-gap: 0;
+  -fx-graphic-text-gap: 6;
 }
 .sidebar-search .sidebar-search-mode { -fx-border-radius: 6; }
 .sidebar-search-mode > .radio, .sidebar-search-mode > .radio > .dot {
@@ -92,6 +94,13 @@
   -fx-padding: 4 8;
   -fx-indent: 12;
 }
+/* Use the Cupertino chevron without changing the text viewport's disclosure width. */
+.sidebar-search-results .tree-cell > .tree-disclosure-node > .arrow,
+.sidebar-search-results .tree-cell:expanded > .tree-disclosure-node > .arrow {
+  -fx-shape: "M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z";
+  -fx-scale-shape: true;
+}
+.sidebar-search-results .tree-cell:expanded > .tree-disclosure-node > .arrow { -fx-rotate: 90; }
 .sidebar-search-results:focused .tree-cell:filled:focused { -fx-border-color: -diyalamp-focus; }
 .sidebar-search-file { -fx-alignment: center-left; }
 .sidebar-search-file-name { -fx-font-family: "Inter SemiBold"; -fx-text-fill: -color-fg-default; }

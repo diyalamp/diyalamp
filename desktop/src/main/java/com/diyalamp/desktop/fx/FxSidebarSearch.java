@@ -1,13 +1,14 @@
 package com.diyalamp.desktop.fx;
 
+import atlantafx.base.controls.CustomTextField;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import javafx.animation.FadeTransition;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.css.PseudoClass;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -26,21 +27,19 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
+import javafx.util.Duration;
 
 /** Search controls and a virtualized result tree. The workspace owns search execution and opening notes. */
 public final class FxSidebarSearch extends VBox {
   public record OpenResult(Path path, FxWorkspaceSearch.Match match) {}
 
-  private static final PseudoClass SEARCH_ICON = PseudoClass.getPseudoClass("search-icon");
-  private static final PseudoClass CLEAR_BUTTON = PseudoClass.getPseudoClass("clear-button");
   private static final PseudoClass ERROR = PseudoClass.getPseudoClass("error");
   private static final PseudoClass OPTIONS_ACTIVE = PseudoClass.getPseudoClass("options-active");
-  private final TextField query = new TextField(), include = new TextField(), exclude = new TextField();
-  private final StackPane queryControl = new StackPane(query);
+  private final CustomTextField query = new CustomTextField();
+  private final TextField include = new TextField(), exclude = new TextField();
   private final ToggleButton searchOptions = new ToggleButton(null, FxTheme.icon("settings-2"));
   private final RadioButton files = new RadioButton(), contents = new RadioButton();
   private final ToggleGroup mode = new ToggleGroup();
@@ -60,7 +59,7 @@ public final class FxSidebarSearch extends VBox {
   public FxSidebarSearch() {
     String stylesheet = FxSidebarSearch.class.getResource("/fx-sidebar-search.css").toExternalForm();
     getStylesheets().add(stylesheet);
-    queryControl.getStylesheets().add(stylesheet);
+    query.getStylesheets().add(stylesheet);
     searchOptions.getStylesheets().add(stylesheet);
     getStyleClass().add("sidebar-search");
     setMinWidth(0);
@@ -77,7 +76,7 @@ public final class FxSidebarSearch extends VBox {
     status.setMaxWidth(Double.MAX_VALUE);
     status.visibleProperty().bind(hasQuery.and(status.textProperty().isNotEmpty()));
     status.managedProperty().bind(status.visibleProperty());
-    results.getStyleClass().add("sidebar-search-results");
+    results.getStyleClass().addAll("sidebar-search-results", "edge-to-edge");
     results.setAccessibleText("Workspace search results grouped by file");
     results.setAccessibleHelp("Use arrow keys to move between results. Press Enter to open a result or Escape to clear search.");
     results.setShowRoot(false);
@@ -91,7 +90,7 @@ public final class FxSidebarSearch extends VBox {
     VBox.setVgrow(results, Priority.ALWAYS);
     getChildren().addAll(options, status, results);
     addEventFilter(KeyEvent.KEY_PRESSED, this::dismissOnEscape);
-    queryControl.addEventFilter(KeyEvent.KEY_PRESSED, this::dismissOnEscape);
+    query.addEventFilter(KeyEvent.KEY_PRESSED, this::dismissOnEscape);
     searchOptions.addEventFilter(KeyEvent.KEY_PRESSED, this::dismissOnEscape);
 
     query.textProperty().addListener(observable -> changed());
@@ -106,7 +105,7 @@ public final class FxSidebarSearch extends VBox {
   }
 
   /** Mount the query and options toggle in the sidebar header. */
-  public Region queryControl() { return queryControl; }
+  public Region queryControl() { return query; }
   public ToggleButton optionsButton() { return searchOptions; }
   public BooleanBinding hasQueryProperty() { return hasQuery; }
   public boolean hasQuery() { return hasQuery.get(); }
@@ -164,10 +163,7 @@ public final class FxSidebarSearch extends VBox {
   }
 
   private void buildQueryControl() {
-    queryControl.getStyleClass().add("sidebar-search-query");
-    queryControl.setMinWidth(0);
-    queryControl.setMaxWidth(Double.MAX_VALUE);
-    searchOptions.getStyleClass().addAll("flat", "workspace-tool", "file-row-action", "sidebar-search-toggle");
+    searchOptions.getStyleClass().addAll("flat", "button-icon", "workspace-tool", "file-row-action", "sidebar-search-toggle");
     searchOptions.setAccessibleText("Search options");
     searchOptions.setAccessibleHelp("Show or hide search scope and filters.");
     Tooltip optionsTooltip = new Tooltip();
@@ -193,21 +189,10 @@ public final class FxSidebarSearch extends VBox {
 
     Node searchIcon = FxTheme.icon("search");
     searchIcon.setMouseTransparent(true);
-    searchIcon.visibleProperty().bind(queryControl.widthProperty().greaterThanOrEqualTo(96)
-        .and(hasQuery.not().or(queryControl.widthProperty().greaterThanOrEqualTo(152))));
-    searchIcon.managedProperty().bind(searchIcon.visibleProperty());
-    searchIcon.visibleProperty().addListener((observable, previous, visible) -> query.pseudoClassStateChanged(SEARCH_ICON, visible));
-    StackPane.setAlignment(searchIcon, Pos.CENTER_LEFT);
-    StackPane.setMargin(searchIcon, new Insets(0, 0, 0, 8));
-
     Button clear = FxTheme.iconButton("x", "Clear search", this::dismiss);
     clear.getStyleClass().add("sidebar-search-clear");
-    clear.visibleProperty().bind(hasQuery.and(queryControl.widthProperty().greaterThanOrEqualTo(92)));
-    clear.managedProperty().bind(clear.visibleProperty());
-    clear.visibleProperty().addListener((observable, previous, visible) -> query.pseudoClassStateChanged(CLEAR_BUTTON, visible));
-    StackPane.setAlignment(clear, Pos.CENTER_RIGHT);
-    StackPane.setMargin(clear, new Insets(0, 4, 0, 0));
-    queryControl.getChildren().addAll(searchIcon, clear);
+    query.setLeft(searchIcon);
+    query.rightProperty().bind(Bindings.when(hasQuery).then(clear).otherwise((Button) null));
   }
 
   private VBox buildOptions() {
@@ -216,9 +201,11 @@ public final class FxSidebarSearch extends VBox {
       button.setMinWidth(0);
       button.getStyleClass().add("sidebar-search-mode");
     }
+    files.setText("Files");
     files.setGraphic(FxTheme.icon("files"));
     files.setAccessibleText("Search filenames");
     files.setTooltip(new Tooltip("Search filenames"));
+    contents.setText("Text");
     contents.setGraphic(FxTheme.icon("text-search"));
     contents.setAccessibleText("Search note contents");
     contents.setTooltip(new Tooltip("Search note contents"));
@@ -236,13 +223,35 @@ public final class FxSidebarSearch extends VBox {
 
     VBox globs = new VBox(8, filterField("Include files", "e.g. notes/**", include),
         filterField("Exclude files", "e.g. drafts/**", exclude));
-    globs.visibleProperty().bind(filters.selectedProperty());
-    globs.managedProperty().bind(globs.visibleProperty());
+    disclose(globs, filters);
     VBox options = new VBox(8, modes, flags, globs);
     options.getStyleClass().add("sidebar-search-options");
-    options.visibleProperty().bind(searchOptions.selectedProperty());
-    options.managedProperty().bind(options.visibleProperty());
+    disclose(options, searchOptions);
     return options;
+  }
+
+  private static void disclose(VBox panel, ToggleButton toggle) {
+    panel.setVisible(false);
+    panel.setOpacity(0);
+    panel.managedProperty().bind(panel.visibleProperty());
+    panel.disableProperty().bind(toggle.selectedProperty().not());
+    FadeTransition fade = new FadeTransition(Duration.millis(140), panel);
+    fade.setInterpolator(FxMotion.SIDEBAR_EASE);
+    toggle.selectedProperty().addListener((observable, previous, open) -> {
+      double opacity = panel.getOpacity();
+      fade.stop();
+      panel.setOpacity(opacity);
+      if (FxMotion.reduced() || panel.getScene() == null || !open && opacity == 0) {
+        panel.setOpacity(open ? 1 : 0);
+        panel.setVisible(open);
+        return;
+      }
+      if (open) panel.setVisible(true);
+      fade.setFromValue(opacity);
+      fade.setToValue(open ? 1 : 0);
+      fade.setOnFinished(event -> panel.setVisible(toggle.isSelected()));
+      fade.playFromStart();
+    });
   }
 
   private static void styleToggle(ToggleButton toggle, String description) {
@@ -319,6 +328,7 @@ public final class FxSidebarSearch extends VBox {
   }
 
   private final class ResultCell extends TreeCell<OpenResult> {
+    private static final double INLINE_ACTIONS_WIDTH = 270;
     private Node actions;
     private VBox fileGroup;
     private HBox fileHeading, actionStrip;
@@ -393,10 +403,10 @@ public final class FxSidebarSearch extends VBox {
 
     private void layoutFileActions() {
       if (actionStrip == null) return;
-      if (getWidth() < 220 && actionStrip.getParent() != fileGroup) {
+      if (getWidth() < INLINE_ACTIONS_WIDTH && actionStrip.getParent() != fileGroup) {
         fileHeading.getChildren().remove(actionStrip);
         fileGroup.getChildren().add(actionStrip);
-      } else if (getWidth() >= 220 && actionStrip.getParent() != fileHeading) {
+      } else if (getWidth() >= INLINE_ACTIONS_WIDTH && actionStrip.getParent() != fileHeading) {
         fileGroup.getChildren().remove(actionStrip);
         fileHeading.getChildren().add(actionStrip);
       }

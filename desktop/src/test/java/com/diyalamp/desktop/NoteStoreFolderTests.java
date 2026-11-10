@@ -36,6 +36,8 @@ public final class NoteStoreFolderTests {
   public static void main(String[] args) throws Exception {
     explorerAndNestedCreation();
     fileAndFolderBoundaries();
+    folderRenameAndRecovery();
+    folderMutationBoundaries();
     persistedNestedRecovery();
     restoreBoundaries();
     legacyAndInvalidRestoreRecords();
@@ -130,6 +132,91 @@ public final class NoteStoreFolderTests {
     check(restarted.deleted().isEmpty(), "Restored entries disappear from the deleted-notes list");
     check(!Files.exists(firstDeleted.trashed().resolveSibling(firstDeleted.trashed().getFileName() + ".origin")),
         "Successful restore removes its recovery sidecar");
+  }
+
+  private static void folderRenameAndRecovery() throws Exception {
+    Path root = fixture(), outside = fixture();
+    NoteStore store = new NoteStore(root);
+    Path parent = store.createFolder(root, "Research");
+    Path folder = store.createFolder(parent, "Drafts");
+    Path nested = store.createFolder(folder, "Notes");
+    store.create(nested, "Plan", "Keep the note\n");
+    Files.write(nested.resolve("data.bin"), new byte[] {0, 1, -1});
+    Files.writeString(folder.resolve(".hidden"), "Keep the hidden file\n");
+    Files.createDirectory(folder.resolve("Empty"));
+    Path outsideFile = Files.writeString(outside.resolve("reference.txt"), "Keep the outside file\n");
+    Files.createSymbolicLink(folder.resolve("Reference"), outsideFile);
+    NoteStore.Deleted deletedNote = store.trash(store.create("Temporary", "Note recovery\n"));
+
+    check(store.renameFolder(folder, "Drafts").equals(folder), "An unchanged folder name is a no-op");
+    Path renamed = store.renameFolder(folder, "drafts");
+    check(store.children(parent).equals(List.of(renamed)) && renamed.getFileName().toString().equals("drafts"),
+        "A case-only rename changes the directory's spelling on disk");
+    renamed = store.renameFolder(renamed, "Journal.md");
+    check(renamed.equals(parent.resolve("Journal.md")) && !Files.exists(folder)
+            && store.notes().equals(List.of(renamed.resolve("Notes/Plan.md"))),
+        "Renaming a folder preserves its contents and its requested name, including a dot");
+
+    NoteStore.Deleted deletedFolder = store.deleteFolder(renamed);
+    check(deletedFolder.folder() && deletedFolder.original().equals(renamed) && !Files.exists(renamed)
+            && Files.isDirectory(deletedFolder.trashed()),
+        "Deleting moves the whole folder to the recoverable workspace trash");
+    check(store.notes().isEmpty() && store.children(parent).isEmpty(),
+        "Neither the deleted folder nor its descendants appear in the workspace");
+    NoteStore restarted = new NoteStore(root);
+    check(restarted.deleted().size() == 2 && restarted.deleted().containsAll(List.of(deletedNote, deletedFolder)),
+        "The same recovery list rediscovers notes and folders with their type and location");
+    check(restarted.restore(deletedFolder).equals(renamed), "Recovery returns the folder to its original nested path");
+    check(Files.readString(renamed.resolve("Notes/Plan.md")).equals("Keep the note\n")
+            && Arrays.equals(Files.readAllBytes(renamed.resolve("Notes/data.bin")), new byte[] {0, 1, -1})
+            && Files.readString(renamed.resolve(".hidden")).equals("Keep the hidden file\n")
+            && Files.isDirectory(renamed.resolve("Empty")),
+        "Recovery preserves Markdown, binary assets, hidden files and empty folders");
+    check(Files.readSymbolicLink(renamed.resolve("Reference")).equals(outsideFile)
+            && Files.readString(outsideFile).equals("Keep the outside file\n"),
+        "Moving a folder preserves a contained symlink without touching its external target");
+    check(restarted.deleted().equals(List.of(deletedNote)), "Restoring a folder clears only its own recovery entry");
+  }
+
+  private static void folderMutationBoundaries() throws Exception {
+    Path root = fixture(), outside = fixture();
+    NoteStore store = new NoteStore(root);
+    Path parent = store.createFolder(root, "Parent");
+    Path original = store.createFolder(parent, "Drafts");
+    Path note = store.create(original, "Keep", "Original bytes\n");
+    Path collision = store.createFolder(parent, "Collision");
+    Path outsideFolder = Files.createDirectory(outside.resolve("Linked"));
+    Files.createSymbolicLink(root.resolve("Alias"), outside);
+    Files.createSymbolicLink(parent.resolve("Link"), outsideFolder);
+    rejected(() -> store.renameFolder(root, "Other"), "Renaming cannot move the workspace root");
+    rejected(() -> store.deleteFolder(root), "Deleting cannot move the workspace root");
+    rejected(() -> store.renameFolder(outside, "Other"), "Renaming cannot move an outside folder");
+    rejected(() -> store.deleteFolder(root.resolve("Alias/Linked")), "Deleting must reject symlinked ancestors");
+    rejected(() -> store.deleteFolder(parent.resolve("Link")), "Deleting must reject a symlinked folder");
+    rejected(() -> store.deleteFolder(note), "The folder action cannot delete a note by mistake");
+    rejected(() -> store.renameFolder(original, "../Outside"), "Folder rename rejects traversing names");
+    rejected(() -> store.renameFolder(original, "Collision"), "Folder rename rejects existing empty folders too");
+    rejected(() -> store.renameFolder(original, "Link"), "Folder rename cannot overwrite a symlink");
+    check(Files.readString(note).equals("Original bytes\n") && Files.isDirectory(collision) && Files.isDirectory(outsideFolder),
+        "Rejected folder actions preserve the source and all existing destinations");
+
+    NoteStore.Deleted deleted = store.deleteFolder(original);
+    Files.createDirectory(original);
+    rejected(() -> store.restore(deleted), "Restore cannot overwrite a new empty folder");
+    Files.delete(original);
+    rejected(() -> store.restore(new NoteStore.Deleted(parent.resolve("Forged"), deleted.trashed(), true)),
+        "Folder recovery rejects a forged original path");
+    rejected(() -> store.restore(new NoteStore.Deleted(original, deleted.trashed())),
+        "A folder payload cannot be restored through a note record");
+    Files.move(parent, root.resolve("Renamed parent"));
+    Files.createSymbolicLink(parent, outside);
+    rejected(() -> store.restore(deleted), "A symlinked restore parent is rejected");
+    check(Files.readString(deleted.trashed().resolve("Keep.md")).equals("Original bytes\n")
+            && !Files.exists(outside.resolve("Drafts")),
+        "Rejected restores keep the whole folder and never write outside the workspace");
+    Files.delete(parent);
+    Files.move(root.resolve("Renamed parent"), parent);
+    check(store.restore(deleted).equals(original), "The same entry can be safely retried when its parent returns");
   }
 
   private static void restoreBoundaries() throws Exception {

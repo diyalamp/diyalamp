@@ -3,22 +3,22 @@
   <p><strong>Your commonplace book.</strong></p>
   <p>Collect what you read and learn in a folder of Markdown notes. Write with live formatting, search your notes, and follow connections between them.</p>
   <p>Free forever · Open source · No sign-up · macOS</p>
-  <p><a href="#download-for-mac"><strong>Download for Mac</strong></a> · <a href="https://diyalamp.com/">Website</a> · <a href="https://github.com/diyalamp/diyalamp/releases/tag/v1.3.8">Release notes</a></p>
+  <p><a href="#download-for-mac"><strong>Download for Mac</strong></a> · <a href="https://diyalamp.com/">Website</a> · <a href="https://github.com/diyalamp/diyalamp/releases/tag/v1.3.9">Release notes</a></p>
 </div>
 
 <p align="center">
-  <a href="docs/assets/database-workspace.webp?v=1.3.8"><img src="docs/assets/database-workspace.webp?v=1.3.8" alt="diyalamp showing a rendered database index note, a local graph, four incoming links, and five outgoing links" width="1100"></a><br>
+  <a href="docs/assets/database-workspace.webp?v=1.3.9"><img src="docs/assets/database-workspace.webp?v=1.3.9" alt="diyalamp showing a rendered database index note, a local graph, four incoming links, and five outgoing links" width="1100"></a><br>
   <sub>Database Indexes, with its incoming and outgoing note links.</sub>
 </p>
 
 ## Download for Mac
 
-Version **1.3.8** includes the runtime. Open **Apple menu → About This Mac** to choose your installer. Select Apple silicon if you see an Apple chip and Intel if you see an Intel processor.
+Version **1.3.9** includes the runtime. Open **Apple menu → About This Mac** to choose your installer. Select Apple silicon if you see an Apple chip and Intel if you see an Intel processor.
 
 | Mac | Installer | SHA-256 |
 | --- | --- | --- |
-| Apple silicon | [Download DMG · 42.2 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.3.8/diyalamp-1.3.8-macos-arm64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.3.8/diyalamp-1.3.8-macos-arm64.dmg.sha256) |
-| Intel | [Download DMG · 43.8 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.3.8/diyalamp-1.3.8-macos-x86_64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.3.8/diyalamp-1.3.8-macos-x86_64.dmg.sha256) |
+| Apple silicon | [Download DMG · 42.3 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.3.9/diyalamp-1.3.9-macos-arm64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.3.9/diyalamp-1.3.9-macos-arm64.dmg.sha256) |
+| Intel | [Download DMG · 43.8 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.3.9/diyalamp-1.3.9-macos-x86_64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.3.9/diyalamp-1.3.9-macos-x86_64.dmg.sha256) |
 
 Sizes are compressed DMG downloads. The [under-5-MB installed target](https://github.com/diyalamp/diyalamp/issues/2) is an open engineering goal.
 
@@ -28,10 +28,10 @@ Open the DMG and drag **diyalamp** into **Applications**. Then press `⌘O` to o
 
 ## The writing workspace
 
-Edit headings, checklists, quotes, links, and fenced code blocks with live formatting. Type `/` on an empty line for block commands. Drag a note into a second pane to keep a reference in view while you write. Reorder tabs, rename a note inline, or drag it to another folder.
+Edit headings, checklists, quotes, links, and fenced code blocks with live formatting. Type `/` on an empty line for block commands. Drag a note into a second pane to keep a reference in view while you write. Reorder tabs, rename a note inline, or drag it to another folder. Select a folder to create a note inside it, rename it, or move it to Deleted Items.
 
 <p align="center">
-  <a href="docs/assets/database-search-and-split.webp?v=1.3.8"><img src="docs/assets/database-search-and-split.webp?v=1.3.8" alt="Search results for index alongside the Database Indexes and Query Plans notes in two editing panes" width="1100"></a><br>
+  <a href="docs/assets/database-search-and-split.webp?v=1.3.9"><img src="docs/assets/database-search-and-split.webp?v=1.3.9" alt="Search results for index alongside the Database Indexes and Query Plans notes in two editing panes" width="1100"></a><br>
   <sub>Search note text while keeping Database Indexes and Query Plans open.</sub>
 </p>
 
@@ -40,8 +40,8 @@ Edit headings, checklists, quotes, links, and fenced code blocks with live forma
 Use `⌘P` to find files, `⌥⌘F` to search text across the folder, or `⌘F` to find text in the open note. Workspace filters support case, whole words, regular expressions, and included or excluded paths.
 
 <p align="center">
-  <a href="docs/assets/workspace-search.webp?v=1.3.8"><img src="docs/assets/workspace-search.webp?v=1.3.8" width="288" align="top" alt="Workspace search with advanced filters and matching passages grouped by note"></a>
-  <a href="docs/assets/find-in-note.webp?v=1.3.8"><img src="docs/assets/find-in-note.webp?v=1.3.8" width="392" align="top" alt="Find in note dialog with the search phrase order feed"></a>
+  <a href="docs/assets/workspace-search.webp?v=1.3.9"><img src="docs/assets/workspace-search.webp?v=1.3.9" width="288" align="top" alt="Workspace search with advanced filters and matching passages grouped by note"></a>
+  <a href="docs/assets/find-in-note.webp?v=1.3.9"><img src="docs/assets/find-in-note.webp?v=1.3.9" width="392" align="top" alt="Find in note dialog with the search phrase order feed"></a>
 </p>
 
 ### Follow links and backlinks
@@ -49,7 +49,7 @@ Use `⌘P` to find files, `⌥⌘F` to search text across the folder, or `⌘F` 
 Type `[[Note name]]` or use a relative Markdown link. The Connections panel shows the active note’s graph along with its incoming and outgoing links.
 
 <p align="center">
-  <a href="docs/assets/connections-hover.webp?v=1.3.8"><img src="docs/assets/connections-hover.webp?v=1.3.8" width="344" alt="The Connections panel highlights links to and from Composite Indexes while it is hovered"></a>
+  <a href="docs/assets/connections-hover.webp?v=1.3.9"><img src="docs/assets/connections-hover.webp?v=1.3.9" width="344" alt="The Connections panel highlights links to and from Composite Indexes while it is hovered"></a>
 </p>
 
 ### Keep the active line in view
@@ -57,7 +57,7 @@ Type `[[Note name]]` or use a relative Markdown link. The Connections panel show
 Focus mode keeps the line you’re writing bright and dims the surrounding text and workspace.
 
 <p align="center">
-  <a href="docs/assets/focus-active-line.webp?v=1.3.8"><img src="docs/assets/focus-active-line.webp?v=1.3.8" width="740" alt="The active paragraph stays readable on black while nearby text fades"></a>
+  <a href="docs/assets/focus-active-line.webp?v=1.3.9"><img src="docs/assets/focus-active-line.webp?v=1.3.9" width="740" alt="The active paragraph stays readable on black while nearby text fades"></a>
 </p>
 
 ### Set a timer and choose an accent
@@ -65,8 +65,8 @@ Focus mode keeps the line you’re writing bright and dims the surrounding text 
 Set focus and break lengths in the toolbar Pomodoro, then run one cycle or repeat. Choose an accent preset or enter your own hex color.
 
 <p align="center">
-  <a href="docs/assets/pomodoro-controls.webp?v=1.3.8"><img src="docs/assets/pomodoro-controls.webp?v=1.3.8" width="304" align="top" alt="Pomodoro controls with editable focus and break durations and Repeat selected"></a>
-  <a href="docs/assets/accent-palette.webp?v=1.3.8"><img src="docs/assets/accent-palette.webp?v=1.3.8" width="360" align="top" alt="Accent color picker with red, blue, yellow, green, white, and custom choices"></a>
+  <a href="docs/assets/pomodoro-controls.webp?v=1.3.9"><img src="docs/assets/pomodoro-controls.webp?v=1.3.9" width="304" align="top" alt="Pomodoro controls with editable focus and break durations and Repeat selected"></a>
+  <a href="docs/assets/accent-palette.webp?v=1.3.9"><img src="docs/assets/accent-palette.webp?v=1.3.9" width="360" align="top" alt="Accent color picker with red, blue, yellow, green, white, and custom choices"></a>
 </p>
 
 ## Bring your notes
@@ -82,7 +82,7 @@ See [the comparison and migration guide](https://diyalamp.com/alternatives/) for
 ## Files, privacy, and updates
 
 - Notes are UTF-8 `.md` or `.markdown` files in the folder you choose. Writing works offline without an account or telemetry service.
-- Autosave checks for edits made by another app before writing. If there is a conflict, your edits remain available to export. Deleted notes can be restored from `.diyalamp-trash` inside the workspace.
+- Autosave checks for edits made by another app before writing. If there is a conflict, your edits remain available to export. Restore deleted notes and folders with **File → Deleted items**. The app keeps them in `.diyalamp-trash` inside the workspace.
 - Embedded HTML stays literal and remote image references stay on the page as text. The editor supports common Markdown syntax. See [product scope](docs/PRODUCT.md) for format limits.
 - **Help → Check for updates** checks GitHub when you ask. The updater verifies the matching installer and saves pending edits before applying it. A save conflict cancels installation.
 

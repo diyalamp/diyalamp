@@ -14,10 +14,12 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
@@ -88,6 +90,8 @@ public final class FxDiyalamp extends Application {
   private final Preferences preferences;
   private final Map<Path, Session> sessions = new LinkedHashMap<>();
   private final TreeView<Path> tree = new TreeView<>();
+  private final Set<Path> expandedFolders = new HashSet<>();
+  private Path renameRequested;
   private final FxSidebarSearch sidebarSearch = new FxSidebarSearch();
   private final PauseTransition searchDelay = new PauseTransition(Duration.millis(160));
   private final ExecutorService searchWorker = Executors.newSingleThreadExecutor(
@@ -390,17 +394,22 @@ public final class FxDiyalamp extends Application {
     clipping.widthProperty().bind(explorerClip.widthProperty());
     clipping.heightProperty().bind(explorerClip.heightProperty()); explorerClip.setClip(clipping);
     tree.setShowRoot(false); tree.setAccessibleText("Markdown files and folders");
+    tree.setAccessibleHelp("Use Right and Left to expand or collapse folders. Press Enter to open a note or F2 to rename a note or folder.");
     tree.setEditable(true);
-    tree.setFixedCellSize(40);
+    tree.setFixedCellSize(36);
     tree.setCellFactory(view -> new FileCell());
-    tree.getStyleClass().add("file-tree");
+    tree.getStyleClass().addAll("file-tree", "edge-to-edge");
+    FxTreeMotion.install(tree);
     tree.setOnKeyPressed(event -> {
-      if (tree.getEditingItem() != null) return;
-      Path selected = selectedPath();
-      if (event.getCode() == KeyCode.ENTER && selected != null && store != null && !store.isDirectory(selected)) {
-        open(selected, false); event.consume();
-      } else if (event.getCode() == KeyCode.F2 && selected != null && !store.isDirectory(selected)) {
-        beginRename(selected); event.consume();
+      TreeItem<Path> selected = tree.getSelectionModel().getSelectedItem();
+      if (tree.getEditingItem() != null || selected == null || selected.getValue() == null || store == null) return;
+      Path path = selected.getValue();
+      if (event.getCode() == KeyCode.ENTER) {
+        if (store.isDirectory(path)) selected.setExpanded(!selected.isExpanded());
+        else open(path, false);
+        event.consume();
+      } else if (event.getCode() == KeyCode.F2) {
+        beginRename(path); event.consume();
       }
     });
     tree.getSelectionModel().selectedItemProperty().addListener((observable, previous, selected) -> {
@@ -416,11 +425,9 @@ public final class FxDiyalamp extends Application {
     query.disableProperty().bind(noFolder);
     options.disableProperty().bind(noFolder);
     HBox.setHgrow(query, Priority.ALWAYS);
-    HBox actionStrip = new HBox(options, createFolder, create);
-    actionStrip.setAlignment(Pos.CENTER_LEFT);
-    HBox actions = new HBox(8, query, actionStrip);
-    actions.setAlignment(Pos.CENTER_LEFT);
-    actions.getStyleClass().addAll("workspace-band", "files-heading-row");
+    HBox searchRow = new HBox(4, query, options);
+    searchRow.setAlignment(Pos.CENTER_LEFT);
+    searchRow.getStyleClass().addAll("workspace-band", "files-search-row");
     sidebarSearch.setWorkspaceRoot(null);
     sidebarSearch.setOnSearch(this::scheduleSearch);
     sidebarSearch.setOnOpen(this::openSearchResult);
@@ -433,10 +440,10 @@ public final class FxDiyalamp extends Application {
     VBox.setVgrow(sidebarSearch, Priority.ALWAYS);
     Label filesTitle = new Label("Files");
     filesTitle.getStyleClass().add("workspace-section-title");
-    HBox files = new HBox(filesTitle);
+    HBox files = new HBox(4, filesTitle, spacer(), createFolder, create);
     files.setAlignment(Pos.CENTER_LEFT);
-    files.getStyleClass().addAll("workspace-band", "files-context-row");
-    explorer.getChildren().setAll(actions, files, sidebarSearch, tree);
+    files.getStyleClass().addAll("workspace-band", "files-heading-row");
+    explorer.getChildren().setAll(files, searchRow, sidebarSearch, tree);
   }
 
   private Line workspaceDivider(String id, ReadOnlyDoubleProperty boundary) {
@@ -460,6 +467,16 @@ public final class FxDiyalamp extends Application {
     return actions;
   }
 
+  private HBox folderActions(Path path) {
+    String name = path.getFileName().toString();
+    Button create = fileAction("plus", "New note in " + name, () -> newNote(path));
+    Button rename = fileAction("square-pen", "Rename folder " + name, () -> beginRename(path));
+    Button trash = fileAction("trash-2", "Move folder " + name + " to deleted items", () -> deleteFolder(path));
+    HBox actions = new HBox(create, rename, trash);
+    actions.setAlignment(Pos.CENTER_RIGHT);
+    return actions;
+  }
+
   private static Button fileAction(String icon, String description, Runnable run) {
     Button button = FxTheme.iconButton(icon, description, run);
     button.getStyleClass().add("file-row-action");
@@ -477,7 +494,19 @@ public final class FxDiyalamp extends Application {
       if (renameInput != null && event.getTarget() instanceof Node target && !within(target, renameInput)) cancelEdit();
     };
 
-    FileCell() { setPrefWidth(0); }
+    FileCell() {
+      setPrefWidth(0);
+      Node chevron = FxTheme.icon("chevron-right", 12);
+      chevron.getStyleClass().add("file-disclosure-chevron");
+      StackPane disclosure = new StackPane(chevron);
+      disclosure.getStyleClass().add("file-disclosure");
+      // The skin top-aligns this slot. Fill the row to center the chevron.
+      double rowHeight = tree.getFixedCellSize();
+      disclosure.setMinSize(18, rowHeight);
+      disclosure.setPrefSize(18, rowHeight);
+      disclosure.setMaxSize(18, rowHeight);
+      setDisclosureNode(disclosure);
+    }
 
     @Override protected void updateItem(Path path, boolean empty) {
       if (renameInput != null && (empty || !java.util.Objects.equals(getItem(), path))) cancelEdit();
@@ -490,20 +519,27 @@ public final class FxDiyalamp extends Application {
       pseudoClassStateChanged(DROP_TARGET, false);
       if (empty || path == null || store == null) { setAccessibleText(null); return; }
       boolean directory = store.isDirectory(path);
-      setEditable(!directory);
+      setEditable(true);
       title = new Label(path.getFileName().toString());
       title.setMinWidth(0); title.setMaxWidth(Double.MAX_VALUE); HBox.setHgrow(title, Priority.ALWAYS);
-      Node kind = FxTheme.icon(directory ? "folder-open" : "file-text", 15);
+      Node kind = directory ? folderIcon() : FxTheme.icon("file-text");
       kind.getStyleClass().add("file-kind");
       row = new HBox(8, kind, title);
       // Let the tree skin account for disclosure, nesting, and the scroll viewport.
       row.setMinWidth(0);
       row.setAlignment(Pos.CENTER_LEFT); row.setMaxWidth(Double.MAX_VALUE);
-      if (!directory) row.getChildren().add(fileActions(path));
+      HBox actions = directory ? folderActions(path) : fileActions(path);
+      if (directory) {
+        actions.visibleProperty().bind(hoverProperty().or(selectedProperty()).or(focusedProperty()));
+        actions.managedProperty().bind(actions.visibleProperty());
+      }
+      row.getChildren().add(actions);
       setTooltip(new Tooltip(path.getFileName().toString()));
       setGraphic(row); setAccessibleText(path.getFileName() + (directory ? ", folder" : ", Markdown note"));
       ContextMenu menu = FxTheme.contextMenu();
-      if (directory) menu.getItems().addAll(item("New note", () -> newNote(path)), item("New folder…", () -> newFolder(path)));
+      if (directory) menu.getItems().addAll(item("New note", () -> newNote(path)), item("New folder…", () -> newFolder(path)),
+          item("Rename folder…", () -> Platform.runLater(() -> beginRename(path))),
+          new SeparatorMenuItem(), item("Move folder to deleted items", () -> deleteFolder(path)));
       else menu.getItems().addAll(item("Open", () -> open(path, false)),
           item("Open side by side", () -> open(path, true)), item("Rename…", () -> Platform.runLater(() -> beginRename(path))),
           new SeparatorMenuItem(), item("Move to deleted notes", () -> delete(path)));
@@ -538,15 +574,27 @@ public final class FxDiyalamp extends Application {
       });
     }
 
+    private Node folderIcon() {
+      Node closed = FxTheme.icon("folder"), open = FxTheme.icon("folder-open");
+      closed.getStyleClass().add("folder-closed");
+      open.getStyleClass().add("folder-open");
+      return new StackPane(closed, open);
+    }
+
     @Override public void startEdit() {
       if (row == null || renameInput != null) return;
+      Path path = getItem();
+      boolean directory = store.isDirectory(path);
+      if (directory && !path.equals(renameRequested)) {
+        if (tree.getEditingItem() == getTreeItem()) tree.edit(null);
+        return;
+      }
       super.startEdit();
       if (!isEditing()) return;
-      Path path = getItem();
       String filename = path.getFileName().toString();
-      TextField input = new TextField(filename.substring(0, filename.lastIndexOf('.')));
+      TextField input = new TextField(directory ? filename : filename.substring(0, filename.lastIndexOf('.')));
       renameInput = input;
-      input.setAccessibleText("Rename " + filename);
+      input.setAccessibleText((directory ? "Rename folder " : "Rename ") + filename);
       input.getStyleClass().add("file-rename-field");
       input.setMinWidth(0);
       HBox.setHgrow(input, Priority.ALWAYS);
@@ -562,14 +610,14 @@ public final class FxDiyalamp extends Application {
       input.setOnAction(event -> {
         event.consume();
         try {
-          Path renamed = renameFile(path, input.getText());
+          Path renamed = directory ? renameFolder(path, input.getText()) : renameFile(path, input.getText());
           cancelEdit();
-          if (!path.equals(renamed)) refreshAfterRename(renamed);
+          if (!path.equals(renamed)) refreshAfterRename(renamed, directory);
           tree.requestFocus();
         } catch (IOException failure) {
           input.pseudoClassStateChanged(INVALID, true);
           String message = failure instanceof java.nio.file.FileAlreadyExistsException
-              ? "A note with that name already exists." : failure.getMessage();
+              ? "An item with that name already exists." : failure.getMessage();
           input.setAccessibleHelp(message);
           status.setText(message);
         }
@@ -599,13 +647,25 @@ public final class FxDiyalamp extends Application {
       super(path);
       if (store.isDirectory(path)) {
         getChildren().add(new TreeItem<>());
-        expandedProperty().addListener((observable, previous, expanded) -> { if (expanded) populate(); });
+        expandedProperty().addListener((observable, previous, expanded) -> {
+          if (expanded) {
+            expandedFolders.add(path);
+            populate();
+          } else {
+            expandedFolders.remove(path);
+          }
+        });
       }
     }
     void populate() {
       if (loaded) return;
       loaded = true;
-      try { getChildren().setAll(store.children(getValue()).stream().map(DirectoryItem::new).toList()); }
+      try {
+        List<DirectoryItem> children = store.children(getValue()).stream().map(DirectoryItem::new).toList();
+        getChildren().setAll(children);
+        for (DirectoryItem child : children)
+          if (!child.isLeaf() && expandedFolders.contains(child.getValue())) child.setExpanded(true);
+      }
       catch (IOException e) { getChildren().clear(); error("Folder could not be read", e); }
     }
   }
@@ -737,6 +797,7 @@ public final class FxDiyalamp extends Application {
     if (!saveAll(true)) return;
     try {
       NoteStore next = new NoteStore(folder);
+      if (store == null || !store.root().equals(next.root())) expandedFolders.clear();
       disposeAll(); store = next; lastDeleted = null;
       if (noteGraph != null) noteGraph.workspace(store);
       primary.tabs.getTabs().clear(); secondary.tabs.getTabs().clear();
@@ -1002,7 +1063,7 @@ public final class FxDiyalamp extends Application {
   }
 
   private void beginRename(Path path) {
-    if (store == null || path == null || store.isDirectory(path)) return;
+    if (store == null || path == null || path.equals(store.root())) return;
     if (!sidebarOpen) toggleSidebar();
     if (sidebarSearch.hasQuery()) { sidebarSearch.reset(); scheduleSearch(null); }
     refreshing = true;
@@ -1014,7 +1075,8 @@ public final class FxDiyalamp extends Application {
     boolean visible = tree.lookupAll(".tree-cell").stream()
         .anyMatch(node -> node instanceof TreeCell<?> cell && cell.getTreeItem() == selected && cell.isVisible());
     if (!visible) { tree.scrollTo(tree.getRow(selected)); tree.layout(); }
-    tree.edit(selected);
+    renameRequested = path;
+    try { tree.edit(selected); } finally { renameRequested = null; }
   }
 
   private Path renameFile(Path path, String name) throws IOException {
@@ -1029,12 +1091,34 @@ public final class FxDiyalamp extends Application {
     return renamed;
   }
 
-  private void refreshAfterRename(Path renamed) {
+  private Path renameFolder(Path path, String name) throws IOException {
+    List<Session> affected = sessionsIn(path);
+    for (Session session : affected)
+      if (!save(session, false)) throw new IOException("Save or resolve changes in open notes before renaming this folder.");
+    Path renamed = store.renameFolder(path, name);
+    if (renamed.equals(path)) return path;
+    for (Session session : affected) {
+      sessions.remove(session.path);
+      session.path = renamed.resolve(path.relativize(session.path));
+      sessions.put(session.path, session);
+      session.views.forEach(this::updateView);
+    }
+    List<Path> expanded = expandedFolders.stream().filter(folder -> folder.startsWith(path)).toList();
+    expandedFolders.removeAll(expanded);
+    for (Path folder : expanded) expandedFolders.add(renamed.resolve(path.relativize(folder)));
+    return renamed;
+  }
+
+  private List<Session> sessionsIn(Path folder) {
+    return sessions.values().stream().filter(session -> session.path.startsWith(folder)).toList();
+  }
+
+  private void refreshAfterRename(Path renamed, boolean directory) {
     refreshTree();
     refreshing = true;
     try { selectTree(tree.getRoot(), renamed); } finally { refreshing = false; }
     if (active != null) activate(active);
-    status.setText("Note renamed to " + renamed.getFileName());
+    status.setText((directory ? "Folder" : "Note") + " renamed to " + renamed.getFileName());
   }
 
   private void delete(Path path) {
@@ -1043,32 +1127,54 @@ public final class FxDiyalamp extends Application {
     if (session != null && !save(session, true)) return;
     try {
       lastDeleted = store.trash(path);
-      if (session != null) for (View view : new ArrayList<>(session.views)) {
-        view.host.tabs.getTabs().remove(view.tab); removeView(view);
-      }
-      refreshTree(); status.setText("Note moved to deleted notes · File → Restore last deleted note");
+      if (session != null) closeDeletedSession(session);
+      refreshTree(); status.setText("Note moved to deleted items · File → Restore last deleted item");
     } catch (IOException e) { error("Note could not be deleted", e); }
   }
 
+  private void deleteFolder(Path path) {
+    if (!confirm("Move folder to deleted items?",
+        "“" + path.getFileName() + "” and everything inside it can be restored from the File menu.")) return;
+    List<Session> affected = sessionsIn(path);
+    for (Session session : affected) if (!save(session, true)) return;
+    try {
+      lastDeleted = store.deleteFolder(path);
+      for (Session session : affected) closeDeletedSession(session);
+      expandedFolders.removeIf(folder -> folder.startsWith(path));
+      refreshTree();
+      status.setText("Folder moved to deleted items · File → Restore last deleted item");
+    } catch (IOException e) { error("Folder could not be deleted", e); }
+  }
+
+  private void closeDeletedSession(Session session) {
+    for (View view : new ArrayList<>(session.views)) {
+      view.host.tabs.getTabs().remove(view.tab); removeView(view);
+    }
+  }
+
   private void restoreLast() {
-    if (store == null || lastDeleted == null) { deletedNotes(); return; }
+    if (store == null || lastDeleted == null) { deletedItems(); return; }
     restore(lastDeleted);
   }
 
   private void restore(NoteStore.Deleted deleted) {
     try {
       Path restored = store.restore(deleted); if (deleted.equals(lastDeleted)) lastDeleted = null;
-      refreshTree(); open(restored, false); status.setText("Note restored");
-    } catch (IOException e) { error("Note could not be restored", e); }
+      if (deleted.folder()) expandedFolders.add(restored);
+      refreshTree();
+      if (deleted.folder()) selectTree(tree.getRoot(), restored);
+      else open(restored, false);
+      status.setText(deleted.folder() ? "Folder restored" : "Note restored");
+    } catch (IOException e) { error("Item could not be restored", e); }
   }
 
-  private void deletedNotes() {
+  private void deletedItems() {
     if (store == null) return;
     try {
       List<NoteStore.Deleted> deleted = store.deleted();
-      if (deleted.isEmpty()) { information("Deleted notes", "There are no deleted notes in this folder."); return; }
+      if (deleted.isEmpty()) { information("Deleted items", "There are no deleted notes or folders in this workspace."); return; }
       ChoiceDialog<NoteStore.Deleted> dialog = new ChoiceDialog<>(deleted.getFirst(), deleted);
-      dialog.setTitle("Restore a deleted note"); dialog.setHeaderText(null); dialog.setContentText("Note");
+      dialog.setTitle("Restore a deleted item"); dialog.setHeaderText(null); dialog.setContentText("Item");
       FxDialogs.style(dialog, stage);
       @SuppressWarnings("unchecked") ComboBox<NoteStore.Deleted> choices =
           (ComboBox<NoteStore.Deleted>) dialog.getDialogPane().lookup(".combo-box");
@@ -1081,7 +1187,7 @@ public final class FxDiyalamp extends Application {
         });
       }
       dialog.showAndWait().ifPresent(this::restore);
-    } catch (IOException e) { error("Deleted notes could not be read", e); }
+    } catch (IOException e) { error("Deleted items could not be read", e); }
   }
 
   private void closeActive() {
@@ -1421,7 +1527,7 @@ public final class FxDiyalamp extends Application {
         new SeparatorMenuItem(), shortcut("Rename note", KeyCode.R, true,
             () -> { if (active != null) beginRename(active.session.path); }),
         item("Move note to deleted notes", () -> { if (active != null) delete(active.session.path); }),
-        item("Restore last deleted note", this::restoreLast), item("Deleted notes…", this::deletedNotes),
+        item("Restore last deleted item", this::restoreLast), item("Deleted items…", this::deletedItems),
         item("Open recovery folder…", this::openRecoveryFolder),
         new SeparatorMenuItem(), shortcut("Close note", KeyCode.W, false, this::closeActive));
     edit.getItems().addAll(shortcut("Undo", KeyCode.Z, false, () -> edit("undo")),
@@ -1461,7 +1567,7 @@ public final class FxDiyalamp extends Application {
         "⌘N  New note\n⌘O  Open folder\n⌘P  Search notes\n⌘S  Save\n⌘W  Close note\n⌘K  Insert or edit link\n"
         + "⇧⌘Enter  Toggle checklist\n⇧⌘B  Toggle sidebar\n⌘\\  Side by side\n\n"
         + "Type / on a new line for blocks. Drag a note to the right edge to open it beside your writing.\n"
-        + "Deleted notes can be restored from the File menu.")),
+        + "Deleted notes and folders can be restored from the File menu.")),
         item("About diyalamp", this::about));
     menu.getMenus().setAll(file, edit, format, view, help); return menu;
   }
