@@ -1,5 +1,6 @@
 package com.diyalamp.desktop.fx;
 
+import atlantafx.base.controls.CustomTextField;
 import atlantafx.base.controls.Popover;
 import atlantafx.base.theme.Styles;
 import java.util.Locale;
@@ -52,7 +53,7 @@ final class FxPomodoro implements AutoCloseable {
   private final Button start = new Button(), reset = new Button("Reset", FxTheme.icon("refresh-cw", 16));
   private final RadioButton focus = new RadioButton("Focus"), rest = new RadioButton("Break"),
       once = new RadioButton("One cycle"), repeat = new RadioButton("Repeat");
-  private final TextField focusMinutes = new TextField(), breakMinutes = new TextField();
+  private final CustomTextField focusMinutes = new CustomTextField(), breakMinutes = new CustomTextField();
   private boolean validDurations = true;
   private Popover popup;
 
@@ -123,6 +124,14 @@ final class FxPomodoro implements AutoCloseable {
 
   void show() { FxPopovers.toggle(popover(), control); }
 
+  void hide() { if (popup != null) popup.hide(); }
+
+  void setCompact(boolean compact) {
+    toolbarPhase.setVisible(!compact);
+    toolbarPhase.setManaged(!compact);
+    control.pseudoClassStateChanged(javafx.css.PseudoClass.getPseudoClass("compact"), compact);
+  }
+
   Popover popover() {
     if (popup != null) return popup;
     time.getStyleClass().add("pomodoro-time");
@@ -135,17 +144,23 @@ final class FxPomodoro implements AutoCloseable {
     detail.managedProperty().bind(detail.visibleProperty());
     Label title = new Label("Pomodoro");
     title.getStyleClass().add("popover-title");
-    Region spacer = new Region();
-    HBox.setHgrow(spacer, Priority.ALWAYS);
-    HBox header = new HBox(8, title, spacer, time);
+    VBox headerText = new VBox(4, title, state);
+    HBox.setHgrow(headerText, Priority.ALWAYS);
+    HBox header = new HBox(12, headerText, time);
     header.setAlignment(Pos.CENTER_LEFT);
-    VBox focusSetting = labeledMinutes("Focus minutes", focusMinutes);
-    VBox breakSetting = labeledMinutes("Break minutes", breakMinutes);
+    VBox focusSetting = labeledMinutes("Focus", focusMinutes);
+    VBox breakSetting = labeledMinutes("Break", breakMinutes);
+    Label durations = new Label("Durations");
+    durations.getStyleClass().add("popover-section-title");
     Label schedule = new Label("Schedule");
-    schedule.getStyleClass().add("pomodoro-detail");
-    VBox content = new VBox(8, header, state, row(start, reset), segments(focus, rest), new Separator(),
-        row(focusSetting, breakSetting), schedule, segments(once, repeat), settingsHelp, durationError, detail);
-    content.getStyleClass().add("pomodoro-bubble");
+    schedule.getStyleClass().add("popover-section-title");
+    VBox controls = new VBox(8, row(start, reset), segments(focus, rest), detail);
+    VBox timing = new VBox(8, durations, row(focusSetting, breakSetting), durationError);
+    VBox cycling = new VBox(8, schedule, segments(once, repeat), settingsHelp);
+    Separator divider = new Separator();
+    divider.getStyleClass().add(Styles.SMALL);
+    VBox content = new VBox(12, header, controls, divider, timing, cycling);
+    content.getStyleClass().addAll("popover-panel", "pomodoro-bubble");
     content.setPrefWidth(328);
     popup = new Popover(content);
     FxPopovers.style(popup, owner);
@@ -195,13 +210,17 @@ final class FxPomodoro implements AutoCloseable {
     return group;
   }
 
-  private void configureMinutes(TextField field, String id, int initial) {
+  private void configureMinutes(CustomTextField field, String id, int initial) {
     field.setId(id);
     field.getStyleClass().addAll("note-search-field", "pomodoro-minutes");
     field.setAccessibleHelp("Enter a whole number from 1 to 180 minutes.");
     field.setTextFormatter(new TextFormatter<>(change ->
         change.getControlNewText().matches("[0-9]{0,3}") ? change : null));
     field.setText(Integer.toString(initial));
+    Label unit = new Label("min");
+    unit.getStyleClass().add("pomodoro-unit");
+    unit.setMouseTransparent(true);
+    field.setRight(unit);
     field.setMinWidth(0);
     field.setPrefWidth(0);
     field.setMaxWidth(Double.MAX_VALUE);
@@ -216,8 +235,8 @@ final class FxPomodoro implements AutoCloseable {
   private static VBox labeledMinutes(String title, TextField field) {
     Label label = new Label(title);
     label.setLabelFor(field);
-    field.setAccessibleText(title);
-    return new VBox(8, label, field);
+    field.setAccessibleText(title + " minutes");
+    return new VBox(4, label, field);
   }
 
   private void applyDurations() {

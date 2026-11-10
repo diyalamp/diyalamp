@@ -2,7 +2,6 @@ package com.diyalamp.desktop.fx;
 
 import atlantafx.base.theme.Styles;
 import javafx.animation.FadeTransition;
-import javafx.animation.Interpolator;
 import javafx.application.ConditionalFeature;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
@@ -74,10 +73,16 @@ public final class FxDialogs {
       dialog.setHeaderText(dialog.getTitle());
 
     if (!transparent) return;
-    FadeTransition entrance = new FadeTransition(Duration.millis(180), pane);
+    FadeTransition entrance = new FadeTransition(FxMotion.SIDEBAR_TIME, pane);
     entrance.setFromValue(0);
     entrance.setToValue(1);
-    entrance.setInterpolator(Interpolator.EASE_OUT);
+    entrance.setInterpolator(FxMotion.SIDEBAR_EASE);
+    pane.getProperties().addListener((MapChangeListener<Object, Object>) change -> {
+      if (FxTheme.themeChanged(change.getKey()) && FxMotion.reduced()) {
+        entrance.stop();
+        pane.setOpacity(1);
+      }
+    });
     dialog.addEventHandler(DialogEvent.DIALOG_SHOWING, event ->
         pane.setOpacity(FxMotion.reduced() ? 1 : 0));
     dialog.showingProperty().addListener((observable, previous, showing) -> {
@@ -98,8 +103,12 @@ public final class FxDialogs {
       grid.setVgap(8);
       GridPane.setColumnIndex(input.getEditor(), 0);
       GridPane.setRowIndex(input.getEditor(), 1);
-      for (var child : grid.getChildren())
-        if (child instanceof Label label) label.setLabelFor(input.getEditor());
+      for (var child : grid.getChildren()) {
+        if (child instanceof Label label) {
+          label.setLabelFor(input.getEditor());
+          if (!label.getStyleClass().contains("dialog-field-label")) label.getStyleClass().add("dialog-field-label");
+        }
+      }
     };
     arrange.run();
     pane.contentTextProperty().addListener(observable -> arrange.run());

@@ -1,7 +1,8 @@
-## diyalamp 1.3.9
+## diyalamp 1.4.0
 
-- Give the Files sidebar a dedicated toolbar and a wider search field using AtlantaFX's existing search control.
-- Label filename and note-text search clearly, and animate advanced search and folder expansion with Reduce Motion support.
-- Add note creation, inline rename, and recoverable delete to folder rows. Open branches stay expanded as you work.
-
-The Apple silicon and Intel installers include the runtime and matching SHA-256 checksums. They are ad hoc signed. macOS may block first launch until the app is signed with Developer ID and notarized by Apple. See the [installation guide](https://github.com/diyalamp/diyalamp/blob/v1.3.9/docs/install.md) for compatibility and updates.
+- Use shorter aligned workspace bands, responsive 30% sidebar defaults, and compact breadcrumbs that reveal the enclosing folder.
+- Add Back and Forward, Quick Tasks, and Privacy Mode to the window toolbar.
+- Search within a note with an inline Find bar, match counts, and next and previous controls.
+- Preview TXT, PDF, JPEG, PNG, GIF, and BMP alongside editable Markdown.
+- Show distinct linked-note counts and animate the Incoming and Outgoing lists.
+- Unify button states, dialog spacing, accent controls, and Pomodoro inputs.

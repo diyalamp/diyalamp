@@ -35,6 +35,7 @@ public final class NoteStoreFolderTests {
 
   public static void main(String[] args) throws Exception {
     explorerAndNestedCreation();
+    documentDiscovery();
     fileAndFolderBoundaries();
     folderRenameAndRecovery();
     folderMutationBoundaries();
@@ -108,6 +109,59 @@ public final class NoteStoreFolderTests {
     try (var files = Files.list(outside)) {
       check(files.count() == 1, "Rejected trash operation does not populate outside storage");
     }
+  }
+
+  private static void documentDiscovery() throws Exception {
+    Path root = fixture(), outside = fixture();
+    NoteStore store = new NoteStore(root);
+    Path references = Files.createDirectory(root.resolve("References"));
+    Path note = store.create("A note", "Editable note\n");
+    Path pdf = Files.writeString(references.resolve("Book.PDF"), "PDF fixture");
+    Path bmp = Files.writeString(root.resolve("Color.BMP"), "BMP fixture");
+    Path text = Files.writeString(root.resolve("Context.txt"), "Plain-text fixture");
+    Path gif = Files.writeString(root.resolve("Diagram.GiF"), "GIF fixture");
+    Path png = Files.writeString(root.resolve("Drawing.png"), "PNG fixture");
+    Path jpeg = Files.writeString(root.resolve("Photo.JPEG"), "JPEG fixture");
+    Path jpg = Files.writeString(root.resolve("Thumbnail.jpg"), "JPEG fixture");
+    Path unsupported = Files.writeString(root.resolve("Unsupported.zip"), "Unsupported fixture");
+    Path hidden = Files.writeString(root.resolve(".private.txt"), "Hidden fixture");
+    Path outsideFile = Files.writeString(outside.resolve("outside.pdf"), "Outside fixture");
+    Path linkedFile = Files.createSymbolicLink(root.resolve("Linked.jpg"), outsideFile);
+    Path linkedFolder = Files.createSymbolicLink(root.resolve("Link"), outside);
+
+    check(NoteStore.documentKind(note) == NoteStore.DocumentKind.MARKDOWN
+            && NoteStore.documentKind(text) == NoteStore.DocumentKind.TEXT
+            && NoteStore.documentKind(pdf) == NoteStore.DocumentKind.PDF
+            && List.of(png, jpeg, jpg, gif, bmp).stream().allMatch(
+                path -> NoteStore.documentKind(path) == NoteStore.DocumentKind.IMAGE)
+            && NoteStore.documentKind(unsupported) == NoteStore.DocumentKind.UNSUPPORTED,
+        "Document kinds must recognize supported extensions case-insensitively");
+    check(store.children(root).equals(List.of(references, note)) && store.notes().equals(List.of(note)),
+        "Existing Markdown-only explorers and indexes must exclude preview documents");
+    check(store.documents(root).equals(List.of(references, note, bmp, text, gif, png, jpeg, jpg))
+            && store.documents(references).equals(List.of(pdf)),
+        "Document explorers must show eligible direct files and folders in the existing order");
+    var all = store.documents(50, 100);
+    check(all.paths().equals(List.of(note, bmp, text, gif, png, jpeg, pdf, jpg)) && !all.partial(),
+        "Filename discovery must find nested and direct documents without following hidden paths or symlinks");
+    check(store.documents(2, 100).paths().size() == 2 && store.documents(2, 100).partial()
+            && store.documents(50, 1).partial(),
+        "Document discovery must obey both bounds and report partial results");
+    check(store.checkedDocument(text).equals(text) && store.checkedDocument(pdf).equals(pdf),
+        "Verified visible files must be available to the preview reader");
+    rejected(() -> store.checkedDocument(root), "The workspace root cannot be previewed");
+    rejected(() -> store.checkedDocument(references), "A directory cannot be previewed");
+    rejected(() -> store.checkedDocument(unsupported), "Unsupported files cannot be previewed");
+    rejected(() -> store.checkedDocument(hidden), "Hidden files cannot be previewed");
+    rejected(() -> store.checkedDocument(root.resolve("Missing.txt")), "Missing files cannot be previewed");
+    rejected(() -> store.checkedDocument(outsideFile), "Outside files cannot be previewed");
+    rejected(() -> store.checkedDocument(linkedFile), "File symlinks cannot be previewed");
+    rejected(() -> store.checkedDocument(linkedFolder.resolve("outside.pdf")),
+        "A symlinked ancestor cannot bypass document preview validation");
+    rejected(() -> store.load(text), "The editable Markdown loader must reject preview documents");
+    check(Files.readString(outsideFile).equals("Outside fixture")
+            && Files.readString(text).equals("Plain-text fixture"),
+        "Document discovery and validation must leave source bytes untouched");
   }
 
   private static void persistedNestedRecovery() throws Exception {

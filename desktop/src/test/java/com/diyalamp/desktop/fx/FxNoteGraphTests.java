@@ -12,17 +12,20 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
+import javafx.animation.Animation;
 import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.AccessibleAttribute;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.input.*;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 
 /** Real SmartGraph, retained layout, interaction, asynchronous folder lifecycle; fictional notes only. */
@@ -52,6 +55,8 @@ public final class FxNoteGraphTests {
         FxTheme.setup();
         FxNoteGraph graph = new FxNoteGraph(opened::set, status::set);
         check(!graph.showingProperty().get() && !graph.node().isManaged(), "Connections default closed to leave room for writing");
+        var count = (Label) field(graph, "linkedCount");
+        check(!count.isVisible() && !count.isManaged(), "No active note leaves the unique link count hidden");
         graph.showingProperty().set(true);
         HBox surface = new HBox(graph.node());
         surface.getStyleClass().add("workspace-root");
@@ -93,6 +98,10 @@ public final class FxNoteGraphTests {
         @SuppressWarnings("unchecked") ListView<Path> out = (ListView<Path>) field(chosen, "outgoing");
         check(in.getItems().equals(java.util.List.of(source, target)) && out.getItems().equals(java.util.List.of(target)),
             "Both directional lists reflect the selected note");
+        var count = (Label) field(chosen, "linkedCount");
+        check(count.isVisible() && count.getAccessibleText().equals("2 unique linked notes")
+                && count.getTooltip().getText().contains("counts once"),
+            "A reciprocal note contributes once to the accessible summary count");
         check(in.getAccessibleText().equals("Incoming links to the current note")
             && out.getAccessibleText().equals("Outgoing links from the current note"),
             "Connection lists must have distinct accessible names that explain their direction");
@@ -121,11 +130,20 @@ public final class FxNoteGraphTests {
             .map(node -> (javafx.scene.control.ListCell<?>) node).findFirst().orElseThrow();
         check(row.getFont().getSize() == 16 && row.getFont().getName().equals("Inter Regular"),
             "Incoming and outgoing notes use the shared Inter 16 regular face");
+        check(in.getFixedCellSize() == 36 && out.getFixedCellSize() == 36,
+            "Connection rows share the Files sidebar's 36 px row rhythm");
+        var actions = chosen.node().lookup(".graph-heading-row").lookupAll(".button").stream()
+            .filter(Button.class::isInstance).map(Button.class::cast).toList();
+        check(actions.size() == 1 && actions.getFirst().getAccessibleText().equals("Refresh note connections")
+            && actions.getFirst().getWidth() == 28 && actions.getFirst().getHeight() == 28,
+            "The Connections header keeps only its compact refresh action");
         chosen.openWiki(origin, "Target");
         check(target.equals(opened.get()), "Wiki clicks use the same safe local resolver");
         return null;
       });
+      checkViewportFit(root, origin, source);
       double[] chosenDividers = fx(() -> sectionLayout(chosen, origin, source, isolated));
+      checkSectionMotion(chosen, chosenDividers);
       Object beforeRefresh = fx(() -> field(chosen, "snapshot"));
       fx(() -> { chosen.refresh(); return null; });
       await(() -> fx(() -> field(chosen, "snapshot") != beforeRefresh));
@@ -237,6 +255,62 @@ public final class FxNoteGraphTests {
       try (var paths = Files.walk(root)) { for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) Files.delete(path); }
     }
     System.out.println("Passed " + checks + " JavaFX note-graph checks.");
+  }
+
+  private static void checkViewportFit(Path root, Path active, Path neighbor) throws Exception {
+    String key = "diyalamp.reduceMotion";
+    String prior = System.getProperty(key);
+    System.setProperty(key, "true");
+    AtomicReference<Stage> stage = new AtomicReference<>();
+    FxNoteGraph panel = fx(() -> {
+      FxNoteGraph inspector = new FxNoteGraph(path -> {}, message -> {});
+      inspector.showingProperty().set(true);
+      HBox surface = new HBox(inspector.node());
+      surface.getStyleClass().add("workspace-root");
+      Scene scene = new Scene(surface, 68, 490);
+      scene.getStylesheets().add(FxNoteGraphTests.class.getResource("/fx-workspace.css").toExternalForm());
+      FxTheme.accent(surface, FxTheme.DEFAULT_ACCENT);
+      Stage window = new Stage();
+      stage.set(window);
+      window.setScene(scene);
+      window.show();
+      inspector.workspace(new NoteStore(root));
+      inspector.select(active);
+      return inspector;
+    });
+    try {
+      await(() -> fx(() -> {
+        SmartGraphPanel<?, ?> graph = (SmartGraphPanel<?, ?>) field(panel, "graph");
+        return graph != null && graph.getWidth() > 0 && graph.getWidth() < 64;
+      }));
+      fx(() -> { stage.get().setWidth(576); ((Region) panel.node()).setPrefWidth(576); return null; });
+      await(() -> fx(() -> {
+        SmartGraphPanel<?, ?> graph = (SmartGraphPanel<?, ?>) field(panel, "graph");
+        return graph.getWidth() > 500 && (boolean) field(panel, "graphInitialized");
+      }));
+      javafx.geometry.Point2D neighborRatio = fx(() -> {
+        @SuppressWarnings("unchecked") var graph = (SmartGraphPanel<Path, NoteLinkIndex.Edge>) field(panel, "graph");
+        var center = position(graph, active);
+        var linked = position(graph, neighbor);
+        check(!graph.automaticLayoutProperty().get()
+                && center.distance(graph.getWidth() / 2, graph.getHeight() / 2) < 1 && center.distance(linked) > 20,
+            "The first usable viewport must center and separate notes without graph animation");
+        return new javafx.geometry.Point2D(linked.getX() / graph.getWidth(), linked.getY() / graph.getHeight());
+      });
+      fx(() -> { stage.get().setWidth(250); return null; });
+      await(() -> fx(() -> ((SmartGraphPanel<?, ?>) field(panel, "graph")).getWidth() < 250));
+      fx(() -> {
+        @SuppressWarnings("unchecked") var graph = (SmartGraphPanel<Path, NoteLinkIndex.Edge>) field(panel, "graph");
+        var linked = position(graph, neighbor);
+        check(position(graph, active).distance(graph.getWidth() / 2, graph.getHeight() / 2) < 1
+                && neighborRatio.distance(linked.getX() / graph.getWidth(), linked.getY() / graph.getHeight()) < .01,
+            "A resized inspector keeps the same relative graph layout without relying on animation");
+        return null;
+      });
+    } finally {
+      if (prior == null) System.clearProperty(key); else System.setProperty(key, prior);
+      fx(() -> { panel.close(); stage.get().hide(); return null; });
+    }
   }
 
   private static Path writeDenseGraph(Path root) throws java.io.IOException {
@@ -364,7 +438,7 @@ public final class FxNoteGraphTests {
     var split = (SplitPane) field(graph, "sections");
     var summary = graph.node().lookup(".graph-summary");
     var heading = graph.node().lookup(".graph-heading-row");
-    check(summary.getLayoutBounds().getHeight() == 52 && heading.getLayoutBounds().getHeight() == 52,
+    check(summary.getLayoutBounds().getHeight() == 40 && heading.getLayoutBounds().getHeight() == 40,
         "The active note and Connections title must use the shared header bands");
     check(split.getItems().size() == 3 && split.getDividers().size() == 2,
         "Three open sections need two native dividers");
@@ -394,6 +468,9 @@ public final class FxNoteGraphTests {
     graph.select(isolated); layout(graph);
     check(!incoming.isSelected() && !outgoing.isSelected() && split.getDividers().isEmpty(),
         "Two empty lists leave the graph flexible and retain both headings");
+    var count = (Label) field(graph, "linkedCount");
+    check(count.isVisible() && count.getAccessibleText().equals("0 unique linked notes"),
+        "An open note without any connections shows a zero count");
     incoming.fire(); layout(graph);
     check(incoming.isSelected() && ((ListView<?>) field(graph, "incoming")).isVisible()
         && split.getDividers().size() == 1, "A user can expand a zero-count list");
@@ -407,6 +484,63 @@ public final class FxNoteGraphTests {
   private static ToggleButton disclosure(FxNoteGraph graph, String title) {
     return graph.node().lookupAll(".graph-list-toggle").stream().map(ToggleButton.class::cast)
         .filter(button -> button.getAccessibleText().startsWith(title)).findFirst().orElseThrow();
+  }
+
+  private static void checkSectionMotion(FxNoteGraph graph, double[] dividers) throws Exception {
+    var list = (ListView<?>) field(graph, "incoming");
+    var outgoing = (ListView<?>) field(graph, "outgoing");
+    var incoming = fx(() -> disclosure(graph, "Incoming"));
+    var split = (SplitPane) field(graph, "sections");
+    var fade = (Animation) field(field(graph, "incomingSection"), "fade");
+    if (!fx(FxMotion::reduced)) {
+      fx(() -> {
+        incoming.fire();
+        check(list.isVisible() && list.isManaged() && list.isMouseTransparent() && !list.isFocusTraversable()
+                && Arrays.equals(dividers, split.getDividerPositions()),
+            "A closing list fades in its original split space and stops accepting input");
+        incoming.fire();
+        return null;
+      });
+      await(() -> fx(() -> fade.getStatus() == Animation.Status.STOPPED));
+      fx(() -> {
+        check(incoming.isSelected() && list.isVisible() && list.isManaged() && list.isFocusTraversable()
+                && list.getOpacity() == 1 && Arrays.equals(dividers, split.getDividerPositions()),
+            "Reversing a collapse keeps the list open at the remembered divider positions");
+        incoming.fire();
+        return null;
+      });
+      await(() -> fx(() -> !list.isManaged()));
+      fx(() -> {
+        check(!list.isVisible() && !list.isFocusTraversable() && outgoing.isVisible()
+                && split.getDividers().size() == 1,
+            "A settled collapse removes the list from layout and navigation while Outgoing stays open");
+        incoming.fire();
+        check(list.isVisible() && list.isManaged() && list.getOpacity() < 1,
+            "Opening a section starts a content reveal in its restored split space");
+        return null;
+      });
+      await(() -> fx(() -> fade.getStatus() == Animation.Status.STOPPED));
+    }
+    fx(() -> {
+      String key = "diyalamp.reduceMotion";
+      String previous = System.getProperty(key);
+      System.setProperty(key, "true");
+      try {
+        FxTheme.applyMotionPreference(graph.node().getScene().getRoot());
+        incoming.fire();
+        check(!list.isManaged() && !list.isVisible() && fade.getStatus() == Animation.Status.STOPPED,
+            "Reduced motion closes the list immediately");
+        incoming.fire();
+        layout(graph);
+        check(list.isVisible() && list.getOpacity() == 1
+                && incoming.lookup(".graph-disclosure-chevron").getRotate() == 90,
+            "Reduced motion opens at full opacity and sets the disclosure angle directly");
+      } finally {
+        if (previous == null) System.clearProperty(key); else System.setProperty(key, previous);
+        FxTheme.applyMotionPreference(graph.node().getScene().getRoot());
+      }
+      return null;
+    });
   }
 
   private static void layout(FxNoteGraph graph) {

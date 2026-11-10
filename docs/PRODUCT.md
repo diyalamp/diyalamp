@@ -11,7 +11,8 @@ The public story leads with writing and ownership. Java is an implementation det
 - No account or service connection required.
 - A folder of `.md` notes with create, rename, search, open, and recoverable delete.
 - Rendered editing of common Markdown with useful formatting commands.
-- Multiple closable note tabs and an optional second writing pane.
+- Multiple closable document tabs and an optional second pane.
+- Read-only previews for UTF-8 text, PDF, JPEG, PNG, GIF, and BMP in the same workspace.
 - Safe local file saving, undo/redo, and clear failure feedback.
 - A bundled runtime and downloadable macOS DMG linked from GitHub and the website.
 
@@ -35,9 +36,9 @@ Owner direction: minimize footprint and set an ambitious target of under 5 MB in
 
 Wiki links use `[[Note name]]` and remain in the saved Markdown. The right panel places a directed SmartGraph visualization above Incoming and Outgoing lists for the active note. Indexing is read-only and runs off the UI thread. It excludes web, hidden, and outside-folder paths; partial indexing is identified when limits are reached. Keep the SmartGraph instance and zoom container across safe graph refreshes: retain shared vertex positions and zoom, restore cached positions for returning local vertices, and briefly reheat the maintained layout after interaction. Stop idle simulation after five seconds and stop it immediately when the inspector/window hides or closes; folder switches stop the old workspace simulation. Hover may emphasize related notes and connections without changing note files.
 
-Zen is a visual current-line focus fade: text away from the caret line is subdued while all workspace chrome remains visible. Keep its toggle in the same position and let input pass through the visual overlay. Both sidebars use maintained JavaFX SplitPane dividers. Remember their pixel widths and visibility independently, clamp them to sensible bounds, and leave a usable writing pane. A top-toolbar reset restores the 272/304 px defaults without changing visibility, document state, or Zen.
+Zen is a visual current-line focus fade: text away from the caret line is subdued while all workspace chrome remains visible. Keep its toggle in the same position and let input pass through the visual overlay. Both sidebars use maintained JavaFX SplitPane dividers. Remember their proportional widths and visibility independently. The top-toolbar reset restores each sidebar to 30% of the window when space allows. Narrow and split layouts preserve the editor’s minimum width.
 
-The toolbar shares a row with the native macOS window buttons. The workspace path is also the folder picker. The files sidebar holds search, note and folder creation, and the folder tree. Each note row has split, inline rename, and recoverable delete actions. The toolbar also exposes the sidebar toggles, Pomodoro, accent, Focus, and layout reset. The status bar shows character, word, and logical-line counts for rendered text and the current Markdown's UTF-8 byte size.
+The toolbar shares a row with the native macOS window buttons. The workspace path is also the folder picker. The files sidebar holds search, note and folder creation, and the folder tree. Each note row has split, inline rename, and recoverable delete actions. The toolbar also exposes document history, sidebar toggles, Pomodoro, accent, Focus, layout reset, and Quick Tasks. Privacy Mode replaces the workspace and status bar with a neutral screen during presentations. The status bar shows character, word, and logical-line counts for rendered text and the current Markdown's UTF-8 byte size.
 
 Accents transition between five presets and a custom hex color. Dialogs use the shared AtlantaFX styling. Pomodoro shows the current phase and countdown in the toolbar. Its popover supports start, pause, reset, editable focus and break durations, and one-cycle or repeat schedules. It starts explicitly and stops when the app quits. The accessible name stays stable while the tooltip and accessibility help expose the changing time. Hover transitions preserve control geometry.
 

@@ -1,0 +1,55 @@
+.quick-tasks-control:has-open-tasks .icon-stroke { -fx-stroke: -color-accent-fg; }
+.diyalamp-popover .quick-tasks-summary,
+.diyalamp-popover .quick-tasks-empty,
+.diyalamp-popover .quick-task-row:completed .check-box { -fx-text-fill: -color-fg-muted; }
+.quick-tasks-panel .quick-tasks-empty { -fx-padding: 4 0; }
+.workspace-root .quick-task-input.note-search-field { -fx-padding: 0 4 0 10; }
+.quick-task-input .right-pane { -fx-padding: 0 0 0 4; }
+.quick-tasks-list,
+.quick-tasks-list > .viewport,
+.quick-tasks-list > .corner {
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+  -fx-border-width: 0;
+  -fx-padding: 0;
+}
+.quick-task-row {
+  -fx-min-height: 36;
+  -fx-padding: 4 4 4 8;
+  -fx-background-radius: 8;
+  -fx-background-color: transparent;
+  transition-property: -fx-background-color;
+  transition-duration: 140ms;
+  transition-timing-function: ease-out;
+}
+.quick-task-row:hover, .quick-task-row:focus-within { -fx-background-color: -diyalamp-control-hover; }
+.quick-task-row .check-box { -fx-label-padding: 0 0 0 8; -fx-text-fill: -color-fg-default; }
+.workspace-root .quick-task-row .check-box > .box {
+  -fx-min-width: 16; -fx-pref-width: 16; -fx-max-width: 16;
+  -fx-min-height: 16; -fx-pref-height: 16; -fx-max-height: 16;
+  -fx-padding: 0;
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+  -fx-background-radius: 4;
+  -fx-border-radius: 4;
+  -fx-border-width: 1;
+}
+.quick-task-row .check-box > .box > .mark {
+  -fx-min-width: 10; -fx-max-width: 10;
+  -fx-min-height: 10; -fx-max-height: 10;
+  -fx-opacity: 0;
+}
+.workspace-root .quick-task-row .check-box:selected > .box {
+  -fx-background-color: -diyalamp-accent-subtle;
+  -fx-border-color: -color-accent-fg;
+}
+.workspace-root .quick-task-row .check-box:selected > .box > .mark {
+  -fx-background-color: -color-accent-fg;
+  -fx-opacity: 1;
+}
+.workspace-root .quick-task-row .check-box:focus-visible > .box { -fx-border-color: -color-fg-emphasis; }
+.quick-task-row:completed .check-box > .text { -fx-strikethrough: true; }
+.quick-task-row .file-row-action .icon-stroke { -fx-stroke: -color-fg-muted; }
+.quick-task-row .file-row-action:hover .icon-stroke { -fx-stroke: -color-fg-emphasis; }
+.diyalamp-popover .quick-tasks-status { -fx-text-fill: -color-fg-muted; }
+.workspace-root:reduced-motion .quick-task-row { transition-duration: 0s; }

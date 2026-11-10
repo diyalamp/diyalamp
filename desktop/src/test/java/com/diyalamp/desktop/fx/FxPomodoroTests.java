@@ -1,5 +1,6 @@
 package com.diyalamp.desktop.fx;
 
+import atlantafx.base.controls.CustomTextField;
 import atlantafx.base.controls.Popover;
 import java.util.ArrayList;
 import java.util.UUID;
@@ -174,6 +175,10 @@ public final class FxPomodoroTests {
       var breakField = (TextField) popup.getContentNode().lookup("#pomodoro-break-minutes");
       check(focusField.getWidth() == focus.getWidth() && breakField.getWidth() == rest.getWidth(),
           "Duration fields must align with the phase and schedule columns");
+      check(focusField instanceof CustomTextField focusInput && focusInput.getRight() instanceof Label focusUnit
+              && focusUnit.getText().equals("min") && breakField instanceof CustomTextField breakInput
+              && breakInput.getRight() instanceof Label breakUnit && breakUnit.getText().equals("min"),
+          "The minutes unit must use the native AtlantaFX field slot instead of occupying editable text");
       Region phaseIndicator = (Region) focus.getParent().lookup(".segmented-indicator");
       Region scheduleIndicator = (Region) once.getParent().lookup(".segmented-indicator");
       check(phaseIndicator.getLayoutX() == rest.getLayoutX() && phaseIndicator.getBackground() != null

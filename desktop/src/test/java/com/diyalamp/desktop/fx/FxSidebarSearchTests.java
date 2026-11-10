@@ -11,7 +11,6 @@ import java.util.stream.IntStream;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.event.Event;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -78,13 +77,8 @@ public final class FxSidebarSearchTests {
     Path notePath = rootPath.resolve("Research/Original note.md");
     panel.setWorkspaceRoot(rootPath);
 
-    Button createFolder = FxTheme.iconButton("folder-plus", "New folder", () -> {});
-    Button createNote = FxTheme.iconButton("plus", "New note", () -> {});
-    createFolder.getStyleClass().add("file-row-action");
-    createNote.getStyleClass().add("file-row-action");
-    HBox actions = new HBox(panel.optionsButton(), createFolder, createNote);
-    HBox header = new HBox(8, panel.queryControl(), actions);
-    header.setPadding(new Insets(8));
+    HBox header = new HBox(panel.queryControl());
+    header.getStyleClass().addAll("workspace-band", "files-search-row");
     header.setAlignment(Pos.CENTER_LEFT);
     HBox.setHgrow(panel.queryControl(), Priority.ALWAYS);
     VBox.setVgrow(panel, Priority.ALWAYS);
@@ -106,11 +100,14 @@ public final class FxSidebarSearchTests {
       CustomTextField input = (CustomTextField) panel.queryControl();
       ToggleButton advanced = panel.optionsButton();
       var options = panel.lookup(".sidebar-search-options");
-      check(header.getHeight() == 52 && input.getHeight() == 36 && input.getWidth() >= 152,
-          "The wider query must fit beside the compact action strip in the shared 52-pixel header");
-      check(input.getLeft().lookup(".icon-stroke") != null && input.getRight() == null,
-          "AtlantaFX must reserve the search icon slot and leave the clear slot empty until there is a query");
-      check(advanced.getHeight() == 28 && advanced.getWidth() == 28 && actions.getWidth() == 84
+      HBox tools = (HBox) input.getRight();
+      Button clear = (Button) tools.lookup(".sidebar-search-clear");
+      check(header.getHeight() == 40 && input.getHeight() == 32 && input.getWidth() >= 240,
+          "The query fills the compact 40-pixel search band");
+      check(input.getLeft().lookup(".icon-stroke") != null && tools.getChildren().contains(advanced)
+          && !clear.isVisible() && !clear.isManaged(),
+          "AtlantaFX reserves the integrated filter slot and only shows Clear for a query");
+      check(advanced.getHeight() == 28 && advanced.getWidth() == 28
               && advanced.getGraphic().lookup(".icon-stroke") != null
               && "Search options".equals(advanced.getAccessibleText()),
           "The options icon must share the compact file-action size and have an accessible name");
@@ -118,7 +115,7 @@ public final class FxSidebarSearchTests {
       check(!panel.hasQuery() && files.isVisible(), "The empty query must leave the files view visible");
       panel.focusQuery();
       input.setText("Original");
-      check(input.getRight() instanceof Button clear && "Clear search".equals(clear.getAccessibleText()),
+      check(clear.isVisible() && clear.isManaged() && "Clear search".equals(clear.getAccessibleText()),
           "A nonempty query must expose a clear button in the field's trailing slot");
       check(!options.isVisible() && request.get().scope() == FxWorkspaceSearch.Scope.FILENAMES,
           "Focusing and typing in the collapsed field must perform basic filename search without expanding options");
@@ -215,7 +212,8 @@ public final class FxSidebarSearchTests {
       press(input, KeyCode.ESCAPE);
       check(dismissals.get() == 1 && !panel.hasQuery() && files.isVisible(),
           "Escape must clear search and restore the files view");
-      check(input.getRight() == null, "Clearing the query must remove the clear slot and free its space");
+      check(input.getRight() == tools && !clear.isVisible() && !clear.isManaged(),
+          "Clearing frees the clear action's space while keeping filters available");
       workspace.applyCss(); workspace.layout();
       check(Math.abs(files.localToScene(files.getLayoutBounds()).getMinY()
               - header.localToScene(header.getLayoutBounds()).getMaxY()) <= 1,
@@ -227,10 +225,10 @@ public final class FxSidebarSearchTests {
       workspace.layout();
       workspace.applyCss();
       workspace.layout();
-      check(input.getWidth() >= 84 && advanced.getWidth() == 28
+      check(input.getWidth() >= 176 && advanced.getWidth() == 28
               && advanced.localToScene(advanced.getBoundsInLocal()).getMaxX()
                   < header.localToScene(header.getBoundsInLocal()).getMaxX(),
-          "At 200 pixels the compact action strip must leave a useful search field: "
+          "At 200 pixels the integrated controls must leave a useful search field: "
               + input.getWidth() + " / " + advanced.getWidth());
       snippetRows(workspace, panel, results, notePath);
     } finally {

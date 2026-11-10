@@ -66,7 +66,8 @@ final class FxWorkspaceSearch {
     try { exclude = globList(query.exclude()); }
     catch (IllegalArgumentException invalid) { return error("Invalid exclude glob. " + invalid.getMessage()); }
 
-    var listing = store.notes(MAX_NOTES, MAX_ENTRIES);
+    var listing = query.scope() == Scope.CONTENTS ? store.notes(MAX_NOTES, MAX_ENTRIES)
+        : store.documents(MAX_NOTES, MAX_ENTRIES);
     List<NoteResult> results = new ArrayList<>();
     boolean partial = listing.partial();
     int hits = 0, remainingChars = MAX_TEXT_CHARS;
@@ -82,7 +83,8 @@ final class FxWorkspaceSearch {
             && term.matcher(budget.text(path.getFileName().toString())).find();
         if (filename) hits++;
         List<Match> matches = new ArrayList<>();
-        if (query.scope() != Scope.FILENAMES && hits < MAX_RESULTS && remainingChars > 0) {
+        boolean searchText = query.scope() != Scope.FILENAMES && NoteStore.isMarkdown(path);
+        if (searchText && hits < MAX_RESULTS && remainingChars > 0) {
           try {
             String markdown = unsaved.get(path);
             if (markdown == null) markdown = store.load(path).text();
@@ -106,7 +108,7 @@ final class FxWorkspaceSearch {
             if (filename || !matches.isEmpty()) results.add(new NoteResult(path, filename, matches));
             return new Result(results, null, true);
           }
-        } else if (query.scope() != Scope.FILENAMES) {
+        } else if (searchText) {
           partial = true;
         }
         if (filename || !matches.isEmpty()) results.add(new NoteResult(path, filename, matches));

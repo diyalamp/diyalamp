@@ -1,5 +1,6 @@
 package com.diyalamp.desktop.fx;
 
+import atlantafx.base.controls.CustomTextField;
 import com.diyalamp.desktop.Markdown;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -20,6 +21,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollBar;
 import javafx.geometry.Bounds;
@@ -52,7 +54,7 @@ public final class FxWritingPaneTests {
       try {
         FxTheme.setup();
         roundTrips(); editingAndUndo(); blocksAndTasks(); shortcuts(); slashCommands(); keyboardModifiers(); linksAndLifecycle();
-        searchMatches(); pasteAndDivider(); incrementalSaving(); actualComponent(); checklistAppearance(); quoteAlignment(); focusLine();
+        searchMatches(); inlineFind(); pasteAndDivider(); incrementalSaving(); actualComponent(); checklistAppearance(); quoteAlignment(); focusLine();
         focusScrolling(finished, failure);
       } catch (Throwable error) { failure.set(error); }
       if (failure.get() != null) finished.countDown();
@@ -412,6 +414,58 @@ public final class FxWritingPaneTests {
     editor.dispose();
   }
 
+  private static void inlineFind() {
+    String source = "# İ and Alpha\n\n**alpha** and [Alpha](https://example.com)\n";
+    String motion = System.getProperty("diyalamp.reduceMotion");
+    System.setProperty("diyalamp.reduceMotion", "true");
+    FxWritingPane editor = new FxWritingPane(source);
+    StackPane root = new StackPane(editor.node());
+    root.getStyleClass().addAll("workspace-root", "reduced-motion");
+    root.getStylesheets().add(FxWritingPane.class.getResource("/fx-workspace.css").toExternalForm());
+    Stage stage = new Stage();
+    Scene scene = new Scene(root, 620, 400);
+    stage.setScene(scene);
+    stage.show();
+    try {
+      editor.showFind();
+      root.applyCss();
+      root.layout();
+      CustomTextField field = (CustomTextField) root.lookup(".note-find-query");
+      Label status = (Label) root.lookup(".note-find-status");
+      check(field != null && field.getLeft() != null && scene.getFocusOwner() == field,
+          "Find in note must use the sidebar's native field and receive focus without opening a modal");
+      field.setText("alpha");
+      check(editor.area().getSelectedText().equals("Alpha") && status.getText().equals("1 of 3"),
+          "Find must select the first rendered match and preserve Unicode source offsets");
+      field.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ENTER, false, false, false, false));
+      check(editor.area().getSelectedText().equals("alpha") && status.getText().equals("2 of 3"),
+          "Enter advances across rendered Markdown while the Find field keeps focus");
+      field.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ENTER, true, false, false, false));
+      field.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ENTER, true, false, false, false));
+      check(status.getText().equals("3 of 3") && scene.getFocusOwner() == field,
+          "Shift Enter finds previous matches and wraps without taking focus");
+      field.setText("[");
+      check(status.getText().equals("No matches"), "Find treats punctuation literally and shows empty results");
+      field.setText("alpha");
+      root.resize(228, 400);
+      root.layout();
+      Node controls = status.getParent();
+      Bounds queryBounds = field.localToScene(field.getLayoutBounds());
+      Bounds controlBounds = controls.localToScene(controls.getLayoutBounds());
+      check(controlBounds.getMinY() >= queryBounds.getMaxY() && controlBounds.getMaxX() <= 228,
+          "Find controls wrap inside a narrow split pane");
+      field.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.ESCAPE, false, false, false, false));
+      check(!root.lookup(".note-find").isVisible() && scene.getFocusOwner() == editor.area(),
+          "Escape closes Find immediately with reduced motion and returns focus to the editor");
+      check(editor.markdown().equals(source) && !editor.canUndo(), "Find must never alter the note or undo history");
+    } finally {
+      editor.dispose();
+      stage.close();
+      if (motion == null) System.clearProperty("diyalamp.reduceMotion");
+      else System.setProperty("diyalamp.reduceMotion", motion);
+    }
+  }
+
   private static void actualComponent() {
     FxWritingPane editor = new FxWritingPane("# Title\n## Subheading\n### Detail\n###### Sixth\nBody\n"
         + "- [ ] Task\n- Bullet\n7. Numbered\n> Quote\n`value`\n```java\nfenced()\n```\n"
@@ -465,8 +519,15 @@ public final class FxWritingPaneTests {
         codeRuns.add(text.getText());
         if (System.getProperty("os.name").startsWith("Mac"))
           check(text.getFont().getFamily().equals("Menlo"), "Only code should switch to installed Menlo");
-        check(text.getFill().equals(Color.web("#A49D95")) && text.getBackgroundColor().equals(FxTheme.EDITOR_BACKGROUND),
-            "Inline and fenced code must use readable dark-theme foreground and background colors");
+        check(text.getFill().equals(Color.web("#A49D95")), "Code must use the shared muted foreground");
+        if (text.getText().equals("value"))
+          check(FxTheme.EDITOR_BACKGROUND.equals(text.getBackgroundColor()), "Inline code keeps its own text background");
+        else {
+          Region block = (Region) text.getParent();
+          check(block.getBackground().getFills().getFirst().getFill().equals(Color.web("#FFFFFF0F"))
+              && block.getPadding().getLeft() >= 12,
+              "A fenced code line shares the quiet full-width block treatment");
+        }
       }
       else if (text.getText().equals("strong"))
         check(text.getFont().getName().equals("Inter SemiBold"), "Markdown emphasis must use the real static semibold face");

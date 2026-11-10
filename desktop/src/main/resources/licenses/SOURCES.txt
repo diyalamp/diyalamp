@@ -53,3 +53,8 @@ OpenJFX-javafx.graphics-pipewire.md
 SmartGraph-LICENSE.txt
   https://github.com/brunomnsilva/JavaFXSmartGraph
   Exact source: Maven Central com.brunomnsilva:smartgraph:2.6.1 sources JAR, SmartGraphClickEvent.java license header
+
+Apache PDFBox, FontBox, PDFBox IO 3.0.8, Apache Commons Logging 1.4.0
+  https://pdfbox.apache.org/download.cgi
+  https://commons.apache.org/proper/commons-logging/
+  Each bundled JAR includes its upstream META-INF/LICENSE and META-INF/NOTICE.

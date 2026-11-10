@@ -12,11 +12,12 @@ mkdir -p build/input/deps build/input/fx-deps/common "build/input/fx-deps/$FX_PL
 cp build/deps/commonmark-0.32.0.jar build/deps/commonmark-ext-gfm-strikethrough-0.32.0.jar build/input/deps/
 cp build/fx-deps/common/*.jar build/input/fx-deps/common/
 cp "build/fx-deps/$FX_PLATFORM/"*.jar "build/input/fx-deps/$FX_PLATFORM/"
-manifest_paths=''
-for dependency in build/input/deps/*.jar build/input/fx-deps/common/*.jar; do
-  manifest_paths="$manifest_paths ${dependency#build/input/}"
-done
-printf 'Class-Path:%s\n' "$manifest_paths" > build/package-manifest.mf
+{
+  printf 'Class-Path: \n'
+  for dependency in build/input/deps/*.jar build/input/fx-deps/common/*.jar; do
+    printf ' %s \n' "${dependency#build/input/}"
+  done
+} > build/package-manifest.mf
 "$JDK/bin/jar" --create --file build/input/diyalamp.jar --main-class com.diyalamp.desktop.DesktopLauncher --manifest build/package-manifest.mf -C build/classes .
 for size in 16 32 128 256 512; do
   sips -z "$size" "$size" src/main/resources/app-icon.png --out "build/icon.iconset/icon_${size}x${size}.png" >/dev/null

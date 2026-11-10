@@ -49,7 +49,7 @@ Use lowercase **diyalamp** and the fixed lamp asset. The dark workspace uses one
 
 The interface and prose use 16 px Inter. Markdown H1, H2, and H3 use Inter SemiBold at 28, 23, and 19 px. H4–H6 use the 16 px body size. Quotes use a rounded inset with an accent rule. Code uses installed Menlo, and static italic faces preserve emphasis. Use AtlantaFX CupertinoDark controls and Popover, RichTextFX for editing, and SmartGraph for the Connections panel.
 
-Workspace spacing uses an 8 px grid. The wordmark, toolbar controls, search fields, dialog actions, and popover actions share a 36 px control height and 8 px corners. The toolbar and pane header rows are 52 px tall. Tabs fill the editor header row and keep their labels and close targets centered. Use the shared 140 ms control transition for hover and focus. Dialogs use 24 px inner padding and 12 px surface corners. Entrance motion leaves adjacent controls in place and follows the system Reduce Motion setting. Action buttons share a visible keyboard focus ring and stable geometry across dialogs and popovers.
+Workspace spacing uses an 8 px grid. The wordmark, toolbar controls, search fields, dialog actions, and popover actions share a 36 px control height and 8 px corners. The window toolbar is 52 px tall. The two shared workspace bands are 40 px tall, with a 32 px Files search field. Tabs fill the editor header row and keep their labels and close targets centered. Use the shared 140 ms control transition for hover and focus. Dialogs use 24 px inner padding and 12 px surface corners. Entrance motion leaves adjacent controls in place and follows the system Reduce Motion setting. Action buttons share a visible keyboard focus ring and stable geometry across dialogs and popovers.
 
 ## Writing and storage
 
@@ -75,7 +75,7 @@ Type `[[Reference]]` or `[[Folder/Reference|label]]` for local links. The graph 
 
 The existing SmartGraph and its zoom container stay in place as the active note or safely saved links change. Shared vertex coordinates and zoom are retained; returning local vertices reuse cached positions. The maintained force layout reheats for interaction and settles after five idle seconds. Hiding the inspector or window, closing it, or switching folders stops the old simulation. Hovering a node highlights its connected neighbors and links.
 
-Drag the maintained JavaFX SplitPane dividers to resize the files and Connections sidebars independently. Their pixel widths and open/closed states are remembered. The top-bar Reset sidebar widths icon restores 272 px on the left and 304 px on the right, subject to window bounds, without changing visibility, notes, selection, or Zen. A narrow window clamps sidebar widths to leave room for writing.
+Drag the maintained JavaFX SplitPane dividers to resize the files and Connections sidebars independently. Their proportional widths and open states are remembered. Reset sidebar widths restores each panel to 30% of the window when space allows. Narrow and split layouts preserve the writing panes’ minimum widths.
 
 Use the moon toolbar control or Shift-Command-F to focus on the active caret line. Surrounding text fades, and the workspace chrome and inactive split pane dim. The toolbar, sidebars, tabs, and status stay visible and usable.
 

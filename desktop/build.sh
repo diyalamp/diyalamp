@@ -32,10 +32,11 @@ mkdir -p build/classes
 find src/main/java -name '*.java' | sort > build/sources.txt
 "$JDK/bin/javac" --release 25 --module-path "build/fx-deps/$FX_PLATFORM" --add-modules javafx.controls -cp "build/deps/*:build/fx-deps/common/*" -d build/classes @build/sources.txt
 cp -R src/main/resources/. build/classes/
-manifest_paths=''
-for dependency in build/deps/*.jar build/fx-deps/common/*.jar; do
-  manifest_paths="$manifest_paths ${dependency#build/}"
-done
-printf 'Class-Path:%s\n' "$manifest_paths" > build/manifest.mf
+{
+  printf 'Class-Path: \n'
+  for dependency in build/deps/*.jar build/fx-deps/common/*.jar; do
+    printf ' %s \n' "${dependency#build/}"
+  done
+} > build/manifest.mf
 "$JDK/bin/jar" --create --file build/diyalamp.jar --main-class com.diyalamp.desktop.DesktopLauncher --manifest build/manifest.mf -C build/classes .
 printf 'Built desktop/build/diyalamp.jar\n'

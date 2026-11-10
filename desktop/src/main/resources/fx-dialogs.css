@@ -23,8 +23,15 @@
 }
 .diyalamp-dialog > .content { -fx-padding: 16 24 0 24; }
 .diyalamp-dialog > .content.label { -fx-wrap-text: true; }
-.diyalamp-dialog > .button-bar > .container { -fx-padding: 16 24 24 24; -fx-spacing: 8; }
+.diyalamp-dialog > .button-bar > .container {
+  -fx-padding: 28 24 24 24;
+  -fx-spacing: 8;
+  /* Paint the inset rule without changing the native button bar's layout insets. */
+  -fx-background-color: -diyalamp-divider, -color-bg-overlay;
+  -fx-background-insets: 16 24 0 24, 17 24 0 24;
+}
 .diyalamp-dialog .label { -fx-text-fill: -color-fg-default; }
+.diyalamp-dialog .dialog-field-label { -fx-text-fill: -color-fg-muted; }
 
 .diyalamp-dialog .text-field, .diyalamp-dialog .combo-box-base {
   -fx-background-color: -color-bg-inset;

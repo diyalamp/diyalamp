@@ -73,6 +73,7 @@ public final class FxWorkspaceLayoutTests {
             Platform.runLater(() -> {
               try {
                 folderControls(current);
+                navigationAndPrivacy(current);
                 searchInWorkspace(current, failure, close);
               } catch (Throwable error) {
                 failure.compareAndSet(null, error);
@@ -124,26 +125,26 @@ public final class FxWorkspaceLayoutTests {
         .contains(String.valueOf(node.getAccessibleText()))), "Sidebar controls, including Split View, are not repeated on the top bar");
     Node graphPanel = ((FxNoteGraph) field(fixture.app, "noteGraph")).node();
     Region graphHeader = (Region) graphPanel.lookup(".graph-heading-row");
-    check(filesHeader.getHeight() == 52 && tabs.getHeight() == 52 && graphHeader.getHeight() == 52
+    check(filesHeader.getHeight() == 40 && tabs.getHeight() == 40 && graphHeader.getHeight() == 40
         && filesHeader.localToScene(0, 0).getY() == tabs.localToScene(0, 0).getY()
         && filesHeader.localToScene(0, 0).getY() == graphHeader.localToScene(0, 0).getY(),
-        "Files, tabs and Connections start on one 52 px band");
+        "Files, tabs and Connections start on one 40 px band");
     var bandDivider = (javafx.scene.shape.Line) fixture.stage.getScene().lookup("#workspace-top-divider");
     check(bandDivider.isMouseTransparent() && bandDivider.getStrokeWidth() == 1
         && bandDivider.getEndX() == fixture.stage.getScene().getWidth()
-        && Math.abs(bandDivider.localToScene(0, 0).getY() - tabs.localToScene(0, 51.5).getY()) < .01,
+        && Math.abs(bandDivider.localToScene(0, 0).getY() - tabs.localToScene(0, 39.5).getY()) < .01,
         "A single one-pixel rule spans the workspace without intercepting the sidebar dividers");
     Region filesContext = (Region) explorerList.lookup(".files-search-row");
     Region documentLocation = (Region) tabs.getParent().lookup(".document-location");
     Region graphSummary = (Region) graphPanel.lookup(".graph-summary");
     double contextY = filesContext.localToScene(0, 0).getY();
-    check(filesContext.getHeight() == 52 && documentLocation.getHeight() == 52 && graphSummary.getHeight() == 52
+    check(filesContext.getHeight() == 40 && documentLocation.getHeight() == 40 && graphSummary.getHeight() == 40
         && contextY == documentLocation.localToScene(0, 0).getY() && contextY == graphSummary.localToScene(0, 0).getY(),
-        "Search, document breadcrumb, and current note share the second 52 px band");
+        "Search, document breadcrumb, and current note share the second 40 px band");
     check(((Label) filesHeader.lookup(".workspace-section-title")).getText().equals("Files"), "The files header is labeled");
     var contextDivider = (javafx.scene.shape.Line) fixture.stage.getScene().lookup("#workspace-context-divider");
     check(contextDivider.isMouseTransparent() && contextDivider.getEndX() == fixture.stage.getScene().getWidth()
-        && Math.abs(contextDivider.localToScene(0, 0).getY() - contextY - 51.5) < .01,
+        && Math.abs(contextDivider.localToScene(0, 0).getY() - contextY - 39.5) < .01,
         "A single shared divider underlines all three context headers");
     paintedRows(tree, ".tree-cell", 2, 2);
     graphRows(fixture);
@@ -169,7 +170,7 @@ public final class FxWorkspaceLayoutTests {
         "The tab title must have room to breathe beside its document icon");
     var tabOrigin = tab.localToScene(0, 0).subtract(tabs.localToScene(0, 0));
     check(Math.abs(tabOrigin.getX()) <= 1 && Math.abs(tabOrigin.getY()) <= 1 && tab.getHeight() == tabs.getHeight(),
-        "The first document tab must touch the left, top, and bottom of the 52 px strip: " + tabOrigin);
+        "The first document tab must touch the left, top, and bottom of the 40 px strip: " + tabOrigin);
     Region tabClose = (Region) tab.lookup(".close-button");
     double tabCenter = tab.localToScene(0, tab.getHeight() / 2).getY();
     check(tabClose.getHeight() == 28 && Math.abs(tabClose.localToScene(0, 14).getY() - tabCenter) <= 1,
@@ -190,11 +191,11 @@ public final class FxWorkspaceLayoutTests {
           && Math.abs(control.localToScene(0, 18).getY() - center) <= 1,
           "The wordmark and toolbar controls share exact height, inset, type and center: " + control);
       if (previous != null) check(Math.abs(control.localToScene(0, 0).getX()
-          - previous.localToScene(previous.getWidth(), 0).getX() - 8) <= 1,
-          "Neighboring controls have an 8 px gap");
+          - previous.localToScene(previous.getWidth(), 0).getX() - 4) <= 1,
+          "Neighboring controls have a 4 px gap");
       previous = control;
     }
-    Region sidebarToggle = (Region) toolbar.getItems().getFirst();
+    Region sidebarToggle = (Region) toolbar.getItems().get(2);
     StackPane brandGraphic = (StackPane) brand.getGraphic();
     check(brandGraphic.getChildren().getFirst() instanceof ImageView icon && icon.getImage() == FxTheme.brandMark()
             && icon.getImage().getWidth() == 72 && icon.getImage().getHeight() == 72 && icon.isSmooth()
@@ -218,7 +219,7 @@ public final class FxWorkspaceLayoutTests {
       check(shine.isVisible() && brandGraphic.getBoundsInParent().getWidth() == 36,
           "Hover must start the shine without resizing the wordmark");
     }
-    check("Toggle files sidebar".equals(toolbar.getItems().getFirst().getAccessibleText()) && toolbar.getItems().get(1) == brand,
+    check("Toggle files sidebar".equals(toolbar.getItems().get(2).getAccessibleText()) && toolbar.getItems().get(3) == brand,
         "The sidebar toggle precedes the lamp and diyalamp name");
     check(((ToggleButton) field(fixture.app, "filesControl")).isSelected()
         && ((ToggleButton) field(fixture.app, "connectionsControl")).isSelected(),
@@ -231,7 +232,7 @@ public final class FxWorkspaceLayoutTests {
     String imagePath = System.getProperty("diyalamp.workspace.snapshot");
     if (imagePath != null && !imagePath.isBlank()) snapshot(fixture.stage, Path.of(imagePath));
     CustomTextField search = (CustomTextField) filesContext.lookup(".sidebar-search-query-field");
-    check(search.isVisible() && search.getHeight() == 36 && search.getFont().getSize() == 16
+    check(search.isVisible() && search.getHeight() == 32 && search.getFont().getSize() == 16
         && search.getBorder().getStrokes().getFirst().getRadii().getTopLeftHorizontalRadius() == 8,
         "The AtlantaFX search field shares the workspace's control size and type");
     search.setText("Reference");
@@ -338,7 +339,7 @@ public final class FxWorkspaceLayoutTests {
         "At minimum window width the compact controls must leave room to type in the search field");
     Node toggle = (Node) field(fixture.app, "connectionsControl");
     var readyBounds = toggle.localToScene(toggle.getBoundsInLocal());
-    check(pomodoro.button().getWidth() == 160 && toggle.isVisible()
+    check(pomodoro.button().getWidth() <= 160 && toggle.isVisible()
         && readyBounds.getMaxX() <= fixture.stage.getScene().getWidth(),
         "Showing the ready phase and countdown must leave the right-sidebar toggle visible at minimum width");
     ((Button) pomodoro.popover().getContentNode().lookup("#pomodoro-start")).fire();
@@ -469,6 +470,44 @@ public final class FxWorkspaceLayoutTests {
     if (failure.get() != null) throw new AssertionError("Folder action dialog failed", failure.get());
   }
 
+  private static void navigationAndPrivacy(Fixture fixture) throws Exception {
+    Path reference = fixture.directory.resolve("Reference.md");
+    Path text = Files.writeString(fixture.directory.resolve("Transcript.txt"), "# A plain-text preview");
+    Class<?>[] open = {Path.class, boolean.class};
+    call(fixture.app, "open", open, reference, false);
+    call(fixture.app, "refreshTree", new Class<?>[0]);
+    call(fixture.app, "open", open, text, false);
+    fixture.layout();
+    Object preview = field(fixture.app, "active");
+    check(field(preview, "preview") instanceof FxFilePreview && field(preview, "editor") == null,
+        "A workspace text file opens in an actual read-only tab");
+    ToolBar toolbar = (ToolBar) field(fixture.app, "toolbar");
+    Button back = toolbarButton(toolbar, "Previous document"), forward = toolbarButton(toolbar, "Next document");
+    check(!back.isDisabled(), "Opening files makes Back available");
+    back.fire();
+    check(fixture.stage.getTitle().startsWith("Reference.md") && !forward.isDisabled(),
+        "Back opens the previous document and makes Forward available");
+    forward.fire();
+    check(field(fixture.app, "active") == preview, "Forward restores the existing preview tab");
+    ToggleButton privacy = (ToggleButton) toolbar.getItems().stream()
+        .filter(node -> "Privacy Mode".equals(node.getAccessibleText())).findFirst().orElseThrow();
+    Button folder = (Button) field(fixture.app, "folderControl");
+    Node workspace = (Node) field(fixture.app, "workspaceLayer");
+    Node footer = (Node) field(fixture.app, "footerClip");
+    privacy.fire();
+    check(privacy.isSelected() && workspace.getScene() == null && footer.getScene() == null && !folder.isVisible()
+        && fixture.stage.getTitle().equals("Privacy Mode · diyalamp") && back.isDisabled() && forward.isDisabled(),
+        "Privacy Mode removes filenames, open content, status details, and navigation from the window");
+    privacy.fire();
+    check(workspace.getScene() == fixture.stage.getScene() && folder.isVisible() && field(fixture.app, "active") == preview
+        && fixture.stage.getTitle().startsWith("Transcript.txt"), "Leaving Privacy Mode restores the same document tab");
+    call(fixture.app, "open", open, reference, false);
+  }
+
+  private static Button toolbarButton(ToolBar toolbar, String name) {
+    return (Button) toolbar.getItems().stream().filter(node -> name.equals(node.getAccessibleText())).findFirst().orElseThrow();
+  }
+
   private static double centerY(Node node) {
     return node.localToScene(node.getLayoutBounds()).getCenterY();
   }
@@ -492,8 +531,8 @@ public final class FxWorkspaceLayoutTests {
     try {
       list.getItems().setAll(fixture.directory.resolve("Draft.md"), fixture.directory.resolve("Reference.md"));
       fixture.layout();
-      paintedRows(list, ".list-cell", 0);
-      check(list.getPadding().equals(new Insets(0, 8, 0, 8)),
+      paintedRows(list, ".list-cell", 2, 2);
+      check(list.getPadding().equals(new Insets(2, 8, 2, 8)),
           "Connection lists retain their 8 px side insets below full-width headings");
     } finally { list.getItems().setAll(original); }
   }

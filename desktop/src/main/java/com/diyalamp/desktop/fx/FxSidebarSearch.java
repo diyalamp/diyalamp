@@ -60,7 +60,6 @@ public final class FxSidebarSearch extends VBox {
     String stylesheet = FxSidebarSearch.class.getResource("/fx-sidebar-search.css").toExternalForm();
     getStylesheets().add(stylesheet);
     query.getStylesheets().add(stylesheet);
-    searchOptions.getStylesheets().add(stylesheet);
     getStyleClass().add("sidebar-search");
     setMinWidth(0);
     setFillWidth(true);
@@ -91,7 +90,6 @@ public final class FxSidebarSearch extends VBox {
     getChildren().addAll(options, status, results);
     addEventFilter(KeyEvent.KEY_PRESSED, this::dismissOnEscape);
     query.addEventFilter(KeyEvent.KEY_PRESSED, this::dismissOnEscape);
-    searchOptions.addEventFilter(KeyEvent.KEY_PRESSED, this::dismissOnEscape);
 
     query.textProperty().addListener(observable -> changed());
     include.textProperty().addListener(observable -> changed());
@@ -104,7 +102,7 @@ public final class FxSidebarSearch extends VBox {
     });
   }
 
-  /** Mount the query and options toggle in the sidebar header. */
+  /** Mount the search field with its integrated clear and options controls. */
   public Region queryControl() { return query; }
   public ToggleButton optionsButton() { return searchOptions; }
   public BooleanBinding hasQueryProperty() { return hasQuery; }
@@ -180,7 +178,7 @@ public final class FxSidebarSearch extends VBox {
       if (open(first)) event.consume();
     });
     query.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-      if (event.getCode() == KeyCode.DOWN && firstResult() != null) {
+      if (event.getTarget() == query && event.getCode() == KeyCode.DOWN && firstResult() != null) {
         results.getSelectionModel().select(0);
         results.requestFocus();
         event.consume();
@@ -191,8 +189,13 @@ public final class FxSidebarSearch extends VBox {
     searchIcon.setMouseTransparent(true);
     Button clear = FxTheme.iconButton("x", "Clear search", this::dismiss);
     clear.getStyleClass().add("sidebar-search-clear");
+    clear.visibleProperty().bind(hasQuery);
+    clear.managedProperty().bind(clear.visibleProperty());
+    HBox controls = new HBox(2, clear, searchOptions);
+    controls.setAlignment(Pos.CENTER_RIGHT);
+    controls.getStyleClass().add("sidebar-search-tools");
     query.setLeft(searchIcon);
-    query.rightProperty().bind(Bindings.when(hasQuery).then(clear).otherwise((Button) null));
+    query.setRight(controls);
   }
 
   private VBox buildOptions() {

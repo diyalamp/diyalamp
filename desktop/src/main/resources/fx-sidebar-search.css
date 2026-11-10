@@ -1,14 +1,34 @@
 /* AtlantaFX owns the icon slots and keeps the editable text between them. */
 .workspace-root .note-search-field.sidebar-search-query-field {
-  -fx-padding: 0 8 0 0;
+  -fx-padding: 0 2 0 0;
+  -fx-background-color: -diyalamp-control-hover;
+  -fx-border-color: transparent;
   transition-property: -fx-background-color, -fx-border-color;
   transition-duration: 140ms;
   transition-timing-function: ease-out;
 }
+.workspace-root .note-search-field.sidebar-search-query-field:focused {
+  -fx-background-color: -diyalamp-control-pressed;
+  -fx-border-color: transparent;
+}
+.workspace-root .note-search-field.sidebar-search-query-field:focus-visible {
+  -fx-border-color: -diyalamp-focus;
+}
 .workspace-root:reduced-motion .note-search-field.sidebar-search-query-field { transition-duration: 0s; }
-.workspace-root .note-search-field.sidebar-search-query-field:right-node-visible { -fx-padding: 0 4 0 0; }
 .sidebar-search-query-field .left-pane { -fx-padding: 0 8 0 10; }
-.sidebar-search-query-field .right-pane { -fx-padding: 0 0 0 4; }
+.sidebar-search-query-field .right-pane { -fx-padding: 0 0 0 2; }
+.workspace-root .sidebar-search-tools .workspace-tool:hover {
+  -fx-background-color: -diyalamp-control-hover;
+  -fx-background-insets: 0;
+}
+.workspace-root .sidebar-search-tools .sidebar-search-toggle:selected {
+  -fx-background-color: -diyalamp-accent-subtle;
+  -fx-background-insets: 0;
+}
+.workspace-root .sidebar-search-tools .workspace-tool:focus-visible {
+  -fx-background-color: -diyalamp-focus, -color-bg-default;
+  -fx-background-insets: 0, 1;
+}
 .sidebar-search-toggle:options-active .icon-stroke { -fx-stroke: -color-accent-fg; }
 .sidebar-search-query-field .sidebar-search-clear {
   -fx-min-width: 28;
@@ -26,9 +46,9 @@
   -fx-background-insets: 0, 0 0 1 0;
 }
 .sidebar-search-modes {
-  -fx-background-color: -color-bg-default;
+  -fx-background-color: -diyalamp-control-hover;
   -fx-background-radius: 8;
-  -fx-border-color: -color-border-default;
+  -fx-border-color: transparent;
   -fx-border-radius: 8;
   -fx-padding: 2;
 }
@@ -62,15 +82,15 @@
   -fx-opacity: 0;
 }
 .sidebar-search .sidebar-search-option:hover {
-  -fx-border-color: -color-border-default;
+  -fx-background-color: -diyalamp-control-hover;
   -fx-text-fill: -color-fg-default;
 }
 .sidebar-search .sidebar-search-mode:selected { -fx-text-fill: -color-fg-emphasis; }
 .sidebar-search .sidebar-search-option:selected {
-  -fx-border-color: -diyalamp-focus;
+  -fx-background-color: -diyalamp-accent-subtle;
   -fx-text-fill: -color-fg-emphasis;
 }
-.sidebar-search .sidebar-search-mode:focus-visible, .sidebar-search .sidebar-search-option:focused {
+.sidebar-search .sidebar-search-mode:focus-visible, .sidebar-search .sidebar-search-option:focus-visible {
   -fx-border-color: -diyalamp-focus;
 }
 .sidebar-search-mode:hover .icon-stroke { -fx-stroke: -color-fg-default; }
