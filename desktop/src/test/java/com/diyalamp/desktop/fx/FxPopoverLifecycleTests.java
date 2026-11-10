@@ -61,7 +61,11 @@ public final class FxPopoverLifecycleTests {
     popup.hide(Duration.ZERO); popup.show(anchor);
     Color latest = Color.web("#7A9A85"); FxTheme.accent(root, latest);
     check(FxTheme.accentOf(popup.getRoot()).equals(latest), "Repeated reopen must preserve live color synchronization");
-    popup.hide(Duration.ZERO); owner.close();
+    Popover other = new Popover(new Label("Second preview"));
+    FxPopovers.style(other, owner);
+    FxPopovers.toggle(other, anchor);
+    check(other.isShowing() && !popup.isShowing(), "Opening another toolbar popup must close the previous popup");
+    other.hide(Duration.ZERO); owner.close();
   }
 
   private static void motion(CountDownLatch done, AtomicReference<Throwable> failure) {

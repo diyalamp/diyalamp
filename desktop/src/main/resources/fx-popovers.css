@@ -10,7 +10,7 @@
   -fx-stroke-width: 1;
 }
 .diyalamp-popover > .content { -fx-padding: 0; }
-.accent-bubble, .pomodoro-bubble { -fx-padding: 16; -fx-spacing: 8; }
+.popover-panel { -fx-padding: 16; }
 .diyalamp-popover .label {
   -fx-font-family: "Inter";
   -fx-font-size: 16px;
@@ -21,7 +21,11 @@
   -fx-font-weight: normal;
   -fx-text-fill: -color-fg-emphasis;
 }
-.diyalamp-popover .pomodoro-detail { -fx-text-fill: -color-fg-muted; }
+.diyalamp-popover .popover-section-title {
+  -fx-font-family: "Inter SemiBold";
+  -fx-text-fill: -color-fg-default;
+}
+.diyalamp-popover .pomodoro-detail, .diyalamp-popover .pomodoro-unit { -fx-text-fill: -color-fg-muted; }
 
 .diyalamp-popover .accent-choice, .diyalamp-popover .pomodoro-phase {
   -fx-font-family: "Inter";
@@ -46,6 +50,7 @@
   -fx-background-color: -diyalamp-accent-subtle;
   -fx-text-fill: -color-fg-emphasis;
 }
+.diyalamp-popover .accent-choice:selected .accent-swatch { -fx-border-color: -color-fg-emphasis; }
 .diyalamp-popover .pomodoro-phase:hover, .diyalamp-popover .pomodoro-phase:selected {
   -fx-text-fill: -color-fg-emphasis;
 }
@@ -53,10 +58,32 @@
   -fx-border-color: -diyalamp-focus;
 }
 .diyalamp-popover .accent-hex {
-  -fx-padding: 0 8;
+  -fx-padding: 0 8 0 0;
   -fx-border-width: 1;
   -fx-highlight-fill: -diyalamp-selection;
   -fx-highlight-text-fill: -color-fg-emphasis;
+}
+.accent-hex .left-pane { -fx-padding: 0 8 0 10; }
+.accent-custom { -fx-background-color: transparent; -fx-text-fill: -color-fg-default; }
+.accent-custom > .title {
+  -fx-min-height: 36;
+  -fx-padding: 0 8;
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+  -fx-background-radius: 8;
+  -fx-border-color: transparent;
+  -fx-border-radius: 8;
+}
+.accent-custom > .title > .text { -fx-font-size: 16px; }
+.accent-custom > .title > .arrow-button { -fx-padding: 0 8 0 0; }
+.accent-custom > .title > .arrow-button > .arrow { -fx-background-color: -color-fg-muted; }
+.accent-custom > .title:hover { -fx-background-color: -diyalamp-control-hover; }
+.accent-custom:selected > .title { -fx-background-color: -diyalamp-accent-subtle; }
+.accent-custom:focus-visible > .title { -fx-border-color: -diyalamp-focus; }
+.accent-custom > .content {
+  -fx-background-color: transparent;
+  -fx-border-color: transparent;
+  -fx-padding: 8 0 0;
 }
 .pomodoro-segments {
   -fx-background-color: -color-border-default, -color-bg-default;
@@ -75,6 +102,9 @@
 
 .workspace-root .pomodoro-control {
   -fx-min-width: 160; -fx-pref-width: 160; -fx-max-width: 160;
+}
+.workspace-root .pomodoro-control:compact {
+  -fx-min-width: 104; -fx-pref-width: 104; -fx-max-width: 104;
 }
 .workspace-root .pomodoro-control:timer-active {
   -fx-background-color: -color-border-default, -color-bg-subtle;
@@ -115,8 +145,10 @@
 .pomodoro-bubble .pomodoro-phase:selected .icon-stroke { -fx-stroke: -color-accent-fg; }
 .pomodoro-bubble .popover-action.accent .icon-stroke { -fx-stroke: -diyalamp-accent-contrast; }
 .pomodoro-bubble .separator > .line {
-  -fx-border-color: -color-border-default; -fx-border-width: 1 0 0 0;
+  -fx-border-color: -diyalamp-divider; -fx-border-width: 1 0 0 0;
 }
+.workspace-root .pomodoro-minutes.note-search-field { -fx-padding: 0 0 0 10; }
+.pomodoro-minutes .right-pane { -fx-padding: 0 10 0 6; }
 .diyalamp-popover .pomodoro-error { -fx-text-fill: #F3A39E; }
 .diyalamp-popover .pomodoro-minutes:timer-invalid { -fx-border-color: #F3A39E; }
 

@@ -69,6 +69,10 @@ public final class FxDialogsTests {
     check(input.getEditor().getFont().getSize() == 16 && input.getEditor().getHeight() == 36
         && accept.getHeight() == 36,
         "Dialog fields and actions must use the shared 36-pixel control height");
+    var fieldRight = input.getEditor().localToScene(input.getEditor().getLayoutBounds()).getMaxX();
+    var actionRight = Math.max(accept.localToScene(accept.getLayoutBounds()).getMaxX(),
+        cancel.localToScene(cancel.getLayoutBounds()).getMaxX());
+    check(Math.abs(fieldRight - actionRight) <= 1, "The last native dialog action must align with the input's right edge");
     check(input.getDialogPane().getGraphic() == null, "The dialog must not add an oversized icon above its content");
     check(input.getDialogPane().getBackground().getFills().getFirst().getRadii().getTopLeftHorizontalRadius() == 12,
         "Actual laid-out dialog surfaces must have the shared soft rounding");

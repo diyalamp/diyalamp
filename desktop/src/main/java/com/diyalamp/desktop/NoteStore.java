@@ -8,6 +8,7 @@ import java.security.*;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CancellationException;
+import java.util.function.Predicate;
 
 /** Local files, optimistic conflict checks, and recoverable deletion. No network access. */
 public final class NoteStore {
@@ -18,6 +19,8 @@ public final class NoteStore {
   }
 
   public record NoteListing(List<Path> paths, boolean partial) {}
+
+  public enum DocumentKind { MARKDOWN, TEXT, PDF, IMAGE, UNSUPPORTED }
 
   public static final long MAX_BYTES = 5 * 1024 * 1024;
   private final Path root;
@@ -32,16 +35,25 @@ public final class NoteStore {
   }
 
   public List<Path> notes() throws IOException {
-    return listNotes(0, 0).paths();
+    return listFiles(0, 0, NoteStore::isMarkdown).paths();
   }
 
   /** Bounded discovery for an interruptible background search. */
   public NoteListing notes(int maxNotes, int maxEntries) throws IOException {
-    if (maxNotes < 1 || maxEntries < 1) throw new IllegalArgumentException("Invalid listing limits");
-    return listNotes(maxNotes, maxEntries);
+    return boundedFiles(maxNotes, maxEntries, NoteStore::isMarkdown);
   }
 
-  private NoteListing listNotes(int maxNotes, int maxEntries) throws IOException {
+  /** Bounded filename discovery for Markdown and read-only preview formats. */
+  public NoteListing documents(int maxDocuments, int maxEntries) throws IOException {
+    return boundedFiles(maxDocuments, maxEntries, NoteStore::isDocument);
+  }
+
+  private NoteListing boundedFiles(int maxFiles, int maxEntries, Predicate<Path> matches) throws IOException {
+    if (maxFiles < 1 || maxEntries < 1) throw new IllegalArgumentException("Invalid listing limits");
+    return listFiles(maxFiles, maxEntries, matches);
+  }
+
+  private NoteListing listFiles(int maxFiles, int maxEntries, Predicate<Path> matches) throws IOException {
     List<Path> found = new ArrayList<>();
     boolean bounded = maxEntries > 0;
     boolean[] partial = {false};
@@ -69,8 +81,8 @@ public final class NoteStore {
           @Override
           public FileVisitResult visitFile(Path file, BasicFileAttributes attributes) {
             if (!withinBudget()) return FileVisitResult.TERMINATE;
-            if (attributes.isRegularFile() && visible(file) && isMarkdown(file)) {
-              if (bounded && found.size() >= maxNotes) {
+            if (attributes.isRegularFile() && visible(file) && matches.test(file)) {
+              if (bounded && found.size() >= maxFiles) {
                 partial[0] = true;
                 return FileVisitResult.TERMINATE;
               }
@@ -100,13 +112,22 @@ public final class NoteStore {
 
   /** Direct folder contents for a lazy explorer; no recursive scan is needed to expand a row. */
   public List<Path> children(Path directory) throws IOException {
+    return children(directory, NoteStore::isMarkdown);
+  }
+
+  /** Direct folder contents for an explorer that also offers read-only document previews. */
+  public List<Path> documents(Path directory) throws IOException {
+    return children(directory, NoteStore::isDocument);
+  }
+
+  private List<Path> children(Path directory, Predicate<Path> matches) throws IOException {
     directory = checkedDirectory(directory);
     try (var entries = Files.list(directory)) {
       return entries
           .filter(this::visible)
           .filter(p -> !Files.isSymbolicLink(p))
           .filter(p -> Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)
-              || (Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS) && isMarkdown(p)))
+              || (Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS) && matches.test(p)))
           .sorted(Comparator.comparing((Path p) -> !Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS))
               .thenComparing(pathOrder()))
           .toList();
@@ -145,8 +166,34 @@ public final class NoteStore {
   }
 
   public static boolean isMarkdown(Path p) {
-    String n = p.getFileName().toString().toLowerCase(Locale.ROOT);
-    return n.endsWith(".md") || n.endsWith(".markdown");
+    return documentKind(p) == DocumentKind.MARKDOWN;
+  }
+
+  public static DocumentKind documentKind(Path path) {
+    Path filename = path.getFileName();
+    if (filename == null) return DocumentKind.UNSUPPORTED;
+    String name = filename.toString();
+    int dot = name.lastIndexOf('.');
+    if (dot < 0) return DocumentKind.UNSUPPORTED;
+    return switch (name.substring(dot + 1).toLowerCase(Locale.ROOT)) {
+      case "md", "markdown" -> DocumentKind.MARKDOWN;
+      case "txt" -> DocumentKind.TEXT;
+      case "pdf" -> DocumentKind.PDF;
+      case "png", "jpg", "jpeg", "gif", "bmp" -> DocumentKind.IMAGE;
+      default -> DocumentKind.UNSUPPORTED;
+    };
+  }
+
+  private static boolean isDocument(Path path) {
+    return documentKind(path) != DocumentKind.UNSUPPORTED;
+  }
+
+  /** Validates a workspace path before a reader opens a supported regular file. */
+  public Path checkedDocument(Path path) throws IOException {
+    path = checked(path);
+    if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) || !isDocument(path))
+      throw new IOException("Choose an existing Markdown, text, PDF, or image file.");
+    return path;
   }
 
   private Path checked(Path p) throws IOException {

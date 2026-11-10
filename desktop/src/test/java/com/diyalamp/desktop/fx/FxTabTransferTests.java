@@ -18,7 +18,9 @@ import java.util.prefs.Preferences;
 import javafx.application.Platform;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.Scene;
+import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.Region;
@@ -41,7 +43,8 @@ public final class FxTabTransferTests {
       Fixture fixture = null;
       try {
         fixture = new Fixture();
-        transferModes(); reorderHeaders(fixture); narrowDropGuide(); moveToSplit(fixture); coalesceSameNote(fixture); moveToFolder(fixture);
+        transferModes(); reorderHeaders(fixture); narrowDropGuide(); longNameAtSplitWidth();
+        moveToSplit(fixture); coalesceSameNote(fixture); moveToFolder(fixture);
         singlePaneTransfer(fixture);
         Fixture current = fixture;
         PauseTransition settle = new PauseTransition(Duration.millis(220));
@@ -175,6 +178,54 @@ public final class FxTabTransferTests {
               && selected.getLayoutX() + selected.getWidth() <= visible.getMaxX() + 1,
           "The active tab must appear inside the clipped viewport when it fits");
       check(field(tabs, "revealScene") == null, "The layout listener removes itself once the tab is visible");
+    } finally { stage.close(); }
+  }
+
+  private static void longNameAtSplitWidth() throws Exception {
+    FxDocumentTabs tabs = new FxDocumentTabs();
+    tabs.getStyleClass().addAll("floating", "dense", "document-tabs", "workspace-band");
+    tabs.setMinWidth(0); tabs.setTabMinWidth(110); tabs.setAnimated(false);
+    tabs.setTabClosingPolicy(Tab.ClosingPolicy.ALL_TABS);
+    String filename = "A deliberately long research filename with its original extension.md";
+    Tab shortTab = new Tab("short", "Draft.md"), longTab = new Tab("long", filename);
+    tabs.getTabs().addAll(shortTab, longTab, new Tab("later", "Later.md"));
+    tabs.getSelectionModel().selectFirst();
+    StackPane root = new StackPane(tabs);
+    root.getStyleClass().add("workspace-root");
+    root.getStylesheets().add(FxDocumentTabs.class.getResource("/fx-workspace.css").toExternalForm());
+    FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
+    Stage stage = new Stage(); stage.setScene(new Scene(root, 200, 70)); stage.show();
+    try {
+      root.applyCss(); root.layout();
+      TabSkin shortHeader = header(tabs, shortTab);
+      Label shortTitle = (Label) shortHeader.lookup(".label");
+      check(shortHeader.getWidth() < 160 && shortTitle.getTooltip() == null,
+          "Short titles keep their natural widths and omit redundant tooltips");
+      tabs.getSelectionModel().select(longTab);
+      root.layout();
+      call(tabs, "revealSelectedTab", new Class<?>[0]);
+      root.layout();
+      TabSkin selected = header(tabs, longTab);
+      Region strip = (Region) selected.getParent();
+      var visible = strip.getClip().getBoundsInParent();
+      Region close = (Region) selected.lookup(".close-button");
+      var titleBounds = selected.localToScene(selected.getLayoutBounds());
+      var closeBounds = close.localToScene(close.getLayoutBounds());
+      var pane = tabs.localToScene(tabs.getLayoutBounds());
+      check(visible.getWidth() <= pane.getWidth() + 1 && titleBounds.getMinX() >= pane.getMinX() - 1
+              && titleBounds.getMaxX() <= pane.getMaxX() + 1 && closeBounds.getMaxX() <= pane.getMaxX() + 1
+              && closeBounds.getMinX() >= pane.getMinX() - 1,
+          "The selected long tab and its close target fit inside a 200-pixel split");
+      Label title = (Label) selected.lookup(".label");
+      check(title.isTextTruncated() && title.getEllipsisString().equals("…")
+              && title.getTooltip() != null && title.getTooltip().getText().equals(filename)
+              && filename.equals(selected.queryAccessibleAttribute(AccessibleAttribute.TEXT))
+              && close.getAccessibleText().equals("Close " + filename),
+          "A clipped visual title must expose the full filename in the tooltip and accessibility tree");
+      longTab.setText("Renamed.md");
+      root.applyCss(); root.layout();
+      check(selected.getWidth() < 160 && !title.isTextTruncated() && title.getTooltip() == null,
+          "Renaming a long note restores the natural width and hides its tooltip");
     } finally { stage.close(); }
   }
 

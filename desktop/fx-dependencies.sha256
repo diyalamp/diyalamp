@@ -6,6 +6,10 @@ common bb1fc209cd9c057b17a48033d3794f937ba7a566b3c08b2db8887772769fdd67 org/reac
 common db9708c58a8e2db457fbd67f0515e4a95955ca0b0b8f4ea7a3dcbbfcbd19d2d7 org/fxmisc/undo/undofx/2.1.1/undofx-2.1.1.jar
 common 42b31ec6cbf10e6c779e5d9c4a76f357c5e47dad38e405c9a9ca1a5fb1dea5b4 org/fxmisc/flowless/flowless/0.7.4/flowless-0.7.4.jar
 common e291005a8e3233b036450d126cbcd270d5b452397719949519c33c8ba09e257c org/fxmisc/wellbehaved/wellbehavedfx/0.3.3/wellbehavedfx-0.3.3.jar
+common 97647cfbde61ebcfc06b4cf8c9b0ffcaaee073396eceb4a7f6836a9b9128903c org/apache/pdfbox/pdfbox/3.0.8/pdfbox-3.0.8.jar
+common a1915c24e3edbe0ecec93896dfbf6d41427810b663ade97bd4e8bae86ec3fdab org/apache/pdfbox/fontbox/3.0.8/fontbox-3.0.8.jar
+common 36a0e04001010b4c764857817412b96339930b19755e728959805cc0352061b2 org/apache/pdfbox/pdfbox-io/3.0.8/pdfbox-io-3.0.8.jar
+common d175dbd751dd782a63bde28c7a039520e971f25e84b79c19b8435edc3603e0dc commons-logging/commons-logging/1.4.0/commons-logging-1.4.0.jar
 mac-aarch64 3fe8c6c3798ca48b02e15031c5394ae038aaaeedd04df950badefcc291a6fb6e org/openjfx/javafx-base/27/javafx-base-27-mac-aarch64.jar
 mac-aarch64 f01749fcdb476dfdf9afc996443fe7871498158fcd6a27477332fbeebdd60e5e org/openjfx/javafx-graphics/27/javafx-graphics-27-mac-aarch64.jar
 mac-aarch64 0d05e5b1190985e0fb5532f300590d5c9fe02fb8d5549292332d087c2ca02444 org/openjfx/javafx-controls/27/javafx-controls-27-mac-aarch64.jar

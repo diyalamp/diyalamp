@@ -3,11 +3,16 @@
   -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal;
   -fx-background-color: -color-bg-inset;
 }
-.graph-summary { -fx-padding: 8 16; }
-.graph-current-note { -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: -color-fg-muted; }
+.workspace-band.graph-heading-row { -fx-padding: 0 12 0 16; }
+.workspace-band.graph-summary { -fx-padding: 0 16; }
+.graph-current-note, .graph-linked-count {
+  -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: -color-fg-muted; -fx-graphic-text-gap: 8;
+}
+.graph-linked-count { -fx-graphic-text-gap: 4; }
 .graph-detail { -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: -color-fg-muted; }
 .graph-status { -fx-padding: 8; -fx-background-color: -color-bg-default; -fx-background-radius: 8; }
-.tooltip { -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; }
+.graph-empty { -fx-padding: 12; -fx-graphic-text-gap: 8; }
+.graph-empty-list { -fx-padding: 0 8; }
 .graph-sections { -fx-background-color: transparent; -fx-padding: 0; }
 .graph-sections > .split-pane-divider {
   /* SplitPaneSkin uses the divider's preferred width for either orientation. */
@@ -19,16 +24,53 @@
   -fx-background-color: -color-bg-default; -fx-background-insets: 0; -fx-padding: 0; -fx-border-width: 0;
 }
 .note-graph-panel .graph-list-toggle {
-  -fx-background-color: -color-bg-default; -fx-background-radius: 0; -fx-background-insets: 0;
+  -fx-background-color: transparent; -fx-background-radius: 6; -fx-background-insets: 2 8;
   -fx-border-color: transparent; -fx-border-width: 1 0 0 0; -fx-border-radius: 0; -fx-padding: 0 16;
+  transition-property: -fx-background-color;
+  transition-duration: 140ms;
+  transition-timing-function: ease-out;
 }
 .note-graph-panel .graph-list-toggle:separated { -fx-border-color: -diyalamp-divider transparent transparent; }
+.note-graph-panel .graph-list-toggle:hover { -fx-background-color: -diyalamp-control-hover; }
+.note-graph-panel .graph-list-toggle:pressed { -fx-background-color: -diyalamp-control-pressed; }
+.note-graph-panel .graph-list-toggle:focus-visible {
+  -fx-background-color: -diyalamp-focus, -color-bg-inset;
+  -fx-background-insets: 2 8, 3 9;
+  -fx-background-radius: 6, 5;
+}
 .note-graph-panel .graph-list-toggle:hover .graph-list-heading,
 .note-graph-panel .graph-list-toggle:focus-visible .graph-list-heading { -fx-text-fill: -color-fg-emphasis; }
 .graph-list-heading { -fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: -color-fg-default; }
-.graph-note-list, .graph-note-list .virtual-flow { -fx-background-color: transparent; -fx-border-width: 0; -fx-padding: 0; }
-.graph-note-list { -fx-padding: 0 8; }
-.graph-note-list .list-cell {
-  -fx-background-color: transparent; -fx-padding: 8;
-  -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: -color-fg-default; -fx-graphic-text-gap: 8;
+.graph-disclosure-chevron {
+  transition-property: -fx-rotate;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
 }
+.graph-list-toggle:selected .graph-disclosure-chevron { -fx-rotate: 90; }
+.graph-note-list, .graph-note-list .virtual-flow { -fx-background-color: transparent; -fx-border-width: 0; -fx-padding: 0; }
+.graph-note-list { -fx-padding: 2 8; }
+.note-graph-panel .graph-note-list .list-cell {
+  -fx-background-color: transparent; -fx-background-insets: 2 0; -fx-background-radius: 6;
+  -fx-border-color: transparent; -fx-border-width: 1; -fx-border-insets: 2 0; -fx-border-radius: 6;
+  -fx-padding: 0 7;
+  -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: -color-fg-default; -fx-graphic-text-gap: 8;
+  transition-property: -fx-background-color;
+  transition-duration: 140ms;
+  transition-timing-function: ease-out;
+}
+.note-graph-panel .graph-note-list .list-cell:filled:hover {
+  -fx-background-color: -diyalamp-control-hover;
+  -fx-background-insets: 2 0;
+  -fx-background-radius: 6;
+}
+.note-graph-panel .graph-note-list .list-cell:filled:selected {
+  -fx-background-color: -diyalamp-control-pressed;
+  -fx-background-insets: 2 0;
+  -fx-background-radius: 6;
+  -fx-text-fill: -color-fg-emphasis;
+}
+.graph-note-list:focus-visible .list-cell:filled:focused { -fx-border-color: -diyalamp-focus; }
+.graph-note-list .list-cell:filled:selected .icon-stroke { -fx-stroke: -color-accent-fg; }
+.workspace-root:reduced-motion .note-graph-panel .graph-list-toggle,
+.workspace-root:reduced-motion .graph-disclosure-chevron,
+.workspace-root:reduced-motion .note-graph-panel .graph-note-list .list-cell { transition-duration: 0s; }

@@ -1,6 +1,6 @@
 package com.diyalamp.desktop.fx;
 
-import atlantafx.base.controls.TabLine;
+import atlantafx.base.controls.CustomTextField;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -15,11 +15,14 @@ import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.TitledPane;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
+import javafx.stage.Stage;
 import javafx.util.Duration;
 
 /** Exercises actual JavaFX animation, interruption, and target-only preference writes. */
@@ -33,13 +36,56 @@ public final class FxAccentTests {
     CountDownLatch finished = new CountDownLatch(1);
     AtomicReference<Throwable> failure = new AtomicReference<>();
     Platform.startup(() -> {
-      try { FxTheme.setup(); transition(finished, failure); }
+      try { Platform.setImplicitExit(false); FxTheme.setup(); popupControls(); transition(finished, failure); }
       catch (Throwable error) { failure.set(error); finished.countDown(); }
     });
     if (!finished.await(10, TimeUnit.SECONDS)) throw new AssertionError("Accent animation tests timed out");
     Platform.exit();
     if (failure.get() != null) throw new AssertionError("Accent animation regression", failure.get());
     System.out.println("Passed " + checks + " JavaFX accent animation checks.");
+  }
+
+  private static void popupControls() {
+    Stage stage = new Stage();
+    Button anchor = new Button("Accent colors");
+    BorderPane root = new BorderPane(anchor);
+    stage.setScene(new Scene(root, 500, 480));
+    stage.show();
+    var accent = new SimpleObjectProperty<>(FxTheme.DEFAULT_ACCENT);
+    String preference = System.getProperty("diyalamp.reduceMotion");
+    System.setProperty("diyalamp.reduceMotion", "true");
+    try {
+      var popup = FxAccentPopover.create(stage, accent);
+      FxPopovers.toggle(popup, anchor);
+      var content = popup.getContentNode();
+      var presets = content.lookupAll(".accent-choice").stream().map(Button.class::cast).toList();
+      check(presets.size() == 5, "The five accent presets must remain directly selectable");
+      Button blue = presets.stream().filter(button -> button.getText().equals("Blue")).findFirst().orElseThrow();
+      blue.fire();
+      check(accent.get().equals(Color.web("#489CFF")) && blue.getAccessibleText().contains(", selected"),
+          "Preset selection must update the workspace and accessible state");
+      TitledPane custom = (TitledPane) content.lookup(".accent-custom");
+      check(!custom.isExpanded() && !custom.isAnimated(), "The native custom disclosure must honor Reduce Motion");
+      custom.setExpanded(true);
+      CustomTextField hex = (CustomTextField) custom.getContent().lookup(".accent-hex");
+      Button apply = (Button) custom.getContent().lookup(".popover-action");
+      check(hex.getText().equals("#489CFF") && hex.getLeft() instanceof Region,
+          "The hex input must start at the current accent with a native preview slot");
+      hex.setText("#0");
+      check(apply.isDisabled() && accent.get().equals(Color.web("#489CFF")),
+          "Incomplete hex text must never change the workspace accent");
+      hex.setText("AA66CC");
+      check(hex.getLeft().getStyle().contains("#AA66CC") && !apply.isDisabled(),
+          "A valid pending color must show a live preview without changing the workspace");
+      apply.fire();
+      check(accent.get().equals(Color.web("#AA66CC")) && custom.getAccessibleText().contains(", selected"),
+          "Applying a custom value must announce the selected custom color");
+      popup.hide(Duration.ZERO);
+    } finally {
+      if (preference == null) System.clearProperty("diyalamp.reduceMotion");
+      else System.setProperty("diyalamp.reduceMotion", preference);
+      stage.close();
+    }
   }
 
   @SuppressWarnings("unchecked") private static void transition(CountDownLatch finished,

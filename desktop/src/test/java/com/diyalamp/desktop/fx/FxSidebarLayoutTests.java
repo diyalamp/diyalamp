@@ -34,6 +34,7 @@ public final class FxSidebarLayoutTests {
     Path note = Files.writeString(root.resolve("Fictional.md"), "Original fictional note\n");
     MemoryPreferences preferences = new MemoryPreferences();
     preferences.put("folder", root.toString()); preferences.putBoolean("connectionsVisible", true);
+    preferences.putDouble("filesRatio", .30);
     Fixture fixture = null;
     try {
       fixture = fx(() -> new Fixture(preferences, note)); Fixture current = fixture;
@@ -41,23 +42,23 @@ public final class FxSidebarLayoutTests {
       fx(() -> {
         current.layout();
         check(current.body.getDividers().size() == 2, "Both sidebars use real native SplitPane dividers");
-        near(current.left.getWidth(), 272, "Default files width");
-        near(current.right.getWidth(), 304, "Default connections width");
-        current.body.setDividerPositions(.30, .70); current.layout();
+        near(current.left.getWidth(), current.body.getWidth() * .20, "Migrate the previous default files width");
+        near(current.right.getWidth(), current.body.getWidth() * .20, "Default connections width");
+        current.body.setDividerPositions(.35, .65); current.layout();
         check(current.left.getWidth() > 320 && current.right.getWidth() > 320, "Native divider positions resize both sidebars");
         return null;
       });
-      await(() -> fx(() -> preferences.getDouble("filesWidth", 0) > 320 && preferences.getDouble("connectionsWidth", 0) > 320));
+      await(() -> fx(() -> preferences.getDouble("filesRatio", 0) > .32 && preferences.getDouble("connectionsRatio", 0) > .32));
       fx(() -> {
-        near(preferences.getDouble("filesWidth", 0), current.left.getWidth(), "Persisted native left pixel width");
-        near(preferences.getDouble("connectionsWidth", 0), current.right.getWidth(), "Persisted native right pixel width");
+        near(preferences.getDouble("filesRatio", 0) * current.body.getWidth(), current.left.getWidth(), "Persisted native left share");
+        near(preferences.getDouble("connectionsRatio", 0) * current.body.getWidth(), current.right.getWidth(), "Persisted native right share");
         current.body.setDividerPositions(.01, .99); current.layout();
         check(current.left.getWidth() >= 199 && current.right.getWidth() >= 199,
             "Native dividers enforce usable sidebar minimums");
         current.body.setDividerPositions(.80, .85); current.layout();
-        check(current.left.getWidth() <= 600 && current.right.getWidth() <= 600,
-            "Native dividers enforce sane sidebar maximums");
-        current.body.setDividerPositions(.30, .70); current.layout();
+        check(((Region) field(current.app, "split")).getWidth() >= 239,
+            "Native dividers preserve the writing pane minimum");
+        current.body.setDividerPositions(.35, .65); current.layout();
         current.editor.area().appendText("Preserved through layout");
         current.editor.area().selectRange(2, 8);
         current.text = current.editor.area().getText(); current.active = field(current.app, "active");
@@ -66,7 +67,7 @@ public final class FxSidebarLayoutTests {
       });
       await(() -> fx(current::stable));
       fx(() -> {
-        near(current.left.getWidth(), 272, "Reset files width"); near(current.right.getWidth(), 304, "Reset connections width");
+        near(current.left.getWidth(), current.body.getWidth() * .20, "Reset files width"); near(current.right.getWidth(), current.body.getWidth() * .20, "Reset connections width");
         check(field(current.app, "active") == current.active && current.editor.area().getText().equals(current.text), "Reset keeps the same open editor and note content");
         check(current.editor.area().getAnchor() == 2 && current.editor.area().getCaretPosition() == 8, "Reset keeps the editor selection");
         check(((BooleanProperty) field(current.app, "zenMode")).get(), "Reset preserves current-line Zen");
@@ -100,7 +101,7 @@ public final class FxSidebarLayoutTests {
       });
       await(() -> fx(() -> current.stable() && current.body.getItems().size() == 3));
       fx(() -> {
-        near(current.left.getWidth(), 272, "Reopened default files width"); near(current.right.getWidth(), 304, "Reopened default connections width");
+        near(current.left.getWidth(), current.body.getWidth() * .20, "Reopened default files width"); near(current.right.getWidth(), current.body.getWidth() * .20, "Reopened default connections width");
         current.stage.setWidth(820); current.layout(); return null;
       });
       await(() -> fx(current::stable));
@@ -127,22 +128,22 @@ public final class FxSidebarLayoutTests {
         call(current.app, "toggleSidebar"); return null;
       });
       await(() -> fx(() -> current.stable() && current.body.getItems().size() == 2));
-      double[] saved = fx(() -> new double[] {preferences.getDouble("filesWidth", 0), preferences.getDouble("connectionsWidth", 0)});
+      double[] saved = fx(() -> new double[] {preferences.getDouble("filesRatio", 0), preferences.getDouble("connectionsRatio", 0)});
       fx(() -> { current.close(); return null; }); fixture = null;
       fixture = fx(() -> new Fixture(preferences, note)); Fixture restored = fixture;
       await(() -> fx(() -> restored.stable() && restored.body.getItems().size() == 2));
       fx(() -> {
         check(!restored.body.getItems().contains(restored.left) && restored.body.getItems().contains(restored.right), "A new app restores sidebars independently");
-        near(restored.right.getWidth(), saved[1], "Restored right pixel width");
+        near(restored.right.getWidth(), saved[1] * restored.body.getWidth(), "Restored right share");
         call(restored.app, "toggleSidebar"); return null;
       });
       await(() -> fx(restored::stable));
-      fx(() -> { near(restored.left.getWidth(), saved[0], "Restored hidden files width"); restored.close(); return null; }); fixture = null;
-      preferences.putDouble("filesWidth", Double.NaN); preferences.putDouble("connectionsWidth", Double.POSITIVE_INFINITY);
+      fx(() -> { near(restored.left.getWidth(), saved[0] * restored.body.getWidth(), "Restored hidden files share"); restored.close(); return null; }); fixture = null;
+      preferences.putDouble("filesRatio", Double.NaN); preferences.putDouble("connectionsRatio", Double.POSITIVE_INFINITY);
       fixture = fx(() -> new Fixture(preferences, note)); Fixture invalid = fixture;
       await(() -> fx(invalid::stable));
       fx(() -> {
-        near(invalid.left.getWidth(), 272, "Invalid files width falls back safely"); near(invalid.right.getWidth(), 304, "Invalid connections width falls back safely");
+        near(invalid.left.getWidth(), invalid.body.getWidth() * .20, "Invalid files width falls back safely"); near(invalid.right.getWidth(), invalid.body.getWidth() * .20, "Invalid connections width falls back safely");
         return null;
       });
       check(Files.readString(note).contains("Preserved through layout"), "Closing retains edits through all layout changes");

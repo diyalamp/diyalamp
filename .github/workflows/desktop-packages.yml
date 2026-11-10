@@ -51,7 +51,7 @@ jobs:
           test "$(lipo -archs "$app/Contents/MacOS/diyalamp")" = "$ARCH"
           test "$(lipo -archs "$java")" = "$ARCH"
           test -z "$(find "$payload" -type f \( -name 'flatlaf-*.jar' -o -name 'jsvg-*.jar' \) -print)"
-          for suite in fx.FxWritingPaneTests update.UpdateTests; do
+          for suite in fx.FxWritingPaneTests fx.FxFilePreviewTests update.UpdateTests; do
             "$java" --module-path "$payload/fx-deps/$FX_PLATFORM" --add-modules javafx.controls \
               --enable-native-access=javafx.graphics,ALL-UNNAMED -Djava.awt.headless=true \
               -Dglass.platform=Headless -Dprism.order=sw \

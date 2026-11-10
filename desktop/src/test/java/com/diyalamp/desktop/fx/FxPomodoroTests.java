@@ -1,5 +1,6 @@
 package com.diyalamp.desktop.fx;
 
+import atlantafx.base.controls.CustomTextField;
 import atlantafx.base.controls.Popover;
 import java.util.ArrayList;
 import java.util.UUID;
@@ -9,6 +10,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.prefs.Preferences;
 import javafx.application.Platform;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -64,8 +66,11 @@ public final class FxPomodoroTests {
         Button reset = (Button) popup.getContentNode().lookup("#pomodoro-reset");
         TextField focus = (TextField) popup.getContentNode().lookup("#pomodoro-focus-minutes");
         TextField rest = (TextField) popup.getContentNode().lookup("#pomodoro-break-minutes");
-        check(focus.getAccessibleText().equals("Focus minutes") && rest.getAccessibleText().equals("Break minutes"),
-            "Both editable durations must have distinct names");
+        check(focus.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY) instanceof Label focusLabel
+                && "Focus minutes".equals(focusLabel.getAccessibleText())
+                && rest.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY) instanceof Label breakLabel
+                && "Break minutes".equals(breakLabel.getAccessibleText()),
+            "Both editable durations must have distinct linked labels");
         for (String label : new String[] {"Focus", "Break", "One cycle", "Repeat"})
           check(!choice(popup, label).getGraphic().lookupAll(".icon-stroke").isEmpty(),
               label + " must have a visible icon");
@@ -73,6 +78,9 @@ public final class FxPomodoroTests {
         check(start.isDisabled() && clock.focusMinutes() == 25,
             "Out-of-range edits must prevent starting while preserving the prior duration");
         focus.setText("1"); rest.setText("2");
+        check("1".equals(focus.queryAccessibleAttribute(AccessibleAttribute.TEXT))
+                && "2".equals(rest.queryAccessibleAttribute(AccessibleAttribute.TEXT)),
+            "Accessibility must expose the edited durations as their field values");
         check(!start.isDisabled() && clock.focusMinutes() == 1 && clock.breakMinutes() == 2,
             "Valid durations must be immediately available to Start");
         check(preferences.getInt("pomodoro.focusMinutes", -1) == 1
@@ -174,6 +182,10 @@ public final class FxPomodoroTests {
       var breakField = (TextField) popup.getContentNode().lookup("#pomodoro-break-minutes");
       check(focusField.getWidth() == focus.getWidth() && breakField.getWidth() == rest.getWidth(),
           "Duration fields must align with the phase and schedule columns");
+      check(focusField instanceof CustomTextField focusInput && focusInput.getRight() instanceof Label focusUnit
+              && focusUnit.getText().equals("min") && breakField instanceof CustomTextField breakInput
+              && breakInput.getRight() instanceof Label breakUnit && breakUnit.getText().equals("min"),
+          "The minutes unit must use the native AtlantaFX field slot instead of occupying editable text");
       Region phaseIndicator = (Region) focus.getParent().lookup(".segmented-indicator");
       Region scheduleIndicator = (Region) once.getParent().lookup(".segmented-indicator");
       check(phaseIndicator.getLayoutX() == rest.getLayoutX() && phaseIndicator.getBackground() != null

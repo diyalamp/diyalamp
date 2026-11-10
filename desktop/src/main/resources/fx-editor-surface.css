@@ -1,0 +1,36 @@
+/* Reading geometry is scoped to RichTextFX; the workspace owns palette and controls. */
+.workspace-root .editor-surface .writing-area .md-paragraph { -fx-line-spacing: 5; }
+.workspace-root .editor-surface .writing-area .md-paragraph.md-heading { -fx-padding: 4 0 0 0; }
+.workspace-root .editor-surface .writing-area .md-paragraph.md-code {
+  -fx-line-spacing: 2;
+  -fx-padding: 3 12;
+  -fx-background-color: -diyalamp-control-hover;
+  -fx-border-color: transparent -color-border-default transparent -color-border-default;
+  -fx-border-width: 0 1;
+}
+.workspace-root .editor-surface .writing-area .md-text { -fx-fill: -color-editor-fg; }
+.workspace-root .editor-surface .writing-area .md-code-text { -fx-fill: -color-code-fg; }
+.workspace-root .editor-surface .writing-area .md-inline-code { -rtfx-background-color: -color-bg-subtle; }
+.workspace-root .editor-surface .writing-area .md-link { -fx-fill: -color-accent-fg; }
+.workspace-root .editor-surface .writing-area .md-link:hover { -fx-fill: -color-fg-emphasis; }
+
+.workspace-root .note-find {
+  -fx-padding: 8 16;
+  -fx-background-color: -color-bg-inset;
+  -fx-border-color: transparent transparent -diyalamp-divider transparent;
+  -fx-border-width: 0 0 1 0;
+}
+.workspace-root .note-find .note-find-query {
+  -fx-max-width: 280;
+  -fx-padding: 0 8 0 0;
+  transition-property: -fx-border-color;
+  transition-duration: 140ms;
+  transition-timing-function: ease-out;
+}
+.workspace-root .note-find-query .left-pane { -fx-padding: 0 8 0 10; }
+.workspace-root .note-find .note-find-status {
+  -fx-font-size: 13px;
+  -fx-text-fill: -color-fg-muted;
+  -fx-padding: 0 4 0 0;
+}
+.workspace-root:reduced-motion .note-find .note-find-query { transition-duration: 0s; }

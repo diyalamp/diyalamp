@@ -17,7 +17,9 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.*;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
@@ -45,6 +47,8 @@ public final class FxWritingPane {
   private final StyledTextArea<FxMarkdown.Block, FxMarkdown.Span> area;
   private final VirtualizedScrollPane<?> viewport;
   private final StackPane editorRoot;
+  private final VBox surface;
+  private FxNoteFind noteFind;
   private final Rectangle focusLineMask = new Rectangle();
   private ReadOnlyDoubleProperty focusLineProgress;
   private Scene focusScene;
@@ -60,7 +64,7 @@ public final class FxWritingPane {
   private Consumer<String> onNoteLink = target -> {};
   private long revision, serializedRevision = -1;
   private String serialized = "";
-  private static final double WRITING_COLUMN_WIDTH = 672;
+  private static final double WRITING_COLUMN_WIDTH = 640;
   private static final Pattern BLOCK_SHORTCUT = Pattern.compile("^(#{1,6}) $|^([-*+]) $|^(\\d+)\\. $|^> $|^(?:[-*+] )?\\[ \\] $|^```(?:[a-zA-Z0-9_-]+)? $");
   private static final Pattern INLINE_SHORTCUT = Pattern.compile("(\\*\\*[^*\\n]+\\*\\*|~~[^~\\n]+~~|`[^`\\n]+`|(?<!\\*)\\*[^*\\n]+\\*)(?: )?$");
   private static final Map<String, Font> FONTS = new HashMap<>();
@@ -116,6 +120,11 @@ public final class FxWritingPane {
     };
     editorRoot.setMinSize(0, 0);
     editorRoot.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+    surface = new VBox(editorRoot);
+    surface.setMinSize(0, 0);
+    surface.getStyleClass().add("editor-surface");
+    surface.getStylesheets().add(FxWritingPane.class.getResource("/fx-editor-surface.css").toExternalForm());
+    VBox.setVgrow(editorRoot, Priority.ALWAYS);
     editorRoot.sceneProperty().addListener((observable, previous, current) -> {
       slash.hide();
       syncFocusLayoutListener();
@@ -178,6 +187,7 @@ public final class FxWritingPane {
     });
     plainSubscription = area.plainTextChanges().subscribe(change -> {
       slash.hide();
+      if (noteFind != null) noteFind.textChanged();
       if (changing || disposed || shortcutScheduled || area.getUndoManager().isPerformingAction()) return;
       shortcutScheduled = true;
       Platform.runLater(() -> {
@@ -187,7 +197,7 @@ public final class FxWritingPane {
     });
   }
 
-  public Node node() { return editorRoot; }
+  public Node node() { return surface; }
   /** Fades around the actual visual caret line without changing the editor, its layout, or document. */
   public void setFocusLineProgress(ReadOnlyDoubleProperty progress) {
     if (focusLineProgress != null) focusLineProgress.removeListener(focusProgressListener);
@@ -302,6 +312,7 @@ public final class FxWritingPane {
     disposed = true;
     setFocusLineProgress(null);
     slash.hide();
+    if (noteFind != null) noteFind.dispose();
     richSubscription.unsubscribe();
     plainSubscription.unsubscribe();
     area.dispose();
@@ -316,14 +327,22 @@ public final class FxWritingPane {
   public void selectAll() { area.selectAll(); }
   public void copy() { area.copy(); }
   public void cut() { area.cut(); }
+
+  public void showFind() {
+    if (disposed) return;
+    slash.hide();
+    if (noteFind == null) {
+      noteFind = new FxNoteFind(area);
+      surface.getChildren().addFirst(noteFind);
+    }
+    noteFind.show();
+  }
+
   public boolean find(String query) {
     if (query == null || query.isBlank()) return false;
-    String source = area.getText().toLowerCase(Locale.ROOT);
-    String needle = query.toLowerCase(Locale.ROOT);
-    int found = source.indexOf(needle, area.getSelection().getEnd());
-    if (found < 0) found = source.indexOf(needle);
-    if (found < 0) return false;
-    area.selectRange(found, found + query.length());
+    Matcher matches = FxNoteFind.literal(query).matcher(area.getText());
+    if (!matches.find(area.getSelection().getEnd()) && !matches.find(0)) return false;
+    area.selectRange(matches.start(), matches.end());
     focus(); area.requestFollowCaret();
     return true;
   }
@@ -513,7 +532,10 @@ public final class FxWritingPane {
     } else if (code == KeyCode.ENTER && !event.isShiftDown()) {
       enter(); event.consume();
     } else if (code.isArrowKey() || code == KeyCode.HOME || code == KeyCode.END) area.setTextInsertionStyle(null);
-    else if (code == KeyCode.ESCAPE) slash.hide();
+    else if (code == KeyCode.ESCAPE) {
+      if (slash.isShowing()) slash.hide();
+      else if (noteFind != null && noteFind.isOpen()) { noteFind.close(); event.consume(); }
+    }
   }
 
   void enter() {
@@ -710,7 +732,7 @@ public final class FxWritingPane {
 
   private void gutters() {
     double horizontal = Math.max(24, (area.getWidth() - WRITING_COLUMN_WIDTH) / 2);
-    Insets padding = new Insets(24, horizontal, 40, horizontal);
+    Insets padding = new Insets(24, horizontal, 48, horizontal);
     if (!padding.equals(area.getPadding())) area.setPadding(padding);
   }
 
@@ -744,6 +766,7 @@ public final class FxWritingPane {
     boolean link = span.link() != null || (!code && span.noteLink() != null);
     text.setUnderline(link);
     text.getStyleClass().add("md-text");
+    if (code) text.getStyleClass().add("md-code-text");
     if (inlineCode) text.getStyleClass().add("md-inline-code");
     if (link) text.getStyleClass().add("md-link");
     if (!code && span.noteLink() != null) {
@@ -751,8 +774,6 @@ public final class FxWritingPane {
       text.setAccessibleText("Note link: " + span.noteLink());
       text.setCursor(javafx.scene.Cursor.HAND);
     }
-    text.setStyle("-fx-fill: " + (link ? "-color-accent-fg" : code ? "-color-code-fg" : "-color-editor-fg") + ";"
-        + (code ? "-rtfx-background-color: -color-bg-subtle;" : ""));
   }
 
   private ContextMenu contextMenu() {

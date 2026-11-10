@@ -22,6 +22,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TitledPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Region;
@@ -174,7 +175,12 @@ public final class FxShellTests {
           "The current accent preview must render as a small circle");
       var uiFonts = new java.util.ArrayList<Font>();
       uiFonts.add(((Button) field(fixture.app, "folderControl")).getFont());
-      uiFonts.add(((Label) field(host, "breadcrumb")).getFont()); uiFonts.add(status.getFont()); uiFonts.add(accent.getFont());
+      var breadcrumb = (FxDocumentLocation) field(host, "breadcrumb");
+      var crumbs = breadcrumb.lookupAll(".document-crumb").stream().map(node -> (Button) node).toList();
+      check(crumbs.size() == 2 && crumbs.stream().allMatch(crumb -> crumb.getFont().getSize() == 16)
+          && crumbs.stream().anyMatch(crumb -> crumb.getFont().getName().equals("Inter SemiBold")),
+          "The current breadcrumb uses weight, at the same size as ordinary UI text");
+      uiFonts.add(status.getFont()); uiFonts.add(accent.getFont());
       var fileLabels = root.lookupAll(".file-tree .tree-cell .label").stream()
           .filter(node -> node instanceof Label label && label.getText().equals(fixture.path.getFileName().toString()))
           .map(node -> ((Label) node).getFont()).toList();
@@ -199,9 +205,9 @@ public final class FxShellTests {
       popup.getRoot().applyCss(); popup.getRoot().layout();
       var choices = popup.getContentNode().lookupAll(".accent-choice").stream().map(node -> (Button) node).toList();
       var palette = choices.stream().collect(java.util.stream.Collectors.toMap(Button::getText, button -> button));
-      check(palette.keySet().equals(java.util.Set.of("Red", "Blue", "Yellow", "Green", "White", "Custom"))
+      check(palette.keySet().equals(java.util.Set.of("Red", "Blue", "Yellow", "Green", "White"))
               && popup.getContentNode().lookupAll(".color-picker").isEmpty(),
-          "The accent bubble must contain exactly five named colors and the custom hex choice");
+          "The accent bubble must contain exactly five named colors without a second popup picker");
       check(choices.stream().allMatch(button -> button.getFont().getName().equals("Inter Regular") && button.getFont().getSize() == 16),
           "Actual palette buttons must use the shared regular UI typography");
       var widths = choices.stream().map(Button::getWidth).toList();
@@ -224,14 +230,14 @@ public final class FxShellTests {
         check(fixture.preferences.get("accent", "").equals(presets.get(name)) && popup.isShowing(),
             "A preset must store its exact color and leave the bubble available");
       }
-      TextField hex = (TextField) popup.getContentNode().lookup(".accent-hex");
-      Button apply = (Button) popup.getContentNode().lookup(".popover-action");
-      Button custom = palette.get("Custom");
-      check(hex != null && !hex.getParent().isVisible() && !hex.getParent().isManaged(),
+      TitledPane custom = (TitledPane) popup.getContentNode().lookup(".accent-custom");
+      TextField hex = (TextField) custom.getContent().lookup(".accent-hex");
+      Button apply = (Button) custom.getContent().lookup(".popover-action");
+      check(hex != null && !custom.isExpanded(),
           "The custom hex field must be hidden until Custom opens it");
-      custom.fire();
+      custom.setExpanded(true);
       popup.getRoot().applyCss(); popup.getRoot().layout();
-      check(hex.getParent().isVisible() && hex.getParent().isManaged() && "#EE0000".equals(hex.getText())
+      check(custom.isExpanded() && "#EE0000".equals(hex.getText())
               && widths.equals(choices.stream().map(Button::getWidth).toList()),
           "Custom must reveal the current hex value without resizing the choices");
       hex.setText("#12G456");

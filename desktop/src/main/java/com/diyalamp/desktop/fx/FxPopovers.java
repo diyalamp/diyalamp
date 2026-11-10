@@ -1,7 +1,7 @@
 package com.diyalamp.desktop.fx;
 
 import atlantafx.base.controls.Popover;
-import javafx.animation.Interpolator;
+import java.util.List;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
@@ -67,6 +67,11 @@ public final class FxPopovers {
     Motion motion = (Motion) popup.getProperties().get(MOTION);
     boolean animate = !FxMotion.reduced();
     if (!popup.isShowing()) {
+      Window owner = anchor.getScene().getWindow();
+      for (Window window : List.copyOf(Window.getWindows())) {
+        if (window instanceof Popover other && other != popup && other.getOwnerWindow() == owner
+            && other.getProperties().containsKey(MOTION)) other.hide(Duration.ZERO);
+      }
       if (animate) popup.getRoot().setOpacity(0);
       popup.show(anchor, -GAP);
       // Apply the slide after AtlantaFX has calculated the anchored window position.
@@ -93,8 +98,8 @@ public final class FxPopovers {
       if (animation != null) animation.stop();
       closing = !opening;
       animation = new Timeline(new KeyFrame(Duration.millis(opening ? 180 : 120),
-          new KeyValue(root.opacityProperty(), opening ? 1 : 0, Interpolator.EASE_OUT),
-          new KeyValue(root.translateYProperty(), opening ? 0 : -GAP, Interpolator.EASE_OUT)));
+          new KeyValue(root.opacityProperty(), opening ? 1 : 0, FxMotion.SIDEBAR_EASE),
+          new KeyValue(root.translateYProperty(), opening ? 0 : -GAP, FxMotion.SIDEBAR_EASE)));
       animation.setOnFinished(event -> {
         animation = null;
         if (closing) popup.hide(Duration.ZERO);

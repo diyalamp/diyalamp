@@ -6,18 +6,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
-import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
-import javafx.scene.transform.Translate;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
-/** Checks that folder motion follows native layout and never leaves a recycled row offset. */
+/** Checks that folder motion leaves native row positions, selection and recycled cells intact. */
 public final class FxTreeMotionTests {
   public static void main(String[] args) throws Exception {
     CountDownLatch done = new CountDownLatch(1);
@@ -68,10 +65,13 @@ public final class FxTreeMotionTests {
     scene.getRoot().layout();
     if (FxMotion.reduced()) reduced();
     else {
+      tree.getSelectionModel().select(after);
       branch.setExpanded(true);
       check(tree.getRow(child) == 1, "The child row must exist immediately after expansion");
       afterLayout(() -> {
-        check(offset(cell(after)) < 0, "Expansion must move the following row down from its old position");
+        check(adjacent(child, after) && cell(after).getOpacity() == 1
+                && tree.getSelectionModel().getSelectedItem() == after,
+            "Expansion must keep the selected row and its actions at the native layout position");
         check(cell(child).getOpacity() < 1, "Newly shown notes must fade in");
         PauseTransition progress = new PauseTransition(Duration.millis(65));
         progress.setOnFinished(event -> collapse());
@@ -81,19 +81,27 @@ public final class FxTreeMotionTests {
   }
 
   private void collapse() {
+    TreeCell<?> faded = cell(child);
     branch.setExpanded(false);
+    check(faded.getOpacity() == 1, "Collapse cancels an in-flight reveal before the cell can be recycled");
     afterLayout(() -> {
-      check(tree.getRow(child) == -1, "Collapse must remove the child row from navigation");
-      TreeCell<?> moving = cell(after);
-      check(offset(moving) > 0, "Collapse must move the following row up from its painted position");
-      tree.scrollTo(35);
-      afterLayout(() -> {
-        check(offset(moving) == 0, "Recycling a cell must clear its transform");
-        tree.scrollTo(0);
-        root.getChildren().setAll(List.of(branch));
-        branch.setExpanded(true);
-        afterLayout(this::tailCollapse);
-      });
+      check(tree.getRow(child) == -1 && adjacent(branch, after)
+              && tree.getSelectionModel().getSelectedItem() == after,
+          "Collapse must remove children without moving the selection or painting over adjacent rows");
+      branch.setExpanded(true);
+      afterLayout(this::scroll);
+    });
+  }
+
+  private void scroll() {
+    TreeCell<?> faded = cell(child);
+    check(faded.getOpacity() < 1, "Reopened children can fade in again");
+    tree.scrollTo(35);
+    afterLayout(() -> {
+      check(faded.getOpacity() == 1, "Recycling a cell must restore its opacity");
+      tree.scrollTo(0);
+      root.getChildren().setAll(List.of(branch));
+      afterLayout(this::tailCollapse);
     });
   }
 
@@ -101,20 +109,8 @@ public final class FxTreeMotionTests {
     branch.setExpanded(false);
     check(tree.getRow(child) == -1, "A departing row must leave the accessible tree immediately");
     afterLayout(() -> {
-      Group departing = (Group) scene.getRoot().lookup(".tree-departure");
-      check(departing != null && !departing.isManaged() && departing.isMouseTransparent(),
-          "The last branch must animate its departing pixels without retaining an interactive row");
-      ImageView pixels = (ImageView) departing.getChildren().getFirst();
-      var capture = pixels.getImage();
-      check(capture.getHeight() == 36, "Collapse must snapshot only the disappearing row");
-      var colors = new java.util.HashSet<Integer>();
-      for (int x = 0; x < capture.getWidth(); x++)
-        for (int y = 0; y < capture.getHeight(); y++) colors.add(capture.getPixelReader().getArgb(x, y));
-      check(colors.size() > 5, "The departing strip must contain the original note, not blank space");
-      branch.setExpanded(true);
       check(scene.getRoot().lookup(".tree-departure") == null,
-          "Reversing a collapse must remove the departing strip");
-      branch.setExpanded(false);
+          "Collapsing a tail branch must not leave a painted duplicate of its action icons");
       reduced();
     });
   }
@@ -123,7 +119,7 @@ public final class FxTreeMotionTests {
     System.setProperty("diyalamp.reduceMotion", "true");
     branch.setExpanded(true);
     afterLayout(() -> {
-      check(offset(cell(branch)) == 0 && offset(cell(child)) == 0 && cell(child).getOpacity() == 1,
+      check(adjacent(branch, child) && cell(child).getOpacity() == 1,
           "Reduced motion must lay out expanded branches without animation");
       stage.close();
       done.countDown();
@@ -153,9 +149,9 @@ public final class FxTreeMotionTests {
         && cell.getTreeItem() == item).map(TreeCell.class::cast).findFirst().orElseThrow();
   }
 
-  private static double offset(TreeCell<?> cell) {
-    return cell.getTransforms().stream().filter(Translate.class::isInstance)
-        .map(Translate.class::cast).mapToDouble(Translate::getY).sum();
+  private boolean adjacent(TreeItem<String> first, TreeItem<String> second) {
+    double top = cell(first).localToScene(0, 0).getY(), bottom = cell(second).localToScene(0, 0).getY();
+    return Math.abs(bottom - top - tree.getFixedCellSize()) < .5;
   }
 
   private static void check(boolean condition, String message) {

@@ -1,6 +1,5 @@
 package com.diyalamp.desktop.fx;
 
-import atlantafx.base.controls.CustomTextField;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -13,6 +12,7 @@ import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -78,13 +78,8 @@ public final class FxSidebarSearchTests {
     Path notePath = rootPath.resolve("Research/Original note.md");
     panel.setWorkspaceRoot(rootPath);
 
-    Button createFolder = FxTheme.iconButton("folder-plus", "New folder", () -> {});
-    Button createNote = FxTheme.iconButton("plus", "New note", () -> {});
-    createFolder.getStyleClass().add("file-row-action");
-    createNote.getStyleClass().add("file-row-action");
-    HBox actions = new HBox(panel.optionsButton(), createFolder, createNote);
-    HBox header = new HBox(8, panel.queryControl(), actions);
-    header.setPadding(new Insets(8));
+    HBox header = new HBox(panel.queryControl());
+    header.getStyleClass().addAll("workspace-band", "files-search-row");
     header.setAlignment(Pos.CENTER_LEFT);
     HBox.setHgrow(panel.queryControl(), Priority.ALWAYS);
     VBox.setVgrow(panel, Priority.ALWAYS);
@@ -103,23 +98,41 @@ public final class FxSidebarSearchTests {
     try {
       workspace.applyCss();
       workspace.layout();
-      CustomTextField input = (CustomTextField) panel.queryControl();
+      Region chrome = panel.queryControl();
+      TextField input = (TextField) chrome.lookup(".sidebar-search-query-field");
       ToggleButton advanced = panel.optionsButton();
       var options = panel.lookup(".sidebar-search-options");
-      check(header.getHeight() == 52 && input.getHeight() == 36 && input.getWidth() >= 152,
-          "The wider query must fit beside the compact action strip in the shared 52-pixel header");
-      check(input.getLeft().lookup(".icon-stroke") != null && input.getRight() == null,
-          "AtlantaFX must reserve the search icon slot and leave the clear slot empty until there is a query");
-      check(advanced.getHeight() == 28 && advanced.getWidth() == 28 && actions.getWidth() == 84
+      HBox tools = (HBox) chrome.lookup(".sidebar-search-tools");
+      Button clear = (Button) tools.lookup(".sidebar-search-clear");
+      check(header.getHeight() == 40 && chrome.getHeight() == 32 && chrome.getWidth() >= 240
+          && input.getWidth() >= 160,
+          "The query fills the compact 40-pixel search band");
+      Label queryLabel = (Label) input.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY);
+      check(queryLabel != null && queryLabel.getGraphic().lookup(".icon-stroke") != null
+          && "Search filenames".equals(queryLabel.queryAccessibleAttribute(AccessibleAttribute.TEXT))
+          && tools.getParent() == input.getParent() && tools.getChildren().contains(advanced)
+          && !clear.isVisible() && !clear.isManaged(),
+          "The integrated surface separates the named field and its controls for accessibility");
+      check(advanced.getHeight() == 28 && advanced.getWidth() == 28
               && advanced.getGraphic().lookup(".icon-stroke") != null
               && "Search options".equals(advanced.getAccessibleText()),
           "The options icon must share the compact file-action size and have an accessible name");
       check(!options.isVisible() && !options.isManaged(), "Advanced search must start collapsed");
       check(!panel.hasQuery() && files.isVisible(), "The empty query must leave the files view visible");
       panel.focusQuery();
+      press(input, KeyCode.TAB);
+      check(workspace.getScene().getFocusOwner() == advanced,
+          "Tab from an empty search field must reach Search options");
+      panel.focusQuery();
       input.setText("Original");
-      check(input.getRight() instanceof Button clear && "Clear search".equals(clear.getAccessibleText()),
-          "A nonempty query must expose a clear button in the field's trailing slot");
+      check(clear.isVisible() && clear.isManaged() && "Clear search".equals(clear.getAccessibleText()),
+          "A nonempty query must expose a separate clear button");
+      check("Original".equals(input.queryAccessibleAttribute(AccessibleAttribute.TEXT)),
+          "Assistive technology must receive the typed value instead of the field name");
+      press(input, KeyCode.TAB);
+      check(workspace.getScene().getFocusOwner() == clear, "Tab must reach Clear when the field contains a query");
+      press(clear, KeyCode.TAB);
+      check(workspace.getScene().getFocusOwner() == advanced, "Tab must reach Search options after Clear");
       check(!options.isVisible() && request.get().scope() == FxWorkspaceSearch.Scope.FILENAMES,
           "Focusing and typing in the collapsed field must perform basic filename search without expanding options");
       input.clear();
@@ -149,8 +162,10 @@ public final class FxSidebarSearchTests {
           "The default search must start with filenames");
       check(!files.isVisible(), "Typing a query must switch from files to search results");
       panel.focusQuery(FxWorkspaceSearch.Scope.CONTENTS);
-      check(request.get().scope() == FxWorkspaceSearch.Scope.CONTENTS,
-          "Switching to content search must refresh the active query");
+      check(request.get().scope() == FxWorkspaceSearch.Scope.CONTENTS
+          && "Search note contents".equals(queryLabel.queryAccessibleAttribute(AccessibleAttribute.TEXT))
+          && "Original".equals(input.queryAccessibleAttribute(AccessibleAttribute.TEXT)),
+          "Switching to content search must refresh the query and update its label separately");
 
       toggle(panel, "Match case").fire();
       toggle(panel, "Match whole word").fire();
@@ -161,6 +176,9 @@ public final class FxSidebarSearchTests {
       check(request.get().equals(new FxWorkspaceSearch.Query("Original", FxWorkspaceSearch.Scope.CONTENTS,
               true, true, true, "Research/**", "Drafts/**")),
           "Case, word, regex, and glob controls must reach the same request as the query");
+      check("Research/**".equals(field(panel, "Include files").queryAccessibleAttribute(AccessibleAttribute.TEXT))
+          && "Drafts/**".equals(field(panel, "Exclude files").queryAccessibleAttribute(AccessibleAttribute.TEXT)),
+          "Advanced fields must expose their typed values independently of their labels");
 
       FxWorkspaceSearch.Match match = new FxWorkspaceSearch.Match(3, 6, 19, 27, "Some Original text", 5, 13);
       var grouped = new FxWorkspaceSearch.Result(
@@ -172,6 +190,8 @@ public final class FxSidebarSearchTests {
       TreeView<FxSidebarSearch.OpenResult> results = (TreeView<FxSidebarSearch.OpenResult>) panel.lookup(".sidebar-search-results");
       check(results.isVisible() && results.getExpandedItemCount() == 2,
           "A content hit must render under its file group");
+      check(((Label) panel.lookup(".sidebar-search-status")).getPadding().equals(new Insets(6, 16, 6, 16)),
+          "The result count aligns with the Files heading and clears the options divider");
       check(panel.lookupAll(".fixture-row-action").size() == 1,
           "Only file group rows may get note actions");
       check(panel.lookup(".sidebar-search-highlight") != null,
@@ -193,6 +213,7 @@ public final class FxSidebarSearchTests {
               && field(panel, "Exclude files").getText().equals("Drafts/**"),
           "Reopening must retain the advanced settings");
       advanced.fire();
+      check(opened.get() == null, "Toggling search options must never open the first result");
       press(input, KeyCode.ENTER);
       check(new FxSidebarSearch.OpenResult(notePath, match).equals(opened.get()),
           "Enter from the query must open the first exact text match");
@@ -212,10 +233,12 @@ public final class FxSidebarSearchTests {
       panel.showError("Invalid regular expression");
       check(((Label) panel.lookup(".sidebar-search-status")).getText().equals("Invalid regular expression"),
           "Search errors must appear as a readable status");
-      press(input, KeyCode.ESCAPE);
+      advanced.requestFocus();
+      press(advanced, KeyCode.ESCAPE);
       check(dismissals.get() == 1 && !panel.hasQuery() && files.isVisible(),
-          "Escape must clear search and restore the files view");
-      check(input.getRight() == null, "Clearing the query must remove the clear slot and free its space");
+          "Escape from a trailing action must clear search and restore the files view");
+      check(tools.getParent() == chrome && !clear.isVisible() && !clear.isManaged(),
+          "Clearing frees the clear action's space while keeping filters available");
       workspace.applyCss(); workspace.layout();
       check(Math.abs(files.localToScene(files.getLayoutBounds()).getMinY()
               - header.localToScene(header.getLayoutBounds()).getMaxY()) <= 1,
@@ -227,10 +250,10 @@ public final class FxSidebarSearchTests {
       workspace.layout();
       workspace.applyCss();
       workspace.layout();
-      check(input.getWidth() >= 84 && advanced.getWidth() == 28
+      check(chrome.getWidth() >= 176 && input.getWidth() >= 72 && advanced.getWidth() == 28
               && advanced.localToScene(advanced.getBoundsInLocal()).getMaxX()
                   < header.localToScene(header.getBoundsInLocal()).getMaxX(),
-          "At 200 pixels the compact action strip must leave a useful search field: "
+          "At 200 pixels the integrated controls must leave a useful search field: "
               + input.getWidth() + " / " + advanced.getWidth());
       snippetRows(workspace, panel, results, notePath);
     } finally {
@@ -320,7 +343,9 @@ public final class FxSidebarSearchTests {
   }
 
   private static TextField field(FxSidebarSearch panel, String name) {
-    return panel.lookupAll(".sidebar-search-filter-field").stream().filter(node -> name.equals(node.getAccessibleText()))
+    return panel.lookupAll(".sidebar-search-filter-field").stream().filter(node ->
+            node.queryAccessibleAttribute(AccessibleAttribute.LABELED_BY) instanceof Label label
+                && name.equals(label.getText()))
         .map(TextField.class::cast).findFirst().orElseThrow();
   }
 

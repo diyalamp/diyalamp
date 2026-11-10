@@ -31,6 +31,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.Duration;
@@ -41,6 +42,9 @@ final class FxNoteGraph implements AutoCloseable {
   private static final int SPARSE_GRAPH_NODES = 7;
   private static final double LABEL_INSET = 6;
   private static final double LABEL_CLEARANCE = 4;
+  // SmartGraph's circular seed reserves up to four node radii at each edge.
+  private static final double MIN_GRAPH_EXTENT = 64;
+  private static final SmartCircularSortedPlacementStrategy INITIAL_PLACEMENT = new SmartCircularSortedPlacementStrategy();
   private static final PseudoClass CROWDED = PseudoClass.getPseudoClass("crowded");
   // SmartGraph scales repulsion by 1,000. Gentle steps and a stronger center
   // pull in crowded graphs prevent notes from piling against the pane's edges.
@@ -49,7 +53,7 @@ final class FxNoteGraph implements AutoCloseable {
   private static final ForceDirectedSpringGravityLayoutStrategy<Path> CROWDED_LAYOUT =
       new ForceDirectedSpringGravityLayoutStrategy<>(4.5, 3.5, 30, .014, .008);
   private static final double WIDTH = 304;
-  private static final double LINK_HEADER_HEIGHT = 40;
+  private static final double LINK_HEADER_HEIGHT = 36;
   private static final double DIVIDER_HEIGHT = 8;
   private final Consumer<Path> open;
   private final Consumer<String> message;
@@ -63,7 +67,11 @@ final class FxNoteGraph implements AutoCloseable {
   private final DoubleProperty reveal = new SimpleDoubleProperty(0);
   private final StackPane wrapper = new StackPane();
   private final VBox content = new VBox();
-  private final Label selected = new Label("Open a note"), detail = new Label("Local note connections");
+  private final Label selected = new Label("No note selected"), detail = new Label();
+  private final Label linkedCount = new Label();
+  private final Tooltip linkedCountTip = new Tooltip();
+  private final IntegerProperty linkedNotes = new SimpleIntegerProperty();
+  private final Node noteIcon = FxTheme.icon("file-text", 16);
   private final Label incomingTitle = new Label("Incoming"), outgoingTitle = new Label("Outgoing");
   private final ListView<Path> incoming = new ListView<>(), outgoing = new ListView<>();
   private final StackPane canvas = new StackPane();
@@ -88,7 +96,8 @@ final class FxNoteGraph implements AutoCloseable {
   private final Set<Path> restorePositions = new HashSet<>();
   private final Set<Node> watchedVertices = Collections.newSetFromMap(new WeakHashMap<>());
   private final Label placeholder = new Label();
-  private boolean viewDirty, needsReheat, graphInitialized, updatingGraph;
+  private boolean viewDirty, needsReheat, graphInitialized, updatingGraph, graphResizePending;
+  private Point2D graphExtent;
   private Path hovered, dragged;
   // Track only the class we add, so stable graph states avoid CSS invalidation.
 
@@ -106,7 +115,23 @@ final class FxNoteGraph implements AutoCloseable {
   private long generation;
   private boolean stale = true, closed;
 
-  private record LinkSection(VBox pane, ToggleButton heading) { }
+  private record LinkSection(VBox pane, ToggleButton heading, ListView<Path> list, FadeTransition fade) {
+    boolean displayed() { return list.isManaged(); }
+
+    void display(boolean open) {
+      list.setVisible(open);
+      list.setManaged(open);
+    }
+
+    void finishMotion() {
+      fade.stop();
+      boolean open = heading.isSelected();
+      list.setOpacity(1);
+      list.setMouseTransparent(!open);
+      list.setFocusTraversable(open);
+      display(open);
+    }
+  }
 
   FxNoteGraph(Consumer<Path> open, Consumer<String> message) {
     this.open = open; this.message = message;
@@ -123,12 +148,21 @@ final class FxNoteGraph implements AutoCloseable {
     Label title = new Label("Connections"); title.getStyleClass().add("workspace-section-title");
     Region spring = new Region(); HBox.setHgrow(spring, Priority.ALWAYS);
     Button refresh = FxTheme.iconButton("refresh-cw", "Refresh note connections", this::refresh);
-    Button close = FxTheme.iconButton("panel-right", "Hide connections", () -> showing.set(false));
-    HBox heading = new HBox(8, title, spring, refresh, close); heading.setAlignment(Pos.CENTER_LEFT);
+    refresh.getStyleClass().add("file-row-action");
+    HBox heading = new HBox(4, title, spring, refresh); heading.setAlignment(Pos.CENTER_LEFT);
     heading.getStyleClass().addAll("workspace-band", "graph-heading-row");
     selected.getStyleClass().add("graph-current-note"); selected.setMinWidth(0);
-    HBox summary = new HBox(selected); summary.setAlignment(Pos.CENTER_LEFT);
+    selected.setMaxWidth(Double.MAX_VALUE);
+    linkedCount.getStyleClass().add("graph-linked-count");
+    linkedCount.setGraphic(FxTheme.icon("network", 16));
+    linkedCount.setMinWidth(Region.USE_PREF_SIZE);
+    linkedCount.setTooltip(linkedCountTip);
+    linkedCount.setVisible(false);
+    linkedCount.managedProperty().bind(linkedCount.visibleProperty());
+    HBox summary = new HBox(8, selected, linkedCount); summary.setAlignment(Pos.CENTER_LEFT);
     summary.getStyleClass().addAll("workspace-band", "graph-summary");
+    linkedCount.textProperty().bind(Bindings.createStringBinding(
+        () -> linkedNotes.get() + (summary.getWidth() < 240 ? "" : " linked"), linkedNotes, summary.widthProperty()));
     HBox.setHgrow(selected, Priority.ALWAYS);
     detail.getStyleClass().addAll("graph-detail", "graph-status"); detail.setWrapText(true);
     detail.setMouseTransparent(true); StackPane.setAlignment(detail, Pos.BOTTOM_LEFT);
@@ -146,7 +180,7 @@ final class FxNoteGraph implements AutoCloseable {
     debounce.setOnFinished(event -> requestScan(null));
     settle.setOnFinished(event -> { if (graph != null) graph.setAutomaticLayout(false); });
     showing.addListener((observable, previous, visible) -> {
-      if (!visible) stopLayout();
+      if (!visible) { finishSectionMotion(); stopLayout(); }
       if (FxMotion.reduced()) finishMotion();
       else {
         if (animation != null) animation.stop();
@@ -168,7 +202,12 @@ final class FxNoteGraph implements AutoCloseable {
       if (current != null) current.windowProperty().addListener(windowListener);
       watchWindow(current == null ? null : current.getWindow());
     });
-    placeholder.getStyleClass().add("graph-detail"); placeholder.setWrapText(true);
+    placeholder.getStyleClass().addAll("graph-detail", "graph-empty");
+    placeholder.setGraphic(FxTheme.icon("network", 20));
+    placeholder.setContentDisplay(ContentDisplay.TOP);
+    placeholder.setTextAlignment(TextAlignment.CENTER);
+    placeholder.setAlignment(Pos.CENTER);
+    placeholder.setWrapText(true);
     emptyCanvas();
     updateHidden();
   }
@@ -181,6 +220,7 @@ final class FxNoteGraph implements AutoCloseable {
     animation = null;
     reveal.set(showing.get() ? 1 : 0);
     updateHidden();
+    finishSectionMotion();
     stopLayout();
   }
 
@@ -193,7 +233,7 @@ final class FxNoteGraph implements AutoCloseable {
   void workspace(NoteStore next) {
     stopLayout(); graph = null; model = null; zoom = null;
     vertices.clear(); edges.clear(); positions.clear(); restorePositions.clear(); watchedVertices.clear();
-    hovered = null; viewDirty = false; needsReheat = false; graphInitialized = false;
+    hovered = null; viewDirty = false; needsReheat = false; graphInitialized = false; graphExtent = null;
     store = next; active = null; snapshot = null; stale = true; generation++;
     incomingOverride = null; outgoingOverride = null;
     clearCache.set(true); invalidated.clear();
@@ -259,22 +299,30 @@ final class FxNoteGraph implements AutoCloseable {
     list.setAccessibleHelp((inbound ? "Notes that link to the current note." : "Notes linked from the current note.")
         + " Use Up and Down to select a note, then Enter to open it.");
     title.setLabelFor(list);
-    list.getStyleClass().add("graph-note-list"); list.setFixedCellSize(40); list.setMinHeight(48);
-    Label placeholder = new Label(empty); placeholder.setWrapText(true); placeholder.getStyleClass().add("graph-detail");
+    list.getStyleClass().add("graph-note-list"); list.setFixedCellSize(36); list.setMinHeight(40);
+    Label placeholder = new Label(empty);
+    placeholder.setWrapText(true); placeholder.getStyleClass().addAll("graph-detail", "graph-empty-list");
     list.setPlaceholder(placeholder);
     list.setCellFactory(unused -> new ListCell<>() {
+      private final Node icon = FxTheme.icon("file-text", 16);
+
+      {
+        setOnMouseClicked(event -> {
+          if (!isEmpty() && event.getClickCount() == 1 && event.getButton() == MouseButton.PRIMARY)
+            open.accept(getItem());
+        });
+      }
+
       @Override protected void updateItem(Path path, boolean emptyCell) {
         super.updateItem(path, emptyCell);
         setText(emptyCell || path == null ? null : title(path));
-        setGraphic(emptyCell || path == null ? null : FxTheme.icon("file-text", 16));
+        setGraphic(emptyCell || path == null ? null : icon);
         setTooltip(emptyCell || path == null || store == null ? null : new Tooltip(store.root().relativize(path).toString()));
       }
     });
-    list.setOnMouseClicked(event -> {
-      if (event.getClickCount() == 1 && event.getButton() == javafx.scene.input.MouseButton.PRIMARY) openSelected(list);
-    });
     list.setOnKeyPressed(event -> { if (event.getCode() == KeyCode.ENTER) { openSelected(list); event.consume(); } });
-    Node arrow = FxTheme.icon("chevron-right", 16);
+    Node arrow = FxTheme.icon("chevron-right", 12);
+    arrow.getStyleClass().add("graph-disclosure-chevron");
     HBox label = new HBox(8, arrow, title); label.setAlignment(Pos.CENTER_LEFT);
     ToggleButton heading = new ToggleButton(null, label);
     heading.getStyleClass().addAll("flat", "graph-list-toggle");
@@ -282,20 +330,63 @@ final class FxNoteGraph implements AutoCloseable {
     heading.setMinHeight(LINK_HEADER_HEIGHT); heading.setPrefHeight(LINK_HEADER_HEIGHT); heading.setMaxHeight(LINK_HEADER_HEIGHT);
     heading.accessibleTextProperty().bind(title.textProperty());
     heading.setAccessibleHelp("Show or hide this connection list.");
-    heading.selectedProperty().addListener((observable, previous, open) -> arrow.setRotate(open ? 90 : 0));
-    heading.setOnAction(event -> {
-      if (inbound) incomingOverride = heading.isSelected(); else outgoingOverride = heading.isSelected();
-      updateSections();
-    });
-    list.visibleProperty().bind(heading.selectedProperty());
-    list.managedProperty().bind(heading.selectedProperty());
     VBox section = new VBox(heading, list); section.getStyleClass().add("graph-link-section");
     VBox.setVgrow(list, Priority.ALWAYS);
-    return new LinkSection(section, heading);
+    LinkSection links = new LinkSection(section, heading, list, new FadeTransition(Duration.millis(150), list));
+    links.fade().setInterpolator(FxMotion.SIDEBAR_EASE);
+    links.finishMotion();
+    heading.setOnAction(event -> {
+      if (inbound) incomingOverride = heading.isSelected(); else outgoingOverride = heading.isSelected();
+      animateSection(links);
+    });
+    return links;
+  }
+
+  private void animateSection(LinkSection section) {
+    ListView<Path> list = section.list();
+    FadeTransition fade = section.fade();
+    boolean open = section.heading().isSelected();
+    double opacity = section.displayed() ? list.getOpacity() : 0;
+    fade.stop();
+    if (FxMotion.reduced() || list.getScene() == null || !showing.get() || (!open && !section.displayed())) {
+      section.finishMotion();
+      updateSections();
+      return;
+    }
+
+    if (!open && list.isFocused()) section.heading().requestFocus();
+    list.setMouseTransparent(!open);
+    list.setFocusTraversable(open);
+    list.setOpacity(opacity);
+    if (open && !section.displayed()) {
+      section.display(true);
+      updateSections();
+    }
+    // Keep the current split while closing. Once the list has faded, let the
+    // native divider reclaim its height and remember the outgoing split mode.
+    fade.setFromValue(opacity);
+    fade.setToValue(open ? 1 : 0);
+    fade.setOnFinished(event -> {
+      section.finishMotion();
+      updateSections();
+    });
+    fade.playFromStart();
+  }
+
+  private void finishSectionMotion() {
+    incomingSection.finishMotion();
+    outgoingSection.finishMotion();
+    updateSections();
+  }
+
+  private static void setSectionSelection(LinkSection section, boolean open) {
+    if (section.heading().isSelected() == open) return;
+    section.heading().setSelected(open);
+    section.finishMotion();
   }
 
   private void updateSections() {
-    boolean in = incomingSection.heading().isSelected(), out = outgoingSection.heading().isSelected();
+    boolean in = incomingSection.displayed(), out = outgoingSection.displayed();
     int mode = (in ? 1 : 0) | (out ? 2 : 0);
     if (mode == sectionMode) return;
     if (sectionMode > 0 && !awaitingDividerLayout)
@@ -344,25 +435,29 @@ final class FxNoteGraph implements AutoCloseable {
     }
   }
   private void openSelected(ListView<Path> list) {
-    Path path = list.getSelectionModel().getSelectedItem(); if (path != null) open.accept(path);
+    Path path = list.getSelectionModel().getSelectedItem();
+    if (path != null && !list.isMouseTransparent()) open.accept(path);
   }
 
   private void render() {
-    selected.setText(active == null ? "" : title(active));
-    selected.setVisible(active != null); selected.setManaged(active != null);
+    selected.setText(active == null ? "No note selected" : title(active));
+    selected.setGraphic(active == null ? null : noteIcon);
     selected.setTooltip(active == null || store == null ? null : new Tooltip(store.root().relativize(active).toString()));
     List<Path> in = snapshot == null || active == null ? List.of() : snapshot.incoming(active);
     List<Path> out = snapshot == null || active == null ? List.of() : snapshot.outgoing(active);
-    incoming.getItems().setAll(in); outgoing.getItems().setAll(out);
-    incomingTitle.setText("Incoming · " + in.size()); outgoingTitle.setText("Outgoing · " + out.size());
-    incomingSection.heading().setSelected(incomingOverride != null ? incomingOverride : !in.isEmpty());
-    outgoingSection.heading().setSelected(outgoingOverride != null ? outgoingOverride : !out.isEmpty());
-    updateSections();
-    detail(active != null && snapshot == null ? "Updating connections…"
-        : snapshot != null && snapshot.partial() ? "Some notes were skipped while indexing." : "");
-    if (active == null || snapshot == null) { emptyCanvas(); return; }
     List<Path> neighbors = java.util.stream.Stream.concat(in.stream(), out.stream())
         .filter(path -> !path.equals(active)).distinct().toList();
+    linkedNotes.set(neighbors.size());
+    linkedCount.setVisible(active != null && snapshot != null);
+    linkedCount.setAccessibleText(neighbors.size() + (neighbors.size() == 1 ? " unique linked note" : " unique linked notes"));
+    linkedCountTip.setText(linkedCount.getAccessibleText() + ". A note linked in both directions counts once.");
+    incoming.getItems().setAll(in); outgoing.getItems().setAll(out);
+    incomingTitle.setText("Incoming · " + in.size()); outgoingTitle.setText("Outgoing · " + out.size());
+    setSectionSelection(incomingSection, incomingOverride != null ? incomingOverride : !in.isEmpty());
+    setSectionSelection(outgoingSection, outgoingOverride != null ? outgoingOverride : !out.isEmpty());
+    updateSections();
+    detail(snapshot != null && snapshot.partial() ? "Some notes were skipped while indexing." : "");
+    if (active == null || snapshot == null) { emptyCanvas(); return; }
     LinkedHashSet<Path> visible = new LinkedHashSet<>(); visible.add(active);
     neighbors.stream().limit(MAX_VISIBLE_NODES - 1).forEach(visible::add);
     if (!visible.contains(hovered)) hovered = null;
@@ -397,7 +492,7 @@ final class FxNoteGraph implements AutoCloseable {
     try {
       graph = new SmartGraphPanel<>(model, new SmartGraphProperties(
           "vertex.allow-user-move=true\nvertex.radius=4\nvertex.label=true\nvertex.tooltip=true\nedge.label=false\nedge.tooltip=false\nedge.arrow=true\nedge.arrowsize=4\n"),
-          new SmartCircularSortedPlacementStrategy(), FxNoteGraph.class.getResource("/fx-note-graph.css").toURI(),
+          INITIAL_PLACEMENT, FxNoteGraph.class.getResource("/fx-note-graph.css").toURI(),
           STANDARD_LAYOUT);
     } catch (URISyntaxException error) { throw new IllegalStateException(error); }
     graph.setVertexLabelProvider(FxNoteGraph::graphTitle);
@@ -421,29 +516,62 @@ final class FxNoteGraph implements AutoCloseable {
         updateHighlights();
       } else if (graph != null && !graph.automaticLayoutProperty().get()) updateLabels();
     });
-    graph.widthProperty().addListener((observable, previous, value) -> resizeGraph());
-    graph.heightProperty().addListener((observable, previous, value) -> resizeGraph());
-    graph.sceneProperty().addListener((observable, previous, value) -> refreshGraph());
+    graph.layoutBoundsProperty().addListener((observable, previous, value) -> scheduleGraphResize());
+    graph.sceneProperty().addListener((observable, previous, value) -> scheduleGraphResize());
     canvas.getChildren().setAll(zoom, placeholder, detail);
   }
 
+  private void scheduleGraphResize() {
+    if (graphResizePending) return;
+    graphResizePending = true;
+    // SplitPane and the upstream zoom pane may deliver intermediate sizes
+    // during a layout pass. Fit the graph after both dimensions settle.
+    Platform.runLater(() -> {
+      graphResizePending = false;
+      resizeGraph();
+    });
+  }
+
+  private boolean hasGraphViewport() {
+    return !closed && showing.get() && graph != null && zoom.isManaged() && graph.getScene() != null
+        && graph.getWidth() >= MIN_GRAPH_EXTENT && graph.getHeight() >= MIN_GRAPH_EXTENT;
+  }
+
   private void resizeGraph() {
-    refreshGraph(); reheat();
-    if (graph != null && !graph.automaticLayoutProperty().get()) updateLabels();
+    if (!hasGraphViewport()) return;
+    refreshGraph();
+    Point2D extent = new Point2D(graph.getWidth(), graph.getHeight());
+    if (!graphInitialized || extent.equals(graphExtent)) return;
+    double scaleX = extent.getX() / graphExtent.getX();
+    double scaleY = extent.getY() / graphExtent.getY();
+    for (SmartGraphVertex<Path> vertex : graph.getSmartVertices()) {
+      double radius = vertex.getRadius();
+      vertex.setPosition(Math.clamp(vertex.getPositionCenterX() * scaleX, radius, extent.getX() - radius),
+          Math.clamp(vertex.getPositionCenterY() * scaleY, radius, extent.getY() - radius));
+    }
+    positions.replaceAll((path, point) -> new Point2D(point.getX() * scaleX, point.getY() * scaleY));
+    graphExtent = extent;
+    reheat();
+    if (!graph.automaticLayoutProperty().get()) updateLabels();
   }
 
   private void refreshGraph() {
-    if (graph == null || updatingGraph || graph.getScene() == null || graph.getWidth() <= 0 || graph.getHeight() <= 0 || !viewDirty) return;
+    if (updatingGraph || !viewDirty || !hasGraphViewport()) return;
     updatingGraph = true;
     try {
-      if (!graphInitialized) {
-        graph.init(); graphInitialized = true;
-        Vertex<Path> current = vertices.get(active);
-        if (current != null) graph.setVertexPosition(current, graph.getWidth() / 2, graph.getHeight() / 2);
-      }
+      if (!graphInitialized) graph.init();
       // SmartGraph 2.6.1 performs updateAndWait directly when already on the FX thread.
       // Existing vertex nodes and the upstream zoom container are retained.
       graph.updateAndWait(); viewDirty = false;
+      if (!graphInitialized) {
+        graphExtent = new Point2D(graph.getWidth(), graph.getHeight());
+        // SmartGraph can also initialize itself before the zoom pane's first
+        // full viewport. Seed its own circular placement at the usable size.
+        INITIAL_PLACEMENT.place(graphExtent.getX(), graphExtent.getY(), graph);
+        Vertex<Path> current = vertices.get(active);
+        if (current != null) graph.setVertexPosition(current, graphExtent.getX() / 2, graphExtent.getY() / 2);
+        graphInitialized = true;
+      }
       boolean crowded = vertices.size() > 24;
       graph.pseudoClassStateChanged(CROWDED, crowded);
       graph.setAutomaticLayoutStrategy(crowded ? CROWDED_LAYOUT : STANDARD_LAYOUT);
@@ -632,7 +760,8 @@ final class FxNoteGraph implements AutoCloseable {
   }
   private void emptyCanvas() {
     stopLayout();
-    placeholder.setText(store == null ? "Open a folder to see connections" : "Open a note to see connections");
+    placeholder.setText(store == null ? "Open a folder to see connections"
+        : active == null ? "Open a note to see its links" : "Finding note connections…");
     placeholder.setVisible(true); placeholder.setManaged(true);
     if (zoom == null) canvas.getChildren().setAll(placeholder, detail);
     else { zoom.setVisible(false); zoom.setManaged(false); }
@@ -655,6 +784,7 @@ final class FxNoteGraph implements AutoCloseable {
   }
   @Override public void close() {
     closed = true; generation++; debounce.stop(); stopLayout();
+    incomingSection.fade().stop(); outgoingSection.fade().stop();
     if (animation != null) animation.stop(); if (pending != null) pending.cancel(true); worker.shutdownNow();
     if (watchedScene != null) watchedScene.windowProperty().removeListener(windowListener);
     watchWindow(null);
