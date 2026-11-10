@@ -1,5 +1,6 @@
 package com.diyalamp.desktop.fx;
 
+import atlantafx.base.controls.CustomTextField;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -102,11 +103,13 @@ public final class FxSidebarSearchTests {
     try {
       workspace.applyCss();
       workspace.layout();
-      TextField input = (TextField) panel.queryControl().lookup(".text-field");
+      CustomTextField input = (CustomTextField) panel.queryControl();
       ToggleButton advanced = panel.optionsButton();
       var options = panel.lookup(".sidebar-search-options");
       check(header.getHeight() == 52 && input.getHeight() == 36 && input.getWidth() >= 152,
           "The wider query must fit beside the compact action strip in the shared 52-pixel header");
+      check(input.getLeft().lookup(".icon-stroke") != null && input.getRight() == null,
+          "AtlantaFX must reserve the search icon slot and leave the clear slot empty until there is a query");
       check(advanced.getHeight() == 28 && advanced.getWidth() == 28 && actions.getWidth() == 84
               && advanced.getGraphic().lookup(".icon-stroke") != null
               && "Search options".equals(advanced.getAccessibleText()),
@@ -115,6 +118,8 @@ public final class FxSidebarSearchTests {
       check(!panel.hasQuery() && files.isVisible(), "The empty query must leave the files view visible");
       panel.focusQuery();
       input.setText("Original");
+      check(input.getRight() instanceof Button clear && "Clear search".equals(clear.getAccessibleText()),
+          "A nonempty query must expose a clear button in the field's trailing slot");
       check(!options.isVisible() && request.get().scope() == FxWorkspaceSearch.Scope.FILENAMES,
           "Focusing and typing in the collapsed field must perform basic filename search without expanding options");
       input.clear();
@@ -124,12 +129,13 @@ public final class FxSidebarSearchTests {
       double compactTreeY = treeBelowOptions(workspace, panel, files);
       var modeIcons = panel.lookupAll(".sidebar-search-mode");
       var filterIcons = panel.lookupAll(".sidebar-search-option");
-      check(modeIcons.size() == 2 && filterIcons.size() == 4
+      check(modeIcons.size() == 2 && modeIcons.stream().map(Labeled.class::cast).map(Labeled::getText)
+              .collect(java.util.stream.Collectors.toSet()).equals(java.util.Set.of("Files", "Text"))
+              && filterIcons.size() == 4
               && java.util.stream.Stream.concat(modeIcons.stream(), filterIcons.stream()).allMatch(node ->
-                  node instanceof Labeled item && (item.getText() == null || item.getText().isEmpty())
-                      && item.getGraphic() != null
+                  node instanceof Labeled item && item.getGraphic() != null
                       && item.getGraphic().lookup(".icon-stroke") != null && item.getAccessibleText() != null),
-          "All scope and filter controls must have an icon and an accessible name");
+          "Scope choices must have readable labels, and all options must have an icon and an accessible name");
       scopeIndicator(panel);
       toggle(panel, "Include and exclude files").fire();
       check(treeBelowOptions(workspace, panel, files) > compactTreeY + 36,
@@ -209,6 +215,7 @@ public final class FxSidebarSearchTests {
       press(input, KeyCode.ESCAPE);
       check(dismissals.get() == 1 && !panel.hasQuery() && files.isVisible(),
           "Escape must clear search and restore the files view");
+      check(input.getRight() == null, "Clearing the query must remove the clear slot and free its space");
       workspace.applyCss(); workspace.layout();
       check(Math.abs(files.localToScene(files.getLayoutBounds()).getMinY()
               - header.localToScene(header.getLayoutBounds()).getMaxY()) <= 1,

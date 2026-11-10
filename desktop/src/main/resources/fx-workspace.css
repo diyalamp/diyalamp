@@ -244,35 +244,55 @@
   -fx-prompt-text-fill: -color-fg-muted;
 }
 .workspace-root .note-search-field:focused { -fx-border-color: -diyalamp-focus; }
-.file-tree, .sidebar-search-results { -fx-padding: 4 8; }
-/* Match the file tree's outer 8 px and inner 12 px action-side insets. */
-.workspace-band.files-heading-row { -fx-padding: 8 20 8 8; }
-.file-tree .tree-cell, .sidebar-search-results .tree-cell, .graph-note-list .list-cell {
+.file-tree { -fx-padding: 2 8; }
+.sidebar-search-results { -fx-padding: 4 8; }
+.workspace-band.files-heading-row { -fx-padding: 0 12 0 16; }
+.workspace-band.files-search-row { -fx-padding: 0 12; }
+.sidebar-search-results .tree-cell, .graph-note-list .list-cell {
   -fx-background-radius: 8; -fx-background-insets: 4 0;
 }
 .file-tree { -fx-background-color: transparent; -fx-background-insets: 0; -fx-border-width: 0; }
 .file-tree .virtual-flow { -fx-background-color: transparent; }
 .file-tree .tree-cell {
   -fx-background-color: transparent;
-  -fx-padding: 0 12 0 0; -fx-indent: 16;
+  -fx-background-insets: 2 0;
+  -fx-background-radius: 6;
+  -fx-padding: 0 4 0 2;
+  -fx-indent: 12;
+  transition-property: -fx-background-color;
+  transition-duration: 140ms;
+  transition-timing-function: ease-out;
 }
 .file-tree .tree-cell .label { -fx-text-fill: -color-fg-default; }
-.file-tree .tree-cell:filled:hover,
+.file-tree .tree-cell:filled:hover { -fx-background-color: -diyalamp-control-hover; }
+.file-tree .tree-cell:filled:selected { -fx-background-color: -diyalamp-control-pressed; }
+.file-tree:focus-visible .tree-cell:filled:focused,
+.file-tree .tree-cell:drop-target {
+  -fx-border-color: -diyalamp-focus;
+  -fx-border-radius: 6;
+  -fx-border-insets: 2 0;
+}
+.file-tree .tree-cell:filled:selected .label { -fx-text-fill: -color-fg-emphasis; }
+.file-tree .tree-cell:filled:selected .file-kind .icon-stroke { -fx-stroke: -color-accent-fg; }
+.file-tree .file-disclosure-chevron {
+  transition-property: -fx-rotate;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+.file-tree .tree-cell:expanded .file-disclosure-chevron { -fx-rotate: 90; }
+.file-tree .folder-open, .file-tree .tree-cell:expanded .folder-closed { -fx-opacity: 0; }
+.file-tree .tree-cell:expanded .folder-open { -fx-opacity: 1; }
+.workspace-root:reduced-motion .file-tree .tree-cell,
+.workspace-root:reduced-motion .file-tree .file-disclosure-chevron { transition-duration: 0s; }
 .sidebar-search-results .tree-cell:filled:hover,
 .graph-note-list .list-cell:filled:hover {
   -fx-background-color: -color-border-default, -color-bg-default;
   -fx-background-insets: 4 0, 5 1; -fx-background-radius: 8, 7;
 }
-.file-tree .tree-cell:filled:selected,
 .sidebar-search-results .tree-cell:filled:selected,
 .graph-note-list .list-cell:filled:selected {
   -fx-background-color: -diyalamp-focus, -color-bg-default;
   -fx-background-insets: 4 0, 5 1; -fx-background-radius: 8, 7;
-}
-.file-tree .tree-cell:filled:selected .label { -fx-text-fill: -color-fg-emphasis; }
-.file-tree .tree-cell:filled:selected .file-kind .icon-stroke { -fx-stroke: -diyalamp-accent; }
-.file-tree .tree-cell:drop-target {
-  -fx-border-color: -diyalamp-focus; -fx-border-radius: 8; -fx-border-insets: 4 0;
 }
 .workspace-root .file-row-action {
   -fx-min-width: 28; -fx-pref-width: 28; -fx-max-width: 28;
@@ -332,7 +352,7 @@
 .document-tabs .tab > .tab-box > .close-button > .graphic { -fx-background-color: -color-fg-muted; }
 .document-tabs .tab > .tab-box > .close-button:hover > .graphic { -fx-background-color: -color-fg-emphasis; }
 .document-tabs .tab > .tab-box > .close-button:pressed > .graphic { -fx-opacity: .72; }
-.workspace-band.document-location, .workspace-band.files-context-row { -fx-padding: 0 16; }
+.workspace-band.document-location { -fx-padding: 0 16; }
 .document-breadcrumb { -fx-text-fill: -color-fg-muted; }
 .note-page { -fx-background-color: -color-bg-default; -fx-padding: 0; }
 .diyalamp-editor, .diyalamp-editor > .viewport, .writing-area { -fx-background-color: -color-bg-default; }

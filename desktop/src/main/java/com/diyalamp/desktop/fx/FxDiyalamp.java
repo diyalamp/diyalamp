@@ -14,10 +14,12 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
@@ -88,6 +90,7 @@ public final class FxDiyalamp extends Application {
   private final Preferences preferences;
   private final Map<Path, Session> sessions = new LinkedHashMap<>();
   private final TreeView<Path> tree = new TreeView<>();
+  private final Set<Path> expandedFolders = new HashSet<>();
   private final FxSidebarSearch sidebarSearch = new FxSidebarSearch();
   private final PauseTransition searchDelay = new PauseTransition(Duration.millis(160));
   private final ExecutorService searchWorker = Executors.newSingleThreadExecutor(
@@ -390,16 +393,17 @@ public final class FxDiyalamp extends Application {
     clipping.widthProperty().bind(explorerClip.widthProperty());
     clipping.heightProperty().bind(explorerClip.heightProperty()); explorerClip.setClip(clipping);
     tree.setShowRoot(false); tree.setAccessibleText("Markdown files and folders");
+    tree.setAccessibleHelp("Use Right and Left to expand or collapse folders. Press Enter to open a note or F2 to rename it.");
     tree.setEditable(true);
-    tree.setFixedCellSize(40);
+    tree.setFixedCellSize(36);
     tree.setCellFactory(view -> new FileCell());
-    tree.getStyleClass().add("file-tree");
+    tree.getStyleClass().addAll("file-tree", "edge-to-edge");
     tree.setOnKeyPressed(event -> {
       if (tree.getEditingItem() != null) return;
       Path selected = selectedPath();
       if (event.getCode() == KeyCode.ENTER && selected != null && store != null && !store.isDirectory(selected)) {
         open(selected, false); event.consume();
-      } else if (event.getCode() == KeyCode.F2 && selected != null && !store.isDirectory(selected)) {
+      } else if (event.getCode() == KeyCode.F2 && selected != null && store != null && !store.isDirectory(selected)) {
         beginRename(selected); event.consume();
       }
     });
@@ -416,11 +420,9 @@ public final class FxDiyalamp extends Application {
     query.disableProperty().bind(noFolder);
     options.disableProperty().bind(noFolder);
     HBox.setHgrow(query, Priority.ALWAYS);
-    HBox actionStrip = new HBox(options, createFolder, create);
-    actionStrip.setAlignment(Pos.CENTER_LEFT);
-    HBox actions = new HBox(8, query, actionStrip);
-    actions.setAlignment(Pos.CENTER_LEFT);
-    actions.getStyleClass().addAll("workspace-band", "files-heading-row");
+    HBox searchRow = new HBox(4, query, options);
+    searchRow.setAlignment(Pos.CENTER_LEFT);
+    searchRow.getStyleClass().addAll("workspace-band", "files-search-row");
     sidebarSearch.setWorkspaceRoot(null);
     sidebarSearch.setOnSearch(this::scheduleSearch);
     sidebarSearch.setOnOpen(this::openSearchResult);
@@ -433,10 +435,10 @@ public final class FxDiyalamp extends Application {
     VBox.setVgrow(sidebarSearch, Priority.ALWAYS);
     Label filesTitle = new Label("Files");
     filesTitle.getStyleClass().add("workspace-section-title");
-    HBox files = new HBox(filesTitle);
+    HBox files = new HBox(4, filesTitle, spacer(), createFolder, create);
     files.setAlignment(Pos.CENTER_LEFT);
-    files.getStyleClass().addAll("workspace-band", "files-context-row");
-    explorer.getChildren().setAll(actions, files, sidebarSearch, tree);
+    files.getStyleClass().addAll("workspace-band", "files-heading-row");
+    explorer.getChildren().setAll(files, searchRow, sidebarSearch, tree);
   }
 
   private Line workspaceDivider(String id, ReadOnlyDoubleProperty boundary) {
@@ -477,7 +479,17 @@ public final class FxDiyalamp extends Application {
       if (renameInput != null && event.getTarget() instanceof Node target && !within(target, renameInput)) cancelEdit();
     };
 
-    FileCell() { setPrefWidth(0); }
+    FileCell() {
+      setPrefWidth(0);
+      Node chevron = FxTheme.icon("chevron-right", 12);
+      chevron.getStyleClass().add("file-disclosure-chevron");
+      StackPane disclosure = new StackPane(chevron);
+      disclosure.getStyleClass().add("file-disclosure");
+      disclosure.setMinSize(18, 28);
+      disclosure.setPrefSize(18, 28);
+      disclosure.setMaxSize(18, 28);
+      setDisclosureNode(disclosure);
+    }
 
     @Override protected void updateItem(Path path, boolean empty) {
       if (renameInput != null && (empty || !java.util.Objects.equals(getItem(), path))) cancelEdit();
@@ -493,7 +505,7 @@ public final class FxDiyalamp extends Application {
       setEditable(!directory);
       title = new Label(path.getFileName().toString());
       title.setMinWidth(0); title.setMaxWidth(Double.MAX_VALUE); HBox.setHgrow(title, Priority.ALWAYS);
-      Node kind = FxTheme.icon(directory ? "folder-open" : "file-text", 15);
+      Node kind = directory ? folderIcon() : FxTheme.icon("file-text");
       kind.getStyleClass().add("file-kind");
       row = new HBox(8, kind, title);
       // Let the tree skin account for disclosure, nesting, and the scroll viewport.
@@ -536,6 +548,13 @@ public final class FxDiyalamp extends Application {
           open(path, false); if (active != null) active.editor.focus();
         }
       });
+    }
+
+    private Node folderIcon() {
+      Node closed = FxTheme.icon("folder"), open = FxTheme.icon("folder-open");
+      closed.getStyleClass().add("folder-closed");
+      open.getStyleClass().add("folder-open");
+      return new StackPane(closed, open);
     }
 
     @Override public void startEdit() {
@@ -599,13 +618,25 @@ public final class FxDiyalamp extends Application {
       super(path);
       if (store.isDirectory(path)) {
         getChildren().add(new TreeItem<>());
-        expandedProperty().addListener((observable, previous, expanded) -> { if (expanded) populate(); });
+        expandedProperty().addListener((observable, previous, expanded) -> {
+          if (expanded) {
+            expandedFolders.add(path);
+            populate();
+          } else {
+            expandedFolders.remove(path);
+          }
+        });
       }
     }
     void populate() {
       if (loaded) return;
       loaded = true;
-      try { getChildren().setAll(store.children(getValue()).stream().map(DirectoryItem::new).toList()); }
+      try {
+        List<DirectoryItem> children = store.children(getValue()).stream().map(DirectoryItem::new).toList();
+        getChildren().setAll(children);
+        for (DirectoryItem child : children)
+          if (!child.isLeaf() && expandedFolders.contains(child.getValue())) child.setExpanded(true);
+      }
       catch (IOException e) { getChildren().clear(); error("Folder could not be read", e); }
     }
   }
@@ -737,6 +768,7 @@ public final class FxDiyalamp extends Application {
     if (!saveAll(true)) return;
     try {
       NoteStore next = new NoteStore(folder);
+      if (store == null || !store.root().equals(next.root())) expandedFolders.clear();
       disposeAll(); store = next; lastDeleted = null;
       if (noteGraph != null) noteGraph.workspace(store);
       primary.tabs.getTabs().clear(); secondary.tabs.getTabs().clear();

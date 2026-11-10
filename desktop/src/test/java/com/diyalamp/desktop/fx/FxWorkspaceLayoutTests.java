@@ -1,5 +1,6 @@
 package com.diyalamp.desktop.fx;
 
+import atlantafx.base.controls.CustomTextField;
 import atlantafx.base.controls.TabLine;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
@@ -26,6 +27,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToolBar;
 import javafx.scene.control.TreeCell;
+import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.image.ImageView;
@@ -120,19 +122,19 @@ public final class FxWorkspaceLayoutTests {
         && bandDivider.getEndX() == fixture.stage.getScene().getWidth()
         && Math.abs(bandDivider.localToScene(0, 0).getY() - tabs.localToScene(0, 51.5).getY()) < .01,
         "A single one-pixel rule spans the workspace without intercepting the sidebar dividers");
-    Region filesContext = (Region) explorerList.lookup(".files-context-row");
+    Region filesContext = (Region) explorerList.lookup(".files-search-row");
     Region documentLocation = (Region) tabs.getParent().lookup(".document-location");
     Region graphSummary = (Region) graphPanel.lookup(".graph-summary");
     double contextY = filesContext.localToScene(0, 0).getY();
     check(filesContext.getHeight() == 52 && documentLocation.getHeight() == 52 && graphSummary.getHeight() == 52
         && contextY == documentLocation.localToScene(0, 0).getY() && contextY == graphSummary.localToScene(0, 0).getY(),
-        "Files, document breadcrumb, and current note share the second 52 px band");
-    check(((Label) filesContext.lookup(".label")).getText().equals("Files"), "The files context band is labeled");
+        "Search, document breadcrumb, and current note share the second 52 px band");
+    check(((Label) filesHeader.lookup(".workspace-section-title")).getText().equals("Files"), "The files header is labeled");
     var contextDivider = (javafx.scene.shape.Line) fixture.stage.getScene().lookup("#workspace-context-divider");
     check(contextDivider.isMouseTransparent() && contextDivider.getEndX() == fixture.stage.getScene().getWidth()
         && Math.abs(contextDivider.localToScene(0, 0).getY() - contextY - 51.5) < .01,
         "A single shared divider underlines all three context headers");
-    paintedRows(tree, ".tree-cell", 4);
+    paintedRows(tree, ".tree-cell", 2, 2);
     graphRows(fixture);
     HBox metrics = (HBox) field(fixture.app, "metrics");
     check(metrics.getChildren().size() == 4 && metrics.isVisible(), "An open note must expose all four live statistics");
@@ -217,10 +219,10 @@ public final class FxWorkspaceLayoutTests {
         "One toolbar button exposes the full workspace path and opens the folder picker");
     String imagePath = System.getProperty("diyalamp.workspace.snapshot");
     if (imagePath != null && !imagePath.isBlank()) snapshot(fixture.stage, Path.of(imagePath));
-    TextField search = (TextField) filesHeader.lookup(".sidebar-search-query-field");
+    CustomTextField search = (CustomTextField) filesContext.lookup(".sidebar-search-query-field");
     check(search.isVisible() && search.getHeight() == 36 && search.getFont().getSize() == 16
         && search.getBorder().getStrokes().getFirst().getRadii().getTopLeftHorizontalRadius() == 8,
-        "The rounded sidebar search shares the first band's size and type");
+        "The AtlantaFX search field shares the workspace's control size and type");
     search.setText("Reference");
     check(!tree.isVisible() && sidebarSearch.hasQuery() && path.isVisible(),
         "Search replaces the sidebar list while leaving the top folder control in place");
@@ -229,36 +231,32 @@ public final class FxWorkspaceLayoutTests {
     tree.getSelectionModel().select(0);
     fixture.layout();
     Region selectedRow = (Region) tree.lookup(".tree-cell:filled:selected");
-    check(selectedRow.getBackground().getFills().getLast().getFill().equals(FxTheme.EDITOR_BACKGROUND),
-        "Selected file outlines must preserve the Normal surface inside the row");
-    FxTheme.focusSurface(fixture.stage.getScene().getRoot(), 1);
-    fixture.layout();
-    check(selectedRow.getBackground().getFills().getLast().getFill().equals(Color.BLACK),
-        "Selected file outlines must preserve the Focus surface inside the row");
-    FxTheme.focusSurface(fixture.stage.getScene().getRoot(), 0);
-    fixture.layout();
+    check(selectedRow.getBackground().getFills().size() == 1
+        && ((Color) selectedRow.getBackground().getFills().getFirst().getFill()).getOpacity() < .2,
+        "Selected notes use one quiet translucent fill across both workspace surfaces");
     var rowActions = tree.lookupAll(".file-row-action");
     var headerActions = filesHeader.lookupAll(".file-row-action");
     var headerCenters = headerActions.stream().map(node -> node.localToScene(node.getLayoutBounds()).getCenterX())
         .sorted().toList();
     var rowCenters = rowActions.stream().filter(node -> node.getAccessibleText().contains("Draft.md"))
         .map(node -> node.localToScene(node.getLayoutBounds()).getCenterX()).sorted().toList();
-    check(headerActions.size() == 3 && headerActions.stream().allMatch(node ->
+    check(headerActions.size() == 2 && headerActions.stream().allMatch(node ->
             node.getLayoutBounds().getWidth() == 28 && node.getLayoutBounds().getHeight() == 28)
-            && headerCenters.equals(rowCenters),
-        "Search options and creation actions must share file-row dimensions and alignment: " + headerCenters + " / " + rowCenters);
+            && Math.abs(headerCenters.getLast() - rowCenters.getLast()) <= 1,
+        "Creation and file actions must share dimensions and a right edge: " + headerCenters + " / " + rowCenters);
     var noteBounds = selectedRow.localToScene(selectedRow.getLayoutBounds());
     double iconLeft = iconInk(selectedRow.lookup(".file-kind")).stream().mapToDouble(bounds -> bounds.getMinX()).min().orElseThrow();
     double actionRight = iconInk(action(tree, "Move Draft.md to deleted notes").getGraphic()).stream()
         .mapToDouble(bounds -> bounds.getMaxX()).max().orElseThrow();
-    check(Math.abs((iconLeft - noteBounds.getMinX()) - (noteBounds.getMaxX() - actionRight)) <= 2,
-        "The top-level file row must balance the visible file icon and trailing action");
+    check(iconLeft - noteBounds.getMinX() <= 23 && noteBounds.getMaxX() - actionRight <= 16,
+        "The file row uses a compact leading disclosure slot and a compact action gutter");
     double searchCenter = centerY(search);
-    Node magnifier = ((StackPane) sidebarSearch.queryControl()).getChildren().get(1);
+    Node magnifier = search.getLeft();
+    Node advanced = sidebarSearch.optionsButton();
     check(Math.abs(inkCenterY(magnifier) - searchCenter) <= 1
-        && headerActions.stream().allMatch(node -> Math.abs(centerY(node) - searchCenter) <= 1
-            && Math.abs(inkCenterY(((Labeled) node).getGraphic()) - searchCenter) <= 1),
-        "The magnifier, options, new-folder and new-note icons must share the search field's centerline");
+        && Math.abs(centerY(advanced) - searchCenter) <= 1
+        && Math.abs(inkCenterY(((Labeled) advanced).getGraphic()) - searchCenter) <= 1,
+        "The magnifier and search options share the search field's centerline");
     sidebarSearch.optionsButton().fire();
     fixture.layout();
     var searchOptions = sidebarSearch.lookupAll(".sidebar-search-option");
@@ -325,7 +323,7 @@ public final class FxWorkspaceLayoutTests {
     fixture.stage.setWidth(820); fixture.layout();
     Region sidebar = (Region) field(fixture.app, "explorer");
     Region queryField = (Region) sidebar.lookup(".sidebar-search-query-field");
-    check(queryField.getWidth() >= 152 && sidebar.lookupAll(".files-heading-row .file-row-action").size() == 3,
+    check(queryField.getWidth() >= 144 && sidebar.lookupAll(".files-heading-row .file-row-action").size() == 2,
         "At minimum window width the compact controls must leave room to type in the search field");
     Node toggle = (Node) field(fixture.app, "connectionsControl");
     var readyBounds = toggle.localToScene(toggle.getBoundsInLocal());
@@ -368,18 +366,30 @@ public final class FxWorkspaceLayoutTests {
 
   private static void nestedFileRow(Fixture fixture) throws Exception {
     Path folder = Files.createDirectory(fixture.directory.resolve("Folder"));
+    Path second = Files.createDirectory(fixture.directory.resolve("Second folder"));
+    Path child = Files.createDirectory(second.resolve("Nested folder"));
     Path note = Files.writeString(folder.resolve("A deliberately long filename that must leave room for all three actions.md"), "# Nested note");
+    Files.writeString(child.resolve("Nested reference.md"), "# Another note");
     call(fixture.app, "refreshTree", new Class<?>[0]);
     TreeView<?> tree = (TreeView<?>) field(fixture.app, "tree");
-    tree.getRoot().getChildren().stream().filter(item -> folder.equals(item.getValue())).findFirst().orElseThrow()
-        .setExpanded(true);
+    folderItem(tree.getRoot(), folder).setExpanded(true);
+    folderItem(tree.getRoot(), second).setExpanded(true);
+    folderItem(folderItem(tree.getRoot(), second), child).setExpanded(true);
+    call(fixture.app, "refreshTree", new Class<?>[0]);
+    check(folderItem(tree.getRoot(), folder).isExpanded() && folderItem(tree.getRoot(), second).isExpanded()
+        && folderItem(folderItem(tree.getRoot(), second), child).isExpanded(),
+        "Refreshing the explorer preserves multiple open branches and their nested expansion");
+    folderItem(tree.getRoot(), second).setExpanded(false);
+    call(fixture.app, "refreshTree", new Class<?>[0]);
+    check(!folderItem(tree.getRoot(), second).isExpanded() && folderItem(tree.getRoot(), folder).isExpanded(),
+        "Refreshing a collapsed branch keeps it closed without collapsing another open branch");
     fixture.layout();
     var cells = tree.lookupAll(".tree-cell").stream().filter(TreeCell.class::isInstance).map(TreeCell.class::cast).toList();
     var nested = cells.stream().filter(cell -> note.equals(cell.getItem())).findFirst().orElseThrow();
     var topLevel = cells.stream().filter(cell -> fixture.directory.resolve("Reference.md").equals(cell.getItem())).findFirst().orElseThrow();
     Node nestedIcon = nested.lookup(".file-kind"), topLevelIcon = topLevel.lookup(".file-kind");
-    check(nestedIcon.localToScene(0, 0).getX() - topLevelIcon.localToScene(0, 0).getX() == 16,
-        "Nested note content must retain the native 16 px indentation");
+    check(nestedIcon.localToScene(0, 0).getX() - topLevelIcon.localToScene(0, 0).getX() == 12,
+        "Nested note content uses one compact indentation step");
     Button split = action(tree, "Open " + note.getFileName() + " side by side");
     Button remove = action(tree, "Move " + note.getFileName() + " to deleted notes");
     Button topRemove = action(tree, "Move Reference.md to deleted notes");
@@ -388,6 +398,10 @@ public final class FxWorkspaceLayoutTests {
             - topRemove.localToScene(topRemove.getWidth(), 0).getX()) <= 1
         && title.localToScene(title.getLayoutBounds()).getMaxX() < split.localToScene(0, 0).getX(),
         "A long nested title must leave the action strip aligned and clickable");
+  }
+
+  private static TreeItem<?> folderItem(TreeItem<?> parent, Path path) {
+    return parent.getChildren().stream().filter(item -> path.equals(item.getValue())).findFirst().orElseThrow();
   }
 
   private static double centerY(Node node) {
@@ -420,6 +434,10 @@ public final class FxWorkspaceLayoutTests {
   }
 
   private static void paintedRows(Region list, String selector, double outerPadding) {
+    paintedRows(list, selector, outerPadding, 4);
+  }
+
+  private static void paintedRows(Region list, String selector, double outerPadding, double rowInset) {
     var rows = list.lookupAll(selector).stream()
         .filter(node -> node instanceof IndexedCell<?> cell && !cell.isEmpty())
         .map(node -> (IndexedCell<?>) node).sorted(java.util.Comparator.comparingInt(IndexedCell::getIndex))
@@ -433,9 +451,10 @@ public final class FxWorkspaceLayoutTests {
     double firstTop = first.localToScene(0, firstPaint.getTop()).getY();
     double firstBottom = first.localToScene(0, first.getHeight() - firstPaint.getBottom()).getY();
     double secondTop = second.localToScene(0, secondPaint.getTop()).getY();
-    check(firstPaint.equals(new Insets(4, 0, 4, 0)) && secondPaint.equals(firstPaint)
-        && Math.abs(firstTop - listTop - (outerPadding + 4)) < .01 && Math.abs(secondTop - firstBottom - 8) < .01,
-        "Rows share the same paint insets and 8 px gap: " + list.getStyleClass());
+    check(firstPaint.equals(new Insets(rowInset, 0, rowInset, 0)) && secondPaint.equals(firstPaint)
+        && Math.abs(firstTop - listTop - (outerPadding + rowInset)) < .01
+        && Math.abs(secondTop - firstBottom - 2 * rowInset) < .01,
+        "Rows share consistent paint insets and gaps: " + list.getStyleClass());
   }
 
   private static void searchInWorkspace(Fixture fixture, AtomicReference<Throwable> failure, Runnable close) throws Exception {

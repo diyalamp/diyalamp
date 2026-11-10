@@ -46,7 +46,7 @@ For another release, replace `1.3.7` with that release's version in the command.
 3. Eject the mounted diyalamp disk image.
 4. Open diyalamp from Applications.
 
-Releases through **1.3.8** are ad hoc signed. macOS may block them on first launch. Look for a release whose notes confirm Developer ID signing and Apple notarization. If macOS reports a damaged app or refuses to open it, [report an issue](https://github.com/diyalamp/diyalamp/issues) with the exact message and macOS version. Organization-managed Macs may also enforce their own installation policy.
+Releases through **1.3.9** are ad hoc signed. macOS may block them on first launch. Look for a release whose notes confirm Developer ID signing and Apple notarization. If macOS reports a damaged app or refuses to open it, [report an issue](https://github.com/diyalamp/diyalamp/issues) with the exact message and macOS version. Organization-managed Macs may also enforce their own installation policy.
 
 ## Updating from the app
 
