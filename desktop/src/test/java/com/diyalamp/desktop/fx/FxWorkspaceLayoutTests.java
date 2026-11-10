@@ -299,7 +299,7 @@ public final class FxWorkspaceLayoutTests {
     var searchModes = sidebarSearch.lookupAll(".sidebar-search-mode");
     check(searchOptions.size() == 4 && searchModes.size() == 2
         && java.util.stream.Stream.concat(searchOptions.stream(), searchModes.stream()).allMatch(node ->
-            node instanceof Labeled option && option.getHeight() == 30 && !option.getText().isBlank()
+            node instanceof Labeled option && option.getHeight() == 28 && !option.getText().isBlank()
                 && !option.isTextTruncated() && option.getAccessibleText() != null),
         "Advanced search uses readable labels and consistent compact action targets in the full workspace");
     sidebarSearch.optionsButton().fire();

@@ -23,8 +23,7 @@ import javafx.scene.control.TreeView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.GridPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -40,7 +39,6 @@ public final class FxSidebarSearch extends VBox {
   private static final PseudoClass ERROR = PseudoClass.getPseudoClass("error");
   private static final PseudoClass OPTIONS_ACTIVE = PseudoClass.getPseudoClass("options-active");
   private static final PseudoClass QUERY_FOCUS_VISIBLE = PseudoClass.getPseudoClass("query-focus-visible");
-  private static final double SINGLE_ROW_OPTIONS_WIDTH = 360;
   private final HBox queryControl = new HBox(8);
   private final TextField query = new TextField();
   private final Label queryLabel = new Label(null, FxTheme.icon("search"));
@@ -50,7 +48,7 @@ public final class FxSidebarSearch extends VBox {
   private final ToggleGroup mode = new ToggleGroup();
   private final ToggleButton matchCase = new ToggleButton("Case"),
       wholeWord = new ToggleButton("Whole word"), regex = new ToggleButton("Regex"),
-      filters = new ToggleButton("Paths", FxTheme.icon("chevron-down", 12));
+      filters = new ToggleButton("File filters", FxTheme.icon("chevron-right"));
   private final TreeView<OpenResult> results = new TreeView<>();
   private final Label status = new Label();
   private final BooleanBinding hasQuery = query.textProperty().isNotEmpty();
@@ -215,11 +213,11 @@ public final class FxSidebarSearch extends VBox {
     for (RadioButton button : new RadioButton[] {files, contents}) {
       button.setToggleGroup(mode);
       button.setMinWidth(0);
-      // Equal segments grow with the track; the radio skin uses this width for its text.
-      button.setPrefWidth(80);
+      // Give both segments the same starting width and let the track shrink them equally.
+      button.setPrefWidth(160);
       button.getStyleClass().add("sidebar-search-mode");
     }
-    files.setText("File names");
+    files.setText("Filenames");
     files.setAccessibleText("Search filenames");
     contents.setText("Note text");
     contents.setAccessibleText("Search note contents");
@@ -233,39 +231,22 @@ public final class FxSidebarSearch extends VBox {
     styleToggle(filters, "Include and exclude files");
     filters.getStyleClass().add("sidebar-search-paths");
     filters.getGraphic().getStyleClass().add("sidebar-search-path-chevron");
-    GridPane flags = new GridPane();
+    Label match = new Label("Match");
+    match.getStyleClass().add("sidebar-search-caption");
+    FlowPane flags = new FlowPane(4, 4, matchCase, wholeWord, regex);
     flags.setMinWidth(0);
-    flags.setHgap(8);
-    flags.setVgap(6);
-    flags.getChildren().addAll(matchCase, wholeWord, regex, filters);
-    arrangeOptions(flags, 2);
-    flags.widthProperty().addListener((observable, previous, width) -> {
-      int columns = width.doubleValue() >= SINGLE_ROW_OPTIONS_WIDTH ? 4 : 2;
-      if (columns != flags.getColumnConstraints().size()) arrangeOptions(flags, columns);
-    });
+    VBox matching = new VBox(4, match, flags);
 
     VBox globs = new VBox(8, filterField("Include files", "e.g. notes/**", include),
         filterField("Exclude files", "e.g. drafts/**", exclude));
     globs.getStyleClass().add("sidebar-search-path-fields");
     disclose(globs, filters);
-    VBox options = new VBox(8, modes, flags, globs);
+    VBox pathOptions = new VBox(4, filters, globs);
+    pathOptions.getStyleClass().add("sidebar-search-path-options");
+    VBox options = new VBox(8, modes, matching, pathOptions);
     options.getStyleClass().add("sidebar-search-options");
     disclose(options, searchOptions);
     return options;
-  }
-
-  private static void arrangeOptions(GridPane flags, int columns) {
-    flags.getColumnConstraints().clear();
-    for (int i = 0; i < columns; i++) {
-      ColumnConstraints column = new ColumnConstraints();
-      column.setPercentWidth(100.0 / columns);
-      flags.getColumnConstraints().add(column);
-    }
-    for (int i = 0; i < flags.getChildren().size(); i++) {
-      Node option = flags.getChildren().get(i);
-      GridPane.setColumnIndex(option, i % columns);
-      GridPane.setRowIndex(option, i / columns);
-    }
   }
 
   private static void disclose(VBox panel, ToggleButton toggle) {

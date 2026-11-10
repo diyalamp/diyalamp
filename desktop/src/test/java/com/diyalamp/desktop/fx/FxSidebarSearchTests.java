@@ -143,9 +143,9 @@ public final class FxSidebarSearchTests {
       var modes = panel.lookupAll(".sidebar-search-mode");
       var matchingOptions = panel.lookupAll(".sidebar-search-option");
       check(modes.size() == 2 && modes.stream().map(Labeled.class::cast).map(Labeled::getText)
-              .collect(java.util.stream.Collectors.toSet()).equals(java.util.Set.of("File names", "Note text"))
+              .collect(java.util.stream.Collectors.toSet()).equals(java.util.Set.of("Filenames", "Note text"))
               && matchingOptions.size() == 4 && matchingOptions.stream().map(Labeled.class::cast).map(Labeled::getText)
-                  .collect(java.util.stream.Collectors.toSet()).equals(java.util.Set.of("Case", "Whole word", "Regex", "Paths"))
+                  .collect(java.util.stream.Collectors.toSet()).equals(java.util.Set.of("Case", "Whole word", "Regex", "File filters"))
               && java.util.stream.Stream.concat(modes.stream(), matchingOptions.stream()).allMatch(node ->
                   node instanceof Labeled item && item.getTooltip() == null && item.getAccessibleText() != null),
           "Search options must be named in the panel and accessible without covering it with a tooltip");
@@ -287,16 +287,17 @@ public final class FxSidebarSearchTests {
       var controls = List.of(files, text, matchCase, wholeWord, regex, paths);
       check(Math.abs(files.getWidth() - text.getWidth()) <= 1
               && controls.stream().allMatch(option ->
-                  option.getHeight() == 30 && !option.isTextTruncated()
+                  option.getHeight() == 28 && !option.isTextTruncated() && option.getFont().getSize() == 16
                       && option.localToScene(option.getLayoutBounds()).getMaxX() <= width - 11),
           "All search labels must fit their compact controls at sidebar width " + width + ": "
               + controls.stream().map(option -> option.getText() + " " + option.getWidth() + "×" + option.getHeight()
                   + (option.isTextTruncated() ? " (clipped)" : "")).toList());
-      check(Math.abs(matchCase.getLayoutY() - wholeWord.getLayoutY()) <= 1
-              && Math.abs(regex.getLayoutY() - paths.getLayoutY()) <= 1
-              && (width == 384 ? Math.abs(matchCase.getLayoutY() - regex.getLayoutY()) <= 1
-                  : regex.getLayoutY() >= matchCase.getLayoutY() + matchCase.getHeight() + 5),
-          "Matching options must form two aligned rows when narrow and a single row when wide: " + width);
+      check(matchCase.getParent() == wholeWord.getParent() && wholeWord.getParent() == regex.getParent()
+              && paths.localToScene(paths.getLayoutBounds()).getMinY()
+                  > regex.localToScene(regex.getLayoutBounds()).getMaxY()
+              && Math.abs(paths.getWidth() - files.getParent().getLayoutBounds().getWidth()) <= 1
+              && (width < 384 || Math.abs(matchCase.getLayoutY() - regex.getLayoutY()) <= 1),
+          "Matching options must stay together above a full-width path disclosure: " + width);
     }
     workspace.resize(272, workspace.getHeight());
     workspace.layout();
