@@ -3,7 +3,7 @@
   <p><strong>Your commonplace book.</strong></p>
   <p>Collect what you read and learn in a folder of Markdown notes. Write with live formatting, search your notes, and follow connections between them.</p>
   <p>Free forever · Open source · No sign-up · macOS</p>
-  <p><a href="#download-for-mac"><strong>Download for Mac</strong></a> · <a href="https://diyalamp.com/">Website</a> · <a href="https://github.com/diyalamp/diyalamp/releases/tag/v1.3.9">Release notes</a></p>
+  <p><a href="#download-for-mac"><strong>Download for Mac</strong></a> · <a href="https://diyalamp.com/">Website</a> · <a href="https://github.com/diyalamp/diyalamp/releases/tag/v1.4.0">Release notes</a></p>
 </div>
 
 <p align="center">
@@ -13,12 +13,12 @@
 
 ## Download for Mac
 
-Version **1.3.9** includes the runtime. Open **Apple menu → About This Mac** to choose your installer. Select Apple silicon if you see an Apple chip and Intel if you see an Intel processor.
+Version **1.4.0** includes the runtime. Open **Apple menu → About This Mac** to choose your installer. Select Apple silicon if you see an Apple chip and Intel if you see an Intel processor.
 
 | Mac | Installer | SHA-256 |
 | --- | --- | --- |
-| Apple silicon | [Download DMG · 42.3 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.3.9/diyalamp-1.3.9-macos-arm64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.3.9/diyalamp-1.3.9-macos-arm64.dmg.sha256) |
-| Intel | [Download DMG · 43.8 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.3.9/diyalamp-1.3.9-macos-x86_64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.3.9/diyalamp-1.3.9-macos-x86_64.dmg.sha256) |
+| Apple silicon | [Download DMG · 45.9 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.4.0/diyalamp-1.4.0-macos-arm64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.4.0/diyalamp-1.4.0-macos-arm64.dmg.sha256) |
+| Intel | [Download DMG · 47.5 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.4.0/diyalamp-1.4.0-macos-x86_64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.4.0/diyalamp-1.4.0-macos-x86_64.dmg.sha256) |
 
 Sizes are compressed DMG downloads. The [under-5-MB installed target](https://github.com/diyalamp/diyalamp/issues/2) is an open engineering goal.
 
@@ -30,6 +30,8 @@ Open the DMG and drag **diyalamp** into **Applications**. Then press `⌘O` to o
 
 Edit headings, checklists, quotes, links, and fenced code blocks with live formatting. Type `/` on an empty line for block commands. Drag a note into a second pane to keep a reference in view while you write. Reorder tabs, rename a note inline, or drag it to another folder. Select a folder to create a note inside it, rename it, or move it to Deleted Items.
 
+Preview text files, PDFs, and images beside a Markdown note. The last workspace can reopen with its tabs and split layout after you quit.
+
 <p align="center">
   <a href="docs/assets/database-search-and-split.webp?v=1.3.9"><img src="docs/assets/database-search-and-split.webp?v=1.3.9" alt="Search results for index alongside the Database Indexes and Query Plans notes in two editing panes" width="1100"></a><br>
   <sub>Search note text while keeping Database Indexes and Query Plans open.</sub>
@@ -40,7 +42,7 @@ Edit headings, checklists, quotes, links, and fenced code blocks with live forma
 Use `⌘P` to find files, `⌥⌘F` to search text across the folder, or `⌘F` to find text in the open note. Workspace filters support case, whole words, regular expressions, and included or excluded paths.
 
 <p align="center">
-  <a href="docs/assets/workspace-search.webp?v=1.3.9"><img src="docs/assets/workspace-search.webp?v=1.3.9" width="288" align="top" alt="Workspace search with advanced filters and matching passages grouped by note"></a>
+  <a href="docs/assets/workspace-search.webp?v=1.4.0"><img src="docs/assets/workspace-search.webp?v=1.4.0" width="288" align="top" alt="Workspace search with labeled match and path filters above a highlighted passage"></a>
   <a href="docs/assets/find-in-note.webp?v=1.3.9"><img src="docs/assets/find-in-note.webp?v=1.3.9" width="392" align="top" alt="Find in note dialog with the search phrase order feed"></a>
 </p>
 
