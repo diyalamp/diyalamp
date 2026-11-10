@@ -761,6 +761,7 @@ public final class FxDiyalamp extends Application {
   }
 
   private record HiddenFileSelection(TreeItem<Path> folder, TreeItem<Path> file) {}
+  private record FileTreePosition(TreeItem<Path> selected, TreeItem<Path> focused) {}
 
   private void rememberHiddenFileSelection(TreeItem<Path> folder) {
     TreeItem<Path> selected = tree.getSelectionModel().getSelectedItem();
@@ -778,6 +779,7 @@ public final class FxDiyalamp extends Application {
 
   private final class DirectoryItem extends TreeItem<Path> {
     boolean loaded;
+    private FileTreePosition positionBeforeLoad;
     DirectoryItem(Path path) {
       super(path);
       if (store.isDirectory(path)) {
@@ -786,6 +788,7 @@ public final class FxDiyalamp extends Application {
           if (expanded) {
             expandedFolders.add(path);
             populate();
+            restorePositionAfterLoad();
             restoreHiddenFileSelection(this);
           } else {
             expandedFolders.remove(path);
@@ -793,6 +796,20 @@ public final class FxDiyalamp extends Application {
         });
       }
     }
+
+    private void restorePositionAfterLoad() {
+      FileTreePosition saved = positionBeforeLoad;
+      positionBeforeLoad = null;
+      if (saved == null) return;
+      int selected = tree.getRow(saved.selected());
+      if (selected >= 0 && (selected != tree.getSelectionModel().getSelectedIndex()
+          || saved.selected() != tree.getSelectionModel().getSelectedItem()))
+        tree.getSelectionModel().clearAndSelect(selected);
+      int focused = tree.getRow(saved.focused());
+      if (focused >= 0 && (focused != tree.getFocusModel().getFocusedIndex()
+          || saved.focused() != tree.getFocusModel().getFocusedItem())) tree.getFocusModel().focus(focused);
+    }
+
     void populate() {
       if (loaded) return;
       loaded = true;
@@ -814,6 +831,13 @@ public final class FxDiyalamp extends Application {
     hiddenFileSelection = null;
     // Capture the active row before the native selection falls back to its collapsing ancestor.
     rootItem.addEventFilter(TreeItem.<Path>branchCollapsedEvent(), event -> rememberHiddenFileSelection(event.getTreeItem()));
+    // The native model first counts the placeholder as a row. Replacing it with real files
+    // can shift the selected index twice, so preserve the selected item through the first load.
+    rootItem.addEventFilter(TreeItem.<Path>branchExpandedEvent(), event -> {
+      if (event.getTreeItem() instanceof DirectoryItem folder && !folder.loaded)
+        folder.positionBeforeLoad = new FileTreePosition(tree.getSelectionModel().getSelectedItem(),
+            tree.getFocusModel().getFocusedItem());
+    });
     rootItem.populate(); rootItem.setExpanded(true); tree.setRoot(rootItem);
     if (selected != null) selectTree(tree.getRoot(), selected);
     if (searchQuery != null) scheduleSearch(searchQuery);

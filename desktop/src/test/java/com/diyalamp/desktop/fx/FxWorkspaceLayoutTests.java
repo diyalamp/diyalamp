@@ -46,6 +46,8 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.Duration;
 import javax.imageio.ImageIO;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
 
 /** Checks the actual full-window composition and native control hit areas at desktop widths. */
 public final class FxWorkspaceLayoutTests {
@@ -606,6 +608,27 @@ public final class FxWorkspaceLayoutTests {
             && field(fixture.app, "active") == preview,
         "Arrow-key browsing after a collapse keeps its selection without switching the active preview tab");
     call(fixture.app, "closeActive", new Class<?>[0]);
+
+    Path lazyFolder = Files.createDirectory(fixture.directory.resolve("References"));
+    Files.writeString(lazyFolder.resolve("Chapter one.txt"), "Reference one");
+    Files.writeString(lazyFolder.resolve("Chapter two.txt"), "Reference two");
+    Path pdf = fixture.directory.resolve("Selected.pdf");
+    try (PDDocument document = new PDDocument()) {
+      document.addPage(new PDPage()); document.save(pdf.toFile());
+    }
+    Files.writeString(fixture.directory.resolve("Trailing.txt"), "The next row after the PDF");
+    call(fixture.app, "refreshTree", new Class<?>[0]);
+    call(fixture.app, "open", open, pdf, false);
+    Object activePdf = field(fixture.app, "active");
+    var pdfRow = tree.getSelectionModel().getSelectedItem();
+    var lazyBranch = tree.getRoot().getChildren().stream()
+        .filter(item -> lazyFolder.equals(item.getValue())).findFirst().orElseThrow();
+    check(!lazyBranch.isExpanded() && lazyBranch.getChildren().size() == 1
+        && lazyBranch.getChildren().getFirst().getValue() == null, "The unopened folder still has one lazy placeholder");
+    lazyBranch.setExpanded(true);
+    check(lazyBranch.getChildren().size() == 2 && tree.getSelectionModel().getSelectedItem() == pdfRow
+        && tree.getFocusModel().getFocusedItem() == pdfRow && field(fixture.app, "active") == activePdf,
+        "Loading multiple children above an open PDF preserves its row selection and focus");
     call(fixture.app, "open", open, referencePath, false);
   }
 
