@@ -105,6 +105,7 @@ public final class FxWorkspaceLayoutTests {
     System.out.println("Passed " + checks + " JavaFX workspace layout checks.");
   }
 
+  @SuppressWarnings("unchecked")
   private static void composition(Fixture fixture) throws Exception {
     check(Application.getUserAgentStylesheet().contains("cupertino-dark"),
         "The workspace must use the maintained Cupertino Dark control theme");
@@ -239,10 +240,18 @@ public final class FxWorkspaceLayoutTests {
         && divider.getLayoutBounds().getWidth() == 1 && divider.getLayoutBounds().getHeight() == 16
         && Math.abs(centerY(divider) - center) <= 1), "Toolbar groups have slim centered dividers");
     Button path = (Button) field(fixture.app, "folderControl");
-    check(path.isVisible() && path.getText().equals(fixture.directory.toString())
+    check(path.isVisible() && (path.getText().equals(fixture.directory.toString())
+        || path.getText().equals(fixture.directory.getFileName().toString()))
         && path.getTooltip().getText().equals(fixture.directory.toString()) && path.getGraphic() != null
-        && path.getWidth() > 100 && path.getOnAction() != null,
+        && path.getWidth() >= 36 && path.getOnAction() != null,
         "One toolbar button exposes the full workspace path and opens the folder picker");
+    // The system's temporary directory can be long enough to trigger compact mode even here.
+    var folderPath = (ObjectProperty<Path>) field(fixture.app, "workspacePath");
+    Path shortPath = Path.of("/Workspace/Notes");
+    folderPath.set(shortPath); fixture.layout();
+    check(path.getText().equals(shortPath.toString()) && path.getWidth() > 100,
+        "A full folder path is visible when its text fits in the toolbar");
+    folderPath.set(fixture.directory); fixture.layout();
     String imagePath = System.getProperty("diyalamp.workspace.snapshot");
     if (imagePath != null && !imagePath.isBlank()) snapshot(fixture.stage, Path.of(imagePath));
     Region searchChrome = (Region) filesContext.lookup(".sidebar-search-query");
@@ -289,13 +298,10 @@ public final class FxWorkspaceLayoutTests {
     var searchOptions = sidebarSearch.lookupAll(".sidebar-search-option");
     var searchModes = sidebarSearch.lookupAll(".sidebar-search-mode");
     check(searchOptions.size() == 4 && searchModes.size() == 2
-        && searchOptions.stream().allMatch(node -> node.getLayoutBounds().getWidth() == 28
-            && node.getLayoutBounds().getHeight() == 28)
-        && java.util.stream.Stream.concat(searchOptions.stream(), searchModes.stream()).allMatch(node -> {
-          Node graphic = ((Labeled) node).getGraphic();
-          return graphic.getLayoutBounds().getWidth() == 16 && graphic.getLayoutBounds().getHeight() == 16
-              && Math.abs(inkCenterY(graphic) - centerY(node)) <= 1;
-        }), "Advanced search shares the workspace icon size, centered artwork, and compact action targets");
+        && java.util.stream.Stream.concat(searchOptions.stream(), searchModes.stream()).allMatch(node ->
+            node instanceof Labeled option && option.getHeight() == 30 && !option.getText().isBlank()
+                && !option.isTextTruncated() && option.getAccessibleText() != null),
+        "Advanced search uses readable labels and consistent compact action targets in the full workspace");
     sidebarSearch.optionsButton().fire();
     fixture.layout();
     check(rowActions.stream().filter(Node::isVisible).count() == 6,
