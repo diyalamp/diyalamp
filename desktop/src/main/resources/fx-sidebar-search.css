@@ -94,6 +94,13 @@
   -fx-padding: 4 8;
   -fx-indent: 12;
 }
+/* Use the Cupertino chevron without changing the text viewport's disclosure width. */
+.sidebar-search-results .tree-cell > .tree-disclosure-node > .arrow,
+.sidebar-search-results .tree-cell:expanded > .tree-disclosure-node > .arrow {
+  -fx-shape: "M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z";
+  -fx-scale-shape: true;
+}
+.sidebar-search-results .tree-cell:expanded > .tree-disclosure-node > .arrow { -fx-rotate: 90; }
 .sidebar-search-results:focused .tree-cell:filled:focused { -fx-border-color: -diyalamp-focus; }
 .sidebar-search-file { -fx-alignment: center-left; }
 .sidebar-search-file-name { -fx-font-family: "Inter SemiBold"; -fx-text-fill: -color-fg-default; }

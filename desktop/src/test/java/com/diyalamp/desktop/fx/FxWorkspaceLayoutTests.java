@@ -19,6 +19,8 @@ import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.DialogPane;
 import javafx.scene.control.IndexedCell;
 import javafx.scene.control.Label;
 import javafx.scene.control.Labeled;
@@ -41,6 +43,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import javafx.util.Duration;
 import javax.imageio.ImageIO;
 
@@ -67,7 +70,15 @@ public final class FxWorkspaceLayoutTests {
         settle.setOnFinished(event -> {
           try {
             current.layout(); composition(current); compactWidth(current); nestedFileRow(current);
-            searchInWorkspace(current, failure, close);
+            Platform.runLater(() -> {
+              try {
+                folderControls(current);
+                searchInWorkspace(current, failure, close);
+              } catch (Throwable error) {
+                failure.compareAndSet(null, error);
+                close.run();
+              }
+            });
           } catch (Throwable error) {
             failure.compareAndSet(null, error);
             close.run();
@@ -405,6 +416,57 @@ public final class FxWorkspaceLayoutTests {
 
   private static TreeItem<?> folderItem(TreeItem<?> parent, Path path) {
     return parent.getChildren().stream().filter(item -> path.equals(item.getValue())).findFirst().orElseThrow();
+  }
+
+  private static void folderControls(Fixture fixture) throws Exception {
+    TreeView<?> tree = (TreeView<?>) field(fixture.app, "tree");
+    Path folder = fixture.directory.resolve("Folder");
+    Class<?>[] treePath = {TreeItem.class, Path.class};
+    call(fixture.app, "selectTree", treePath, tree.getRoot(), folder);
+    fixture.layout();
+    Button create = action(tree, "New note in Folder");
+    check(create.getParent().isVisible() && action(tree, "Rename folder Folder").getParent().isVisible()
+        && action(tree, "Move folder Folder to deleted items").getParent().isVisible(),
+        "The selected folder exposes creation, inline rename, and recoverable delete");
+    acceptDialog(create, "New note", "New child");
+    check(Files.isRegularFile(folder.resolve("New child.md")), "The folder's creation action writes inside that folder");
+    call(fixture.app, "selectTree", treePath, tree.getRoot(), folder);
+    fixture.layout();
+    action(tree, "Rename folder Folder").fire();
+    TextField rename = (TextField) tree.lookup(".file-rename-field");
+    check(rename != null && rename.getText().equals("Folder"), "The folder name is selected inline for editing");
+    rename.setText("Renamed folder");
+    rename.fireEvent(new ActionEvent());
+    fixture.layout();
+    Path renamed = fixture.directory.resolve("Renamed folder");
+    Path child = renamed.resolve("New child.md");
+    Object active = field(fixture.app, "active");
+    check(!Files.exists(folder) && Files.isRegularFile(child) && child.equals(field(field(active, "session"), "path")),
+        "Renaming a folder retains its contents and updates open note paths");
+    acceptDialog(action(tree, "Move folder Renamed folder to deleted items"), "Move folder to deleted items?", null);
+    check(!Files.exists(renamed), "The folder action moves the whole directory out of the explorer");
+    call(fixture.app, "restoreLast", new Class<?>[0]);
+    check(Files.isRegularFile(child) && folderItem(tree.getRoot(), renamed).isExpanded(),
+        "Restore returns the folder and nested notes and reveals them in the explorer");
+  }
+
+  private static void acceptDialog(Button action, String title, String name) {
+    AtomicReference<Throwable> failure = new AtomicReference<>();
+    Platform.runLater(() -> {
+      DialogPane pane = null;
+      try {
+        pane = Window.getWindows().stream().filter(Window::isShowing).map(window -> window.getScene().getRoot())
+            .filter(DialogPane.class::isInstance).map(DialogPane.class::cast).findFirst().orElseThrow();
+        check(title.equals(pane.getHeaderText()), "The folder action opens the expected dialog");
+        if (name != null) ((TextField) pane.lookup(".text-field")).setText(name);
+        ((Button) pane.lookupButton(ButtonType.OK)).fire();
+      } catch (Throwable error) {
+        failure.set(error);
+        if (pane != null && pane.lookupButton(ButtonType.CANCEL) instanceof Button cancel) cancel.fire();
+      }
+    });
+    action.fire();
+    if (failure.get() != null) throw new AssertionError("Folder action dialog failed", failure.get());
   }
 
   private static double centerY(Node node) {

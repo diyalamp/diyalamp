@@ -76,7 +76,7 @@ public final class FxSidebarSearch extends VBox {
     status.setMaxWidth(Double.MAX_VALUE);
     status.visibleProperty().bind(hasQuery.and(status.textProperty().isNotEmpty()));
     status.managedProperty().bind(status.visibleProperty());
-    results.getStyleClass().addAll("sidebar-search-results", "alt-icon", "edge-to-edge");
+    results.getStyleClass().addAll("sidebar-search-results", "edge-to-edge");
     results.setAccessibleText("Workspace search results grouped by file");
     results.setAccessibleHelp("Use arrow keys to move between results. Press Enter to open a result or Escape to clear search.");
     results.setShowRoot(false);
@@ -328,6 +328,7 @@ public final class FxSidebarSearch extends VBox {
   }
 
   private final class ResultCell extends TreeCell<OpenResult> {
+    private static final double INLINE_ACTIONS_WIDTH = 270;
     private Node actions;
     private VBox fileGroup;
     private HBox fileHeading, actionStrip;
@@ -402,10 +403,10 @@ public final class FxSidebarSearch extends VBox {
 
     private void layoutFileActions() {
       if (actionStrip == null) return;
-      if (getWidth() < 220 && actionStrip.getParent() != fileGroup) {
+      if (getWidth() < INLINE_ACTIONS_WIDTH && actionStrip.getParent() != fileGroup) {
         fileHeading.getChildren().remove(actionStrip);
         fileGroup.getChildren().add(actionStrip);
-      } else if (getWidth() >= 220 && actionStrip.getParent() != fileHeading) {
+      } else if (getWidth() >= INLINE_ACTIONS_WIDTH && actionStrip.getParent() != fileHeading) {
         fileGroup.getChildren().remove(actionStrip);
         fileHeading.getChildren().add(actionStrip);
       }

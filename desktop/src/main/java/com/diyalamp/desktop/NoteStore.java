@@ -13,7 +13,9 @@ import java.util.concurrent.CancellationException;
 public final class NoteStore {
   public record Loaded(String text, String fingerprint) {}
 
-  public record Deleted(Path original, Path trashed) {}
+  public record Deleted(Path original, Path trashed, boolean folder) {
+    public Deleted(Path original, Path trashed) { this(original, trashed, false); }
+  }
 
   public record NoteListing(List<Path> paths, boolean partial) {}
 
@@ -132,7 +134,11 @@ public final class NoteStore {
   }
 
   private Path checkedDirectory(Path path) throws IOException {
-    path = checkedPath(path, true);
+    return checkedDirectory(path, true);
+  }
+
+  private Path checkedDirectory(Path path, boolean allowRoot) throws IOException {
+    path = checkedPath(path, allowRoot);
     if (!Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS))
       throw new IOException("Choose an existing folder inside the open notes folder.");
     return path;
@@ -261,11 +267,27 @@ public final class NoteStore {
 
   public Path createFolder(Path directory, String name) throws IOException {
     directory = checkedDirectory(directory);
+    return Files.createDirectory(checked(directory.resolve(cleanFolderName(name))));
+  }
+
+  public Path renameFolder(Path folder, String name) throws IOException {
+    folder = checkedDirectory(folder, false);
+    Path destination = checked(folder.resolveSibling(cleanFolderName(name)));
+    if (folder.equals(destination)) return folder;
+    // On a case-insensitive volume, a normal Files.move treats these paths as the same file.
+    if (folder.getFileName().toString().equalsIgnoreCase(destination.getFileName().toString())
+        && Files.isDirectory(destination, LinkOption.NOFOLLOW_LINKS)
+        && Files.isSameFile(folder, destination))
+      return Files.move(folder, destination, StandardCopyOption.ATOMIC_MOVE);
+    return moveDirectory(folder, destination);
+  }
+
+  private static String cleanFolderName(String name) throws IOException {
     name = name.strip();
     if (name.isBlank() || name.startsWith(".") || name.length() > 120
         || name.matches(".*[\\\\/:\\p{Cntrl}].*"))
       throw new IOException("Use a folder name of 1–120 characters without slashes or a leading dot.");
-    return Files.createDirectory(checked(directory.resolve(name)));
+    return name;
   }
 
   private static String cleanName(String name) throws IOException {
@@ -279,20 +301,26 @@ public final class NoteStore {
   }
 
   public Deleted trash(Path path) throws IOException {
-    path = checkedNote(path);
+    return trash(checkedNote(path), false);
+  }
+
+  public Deleted deleteFolder(Path folder) throws IOException {
+    return trash(checkedDirectory(folder, false), true);
+  }
+
+  private Deleted trash(Path path, boolean folder) throws IOException {
     Path trash = trashDirectory(true);
-    Path dest =
-        trash.resolve(
-            Instant.now().toEpochMilli() + "-" + UUID.randomUUID() + "-" + path.getFileName());
+    String id = Instant.now().toEpochMilli() + "-" + UUID.randomUUID();
+    Path dest = trash.resolve(folder ? id : id + "-" + path.getFileName());
     Path origin = originFile(dest);
     String relative = root.relativize(path).toString();
     Files.writeString(origin,
-        "diyalamp-trash-v1\n" + Base64.getUrlEncoder().encodeToString(relative.getBytes(StandardCharsets.UTF_8)),
+        trashMarker(folder) + Base64.getUrlEncoder().encodeToString(relative.getBytes(StandardCharsets.UTF_8)),
         StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
     try {
       trashDirectory(false);
-      checkedNote(path);
-      Files.move(path, dest);
+      if (folder) moveDirectory(checkedDirectory(path, false), dest);
+      else Files.move(checkedNote(path), dest);
     } catch (IOException error) {
       try {
         trashDirectory(false);
@@ -302,20 +330,22 @@ public final class NoteStore {
       }
       throw error;
     }
-    return new Deleted(path, dest);
+    return new Deleted(path, dest, folder);
   }
 
   public Path restore(Deleted deleted) throws IOException {
-    Path source = checkedTrashNote(deleted.trashed());
+    boolean folder = deleted.folder();
+    Path source = checkedTrashItem(deleted.trashed(), folder);
     Path original = checked(deleted.original());
-    if (!isMarkdown(original)) throw new IOException("A restored note must have a Markdown extension.");
+    if (!folder && !isMarkdown(original)) throw new IOException("A restored note must have a Markdown extension.");
     Path origin = originFile(source);
-    if (Files.exists(origin, LinkOption.NOFOLLOW_LINKS)
-        && !original.equals(readOriginal(source)))
-      throw new IOException("The deleted note's original location does not match its restore record.");
+    if ((folder || Files.exists(origin, LinkOption.NOFOLLOW_LINKS))
+        && !original.equals(readOriginal(source, folder)))
+      throw new IOException("The original location does not match the restore record.");
     if (Files.exists(original, LinkOption.NOFOLLOW_LINKS))
-      throw new IOException("A note already uses that name. Rename it before restoring.");
-    Files.move(source, original);
+      throw new IOException("That name is already in use. Rename the existing item before restoring.");
+    if (folder) moveDirectory(source, original);
+    else Files.move(source, original);
     try {
       Files.deleteIfExists(origin);
     } catch (IOException ignored) {
@@ -324,16 +354,17 @@ public final class NoteStore {
     return original;
   }
 
-  /** Recoverable notes, including their original nested location after the app restarts. */
+  /** Recoverable notes and folders, including their original nested location after the app restarts. */
   public List<Deleted> deleted() throws IOException {
     Path trash = trashDirectory(false);
     if (!Files.exists(trash, LinkOption.NOFOLLOW_LINKS)) return List.of();
     List<Deleted> records = new ArrayList<>();
     try (var files = Files.list(trash)) {
-      for (Path file : files.sorted(Comparator.comparing(Path::toString).reversed()).toList())
-        if (!Files.isSymbolicLink(file)
-            && Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)
-            && isMarkdown(file)) records.add(new Deleted(readOriginal(file), file));
+      for (Path item : files.sorted(Comparator.comparing(Path::toString).reversed()).toList()) {
+        boolean folder = Files.isDirectory(item, LinkOption.NOFOLLOW_LINKS);
+        if (folder ? Files.exists(originFile(item), LinkOption.NOFOLLOW_LINKS) : isTrashNote(item))
+          records.add(new Deleted(readOriginal(item, folder), item, folder));
+      }
     }
     return List.copyOf(records);
   }
@@ -350,37 +381,51 @@ public final class NoteStore {
     return trash;
   }
 
-  private Path checkedTrashNote(Path path) throws IOException {
+  private Path checkedTrashItem(Path path, boolean folder) throws IOException {
     Path trash = trashDirectory(false);
     path = path.toAbsolutePath().normalize();
-    if (!trash.equals(path.getParent()) || Files.isSymbolicLink(path)
-        || !Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) || !isMarkdown(path))
-      throw new IOException("Choose a deleted Markdown note from this notes folder.");
+    if (!trash.equals(path.getParent()) || !(folder ? Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS) : isTrashNote(path)))
+      throw new IOException("Choose a deleted note or folder from this workspace.");
     return path;
   }
 
-  private Path readOriginal(Path trashed) throws IOException {
+  private static boolean isTrashNote(Path path) {
+    return Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) && isMarkdown(path);
+  }
+
+  private static Path moveDirectory(Path source, Path destination) throws IOException {
+    if (!Files.getFileStore(source).equals(Files.getFileStore(destination.getParent())))
+      throw new IOException("The folder cannot be moved between volumes.");
+    return Files.move(source, destination);
+  }
+
+  private static String trashMarker(boolean folder) {
+    return folder ? "diyalamp-trash-folder-v1\n" : "diyalamp-trash-v1\n";
+  }
+
+  private Path readOriginal(Path trashed, boolean folder) throws IOException {
     Path origin = originFile(trashed);
     if (!Files.exists(origin, LinkOption.NOFOLLOW_LINKS)) {
+      if (folder) throw new IOException("The deleted folder's restore record is missing.");
       String name = trashed.getFileName().toString().replaceFirst("^\\d+-[a-f0-9-]{36}-", "");
       return root.resolve(name);
     }
-    if (Files.isSymbolicLink(origin) || !Files.isRegularFile(origin, LinkOption.NOFOLLOW_LINKS))
-      throw new IOException("The deleted note's restore record is not a regular file.");
+    if (!Files.isRegularFile(origin, LinkOption.NOFOLLOW_LINKS))
+      throw new IOException("The restore record is not a regular file.");
     try {
       String data = decode(readBounded(origin, 16384));
-      String prefix = "diyalamp-trash-v1\n";
+      String prefix = trashMarker(folder);
       if (!data.startsWith(prefix)) throw new IllegalArgumentException("Unknown restore record");
       Path relative = Path.of(decode(Base64.getUrlDecoder().decode(data.substring(prefix.length()))));
       if (relative.isAbsolute() || relative.toString().isBlank()
           || relative.normalize().startsWith("..") || !relative.equals(relative.normalize()))
         throw new IllegalArgumentException("Invalid restore path");
       Path original = root.resolve(relative);
-      if (!visible(original) || !isMarkdown(original))
-        throw new IllegalArgumentException("Invalid Markdown restore path");
+      if (!visible(original) || (!folder && !isMarkdown(original)))
+        throw new IllegalArgumentException("Invalid restore path");
       return original;
     } catch (IllegalArgumentException error) {
-      throw new IOException("The deleted note's restore record is invalid; its file is unchanged.", error);
+      throw new IOException("The restore record is invalid. The deleted item is unchanged.", error);
     }
   }
 
