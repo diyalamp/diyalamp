@@ -1,6 +1,6 @@
 /* A single surface holds the label, editable field and independent actions. */
 .workspace-root .sidebar-search-query {
-  -fx-padding: 0 1 0 9;
+  -fx-padding: 0 1 0 7;
   -fx-background-color: -diyalamp-control-hover;
   -fx-background-radius: 8;
   -fx-border-color: transparent;
@@ -30,8 +30,8 @@
   -fx-background-insets: 0;
 }
 .workspace-root .sidebar-search-tools .sidebar-search-toggle:selected {
-  -fx-background-color: -diyalamp-control-pressed;
-  -fx-background-insets: 0;
+  -fx-background-color: -diyalamp-control-hover;
+  -fx-background-insets: 1;
 }
 .workspace-root .sidebar-search-tools .workspace-tool:focus-visible {
   -fx-background-color: -diyalamp-focus, -color-bg-default;
@@ -50,7 +50,7 @@
 }
 
 .sidebar-search-options {
-  -fx-padding: 8 12 12;
+  -fx-padding: 8 12;
   -fx-background-color: -diyalamp-divider, -color-bg-inset;
   -fx-background-insets: 0, 0 0 1 0;
 }
@@ -65,12 +65,11 @@
 }
 .sidebar-search .sidebar-search-mode,
 .sidebar-search .sidebar-search-option {
-  -fx-font-size: 13px;
   -fx-text-fill: -color-fg-default;
-  -fx-min-height: 30;
-  -fx-pref-height: 30;
-  -fx-max-height: 30;
-  -fx-padding: 0 2;
+  -fx-min-height: 28;
+  -fx-pref-height: 28;
+  -fx-max-height: 28;
+  -fx-padding: 0 6;
   -fx-background-color: transparent;
   -fx-background-insets: 0;
   -fx-background-radius: 6;
@@ -80,7 +79,7 @@
   -fx-effect: null;
   -fx-alignment: center;
 }
-.sidebar-search .sidebar-search-mode { -fx-label-padding: 0; -fx-graphic-text-gap: 0; }
+.sidebar-search .sidebar-search-mode { -fx-label-padding: 0; -fx-padding: 0 2; -fx-graphic-text-gap: 0; }
 .sidebar-search-mode > .radio, .sidebar-search-mode > .radio > .dot {
   -fx-min-width: 0;
   -fx-pref-width: 0;
@@ -91,28 +90,40 @@
   -fx-opacity: 0;
 }
 .sidebar-search .sidebar-search-option { -fx-background-color: -diyalamp-control-hover; }
+.sidebar-search .sidebar-search-caption { -fx-text-fill: -color-fg-muted; }
 .sidebar-search .sidebar-search-mode:hover { -fx-text-fill: -color-fg-emphasis; }
 .sidebar-search .sidebar-search-option:hover {
   -fx-background-color: -diyalamp-control-pressed;
   -fx-text-fill: -color-fg-emphasis;
 }
 .sidebar-search .sidebar-search-mode:selected { -fx-text-fill: -color-fg-emphasis; }
-.sidebar-search .sidebar-search-option:selected,
-.sidebar-search .sidebar-search-paths:options-active {
+.sidebar-search .sidebar-search-option:selected {
   -fx-background-color: -diyalamp-accent-subtle;
   -fx-text-fill: -color-fg-emphasis;
 }
 .sidebar-search .sidebar-search-mode:focus-visible, .sidebar-search .sidebar-search-option:focus-visible {
   -fx-border-color: -diyalamp-focus;
 }
-.sidebar-search-paths { -fx-content-display: right; -fx-graphic-text-gap: 4; }
-.sidebar-search-paths:selected .sidebar-search-path-chevron { -fx-rotate: 180; }
-.sidebar-search-paths:selected .icon-stroke,
+.sidebar-search-path-options { -fx-border-width: 1 0 0; -fx-border-color: -diyalamp-divider; -fx-padding: 4 0 0; }
+.sidebar-search .sidebar-search-paths,
+.sidebar-search .sidebar-search-paths:selected {
+  -fx-alignment: center-left;
+  -fx-graphic-text-gap: 8;
+  -fx-background-color: transparent;
+}
+.sidebar-search .sidebar-search-paths:hover { -fx-background-color: -diyalamp-control-hover; }
+.sidebar-search-path-chevron {
+  transition-property: -fx-rotate;
+  transition-duration: 140ms;
+  transition-timing-function: ease-out;
+}
+.workspace-root:reduced-motion .sidebar-search-path-chevron { transition-duration: 0s; }
+.sidebar-search-paths:selected .sidebar-search-path-chevron { -fx-rotate: 90; }
+.sidebar-search .sidebar-search-paths:options-active { -fx-text-fill: -color-fg-emphasis; }
 .sidebar-search-paths:options-active .icon-stroke { -fx-stroke: -color-accent-fg; }
-.sidebar-search-path-fields { -fx-padding: 4 0 0; }
-.sidebar-search-path-fields .label { -fx-font-size: 14px; -fx-text-fill: -color-fg-muted; }
+.sidebar-search-path-fields { -fx-padding: 0 0 4; }
+.sidebar-search-path-fields .label { -fx-text-fill: -color-fg-muted; }
 .sidebar-search .sidebar-search-filter-field {
-  -fx-font-size: 14px;
   -fx-padding: 0 8;
   -fx-background-color: -diyalamp-control-hover;
   -fx-border-color: transparent;
