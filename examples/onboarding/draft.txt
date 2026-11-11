@@ -1,7 +1,0 @@
-We should replace our guided onboarding with a self-serve setup wizard next month.
-
-Our product, Harbor, helps small operations teams schedule field technicians. Only 38% of new accounts create their first schedule within seven days. That tells me onboarding is too complicated. Three customers recently asked whether they could get started without booking a call, and two competitors have self-serve onboarding. We risk looking outdated if we keep asking people to talk to us.
-
-A wizard should raise activation to 60%, reduce support work, and let us grow without hiring another onboarding specialist. Engineering estimates three weeks to build it. I think we should stop working on bulk import for now and assign both available engineers to the wizard.
-
-We can remove the booking-a-call step and make the wizard the default for everyone. If activation rises after launch, we will know it worked. We should move quickly rather than spend another month researching something that seems obvious.

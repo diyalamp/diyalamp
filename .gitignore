@@ -7,10 +7,3 @@ build/
 .idea/
 
 .diyalamp/
-*.review.properties
-*.publication.properties
-*.review.properties.lock
-
-node_modules/
-workspace/public/app.js
-workspace/test-results/

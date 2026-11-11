@@ -67,7 +67,7 @@ Common Markdown is supported; this first release does not implement the full Com
 
 ## Icon assets
 
-`src/main/resources/app-icon.png` preserves the approved profile artwork's lamp size and position, with a dark backplate, restrained edge shading, and a soft shadow. The packaged macOS app retains its bundled ICNS for the Dock rather than replacing it at runtime. This guard preserves the packaged icon; it does not override or guarantee operating-system Dock zoom behavior. Development launches outside the app bundle use the PNG window icon. `icon-source/` contains the unchanged composition source and a reproducible macOS renderer; it is not bundled into the app. `lamp.png` remains the separate, compact inline brand mark.
+The Mac package generates its Dock icon from `src/main/resources/app-icon.png`. Development launches use the same PNG as the window icon. The JavaFX toolbar uses `brand-mark.png`.
 
 ## Connected notes and focus
 
@@ -81,4 +81,4 @@ Use the moon toolbar control or Shift-Command-F to focus on the active caret lin
 
 Pomodoro shows the active phase and countdown in the toolbar. Open its popover to start, pause, reset, and set focus and break lengths. One cycle runs a focus session and its break before stopping. Repeat alternates focus and break until paused or reset. Duration and repeat settings persist across launches. The timer stops when the app exits.
 
-The website and browser notebook remain a separate dark presentation and do not sync with local folders. Full VoiceOver review and physical Intel GUI validation remain open; passing component tests and producing both architecture packages do not replace those checks.
+The website has its own repository. Full VoiceOver review and physical Intel GUI validation remain open.

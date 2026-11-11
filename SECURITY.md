@@ -4,4 +4,4 @@ The desktop editor's local writing flow should work without a network connection
 
 Never put private notes or secrets in a public issue. To report a vulnerability, use GitHub's **Security → Report a vulnerability** feature when available. If private reporting is unavailable, open an issue that requests a private reporting channel without disclosing the vulnerability or affected private data.
 
-Supported desktop versions and release verification will be recorded in release notes. Historical agent and cloud prototypes are not part of the local editor's supported runtime.
+Supported desktop versions and release verification are recorded in release notes.

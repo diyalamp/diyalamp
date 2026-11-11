@@ -1,1 +1,0 @@
-We should shorten setup to improve activation and reduce churn. In a sample of 40 accounts, 18 stopped during setup. We have not established why.
