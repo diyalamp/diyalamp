@@ -7,7 +7,7 @@
 </div>
 
 <p align="center">
-  <a href="docs/assets/database-workspace.webp?v=1.3.9"><img src="docs/assets/database-workspace.webp?v=1.3.9" alt="diyalamp showing a rendered database index note, a local graph, four incoming links, and five outgoing links" width="1100"></a><br>
+  <a href="docs/assets/database-workspace.webp?v=1.4.1-r2"><img src="docs/assets/database-workspace.webp?v=1.4.1-r2" alt="diyalamp showing a rendered database index note, a local graph, four incoming links, and five outgoing links" width="1100"></a><br>
   <sub>Database Indexes, with its incoming and outgoing note links.</sub>
 </p>
 
@@ -33,7 +33,7 @@ Edit headings, checklists, quotes, links, and fenced code blocks with live forma
 Preview text files, PDFs, and images beside a Markdown note. The last workspace can reopen with its tabs and split layout after you quit.
 
 <p align="center">
-  <a href="docs/assets/database-search-and-split.webp?v=1.3.9"><img src="docs/assets/database-search-and-split.webp?v=1.3.9" alt="Search results for index alongside the Database Indexes and Query Plans notes in two editing panes" width="1100"></a><br>
+  <a href="docs/assets/database-search-and-split.webp?v=1.4.1-r2"><img src="docs/assets/database-search-and-split.webp?v=1.4.1-r2" alt="Search results for index alongside the Database Indexes and Query Plans notes in two editing panes" width="1100"></a><br>
   <sub>Search note text while keeping Database Indexes and Query Plans open.</sub>
 </p>
 
@@ -42,8 +42,11 @@ Preview text files, PDFs, and images beside a Markdown note. The last workspace 
 Use `⌘P` to find files, `⌥⌘F` to search text across the folder, or `⌘F` to find text in the open note. In workspace search, use **Match** for case, whole words, and regular expressions. Expand **File filters** to include or exclude paths.
 
 <p align="center">
-  <a href="docs/assets/workspace-search.webp?v=1.4.1"><img src="docs/assets/workspace-search.webp?v=1.4.1" width="288" align="top" alt="Note text search with Case, Whole word, and Regex switches, a File filters disclosure, and a highlighted match"></a>
-  <a href="docs/assets/find-in-note.webp?v=1.3.9"><img src="docs/assets/find-in-note.webp?v=1.3.9" width="392" align="top" alt="Find in note dialog with the search phrase order feed"></a>
+  <a href="docs/assets/workspace-search.webp?v=1.4.1-r2"><img src="docs/assets/workspace-search.webp?v=1.4.1-r2" width="288" alt="Note text search with Case, Whole word, and Regex switches, a File filters disclosure, and a highlighted match"></a>
+</p>
+
+<p align="center">
+  <a href="docs/assets/find-in-note.webp?v=1.4.1-r2"><img src="docs/assets/find-in-note.webp?v=1.4.1-r2" width="740" alt="Inline Find bar showing one match for order feed, highlighted in the note"></a>
 </p>
 
 ### Follow links and backlinks
@@ -51,7 +54,7 @@ Use `⌘P` to find files, `⌥⌘F` to search text across the folder, or `⌘F` 
 Type `[[Note name]]` or use a relative Markdown link. The Connections panel shows the active note’s graph along with its incoming and outgoing links.
 
 <p align="center">
-  <a href="docs/assets/connections-hover.webp?v=1.3.9"><img src="docs/assets/connections-hover.webp?v=1.3.9" width="344" alt="The Connections panel highlights links to and from Composite Indexes while it is hovered"></a>
+  <a href="docs/assets/connections-hover.webp?v=1.4.1-r2"><img src="docs/assets/connections-hover.webp?v=1.4.1-r2" width="344" alt="The Connections panel highlights links to and from Composite Indexes while it is hovered"></a>
 </p>
 
 ### Keep the active line in view
@@ -59,7 +62,7 @@ Type `[[Note name]]` or use a relative Markdown link. The Connections panel show
 Focus mode keeps the line you’re writing bright and dims the surrounding text and workspace.
 
 <p align="center">
-  <a href="docs/assets/focus-active-line.webp?v=1.3.9"><img src="docs/assets/focus-active-line.webp?v=1.3.9" width="740" alt="The active paragraph stays readable on black while nearby text fades"></a>
+  <a href="docs/assets/focus-active-line.webp?v=1.4.1-r2"><img src="docs/assets/focus-active-line.webp?v=1.4.1-r2" width="740" alt="The active paragraph stays readable on black while nearby text fades"></a>
 </p>
 
 ### Set a timer and choose an accent
@@ -67,8 +70,8 @@ Focus mode keeps the line you’re writing bright and dims the surrounding text 
 Set focus and break lengths in the toolbar Pomodoro, then run one cycle or repeat. Choose an accent preset or enter your own hex color.
 
 <p align="center">
-  <a href="docs/assets/pomodoro-controls.webp?v=1.3.9"><img src="docs/assets/pomodoro-controls.webp?v=1.3.9" width="304" align="top" alt="Pomodoro controls with editable focus and break durations and Repeat selected"></a>
-  <a href="docs/assets/accent-palette.webp?v=1.3.9"><img src="docs/assets/accent-palette.webp?v=1.3.9" width="360" align="top" alt="Accent color picker with red, blue, yellow, green, white, and custom choices"></a>
+  <a href="docs/assets/pomodoro-controls.webp?v=1.4.1-r2"><img src="docs/assets/pomodoro-controls.webp?v=1.4.1-r2" width="304" align="top" alt="Pomodoro controls with editable focus and break durations and Repeat selected"></a>
+  <a href="docs/assets/accent-palette.webp?v=1.4.1-r2"><img src="docs/assets/accent-palette.webp?v=1.4.1-r2" width="360" align="top" alt="Accent color picker with red, blue, yellow, green, white, and custom choices"></a>
 </p>
 
 ## Bring your notes
