@@ -57,6 +57,22 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain" >/dev/null
           # shellcheck disable=SC2046 # runner keychain paths contain no spaces
           security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          # Runner images may lack Apple's Developer ID intermediates; without
+          # them the identity is untrusted and codesign reports "no identity found".
+          while read -r checksum name; do
+            curl --fail --silent --show-error --location --proto '=https' -o "$RUNNER_TEMP/$name.cer" "https://www.apple.com/certificateauthority/$name.cer"
+            printf '%s  %s\n' "$checksum" "$RUNNER_TEMP/$name.cer" | shasum -a 256 -c -
+            security import "$RUNNER_TEMP/$name.cer" -k "$keychain" || true
+          done <<'EOF'
+          f16cd3c54c7f83cea4bf1a3e6a0819c8aaa8e4a1528fd144715f350643d2df3a DeveloperIDG2CA
+          7afc9d01a62f03a2de9637936d4afe68090d2de18d03f29c88cfb0b1ba63587f DeveloperIDCA
+          EOF
+          echo 'Code signing identities in the imported certificate:'
+          security find-identity -p codesigning "$keychain"
+          if ! security find-identity -v -p codesigning "$keychain" | grep -qF "\"$SIGN_IDENTITY\""; then
+            echo '::error::MACOS_SIGN_IDENTITY does not name a valid identity in MACOS_CERTIFICATE_P12. Compare it with the list above; a name equal to the secret appears as ***.'
+            exit 1
+          fi
           printf '%s' "$NOTARY_KEY_P8" > "$RUNNER_TEMP/notary-key.p8"
           echo "keychain=$keychain" >> "$GITHUB_OUTPUT"
           echo "signed=true" >> "$GITHUB_OUTPUT"
