@@ -41,7 +41,35 @@ This produces a self-contained `.app`, a compressed DMG for the current processo
 
 The manual GitHub packaging workflow builds separate Apple silicon and Intel artifacts and tests each bundled runtime from its mounted DMG. Select **Build and test installers without staging a release** to validate a branch. A release dispatch stages both verified installers in a draft using the version declared in `DesktopLauncher.VERSION`.
 
-The community installers are ad hoc signed. Developer ID signing and Apple notarization require a separate release setup. See the [install guide](../docs/install.md) for the current first-launch process.
+Without signing credentials, the installers are ad hoc signed. See the [install guide](../docs/install.md) for the current first-launch process.
+
+### Developer ID signing and notarization
+
+Set `DIYALAMP_SIGN_IDENTITY` to a **Developer ID Application** identity in your keychain to sign the app, its bundled runtime, the JavaFX native libraries, and the DMG with the hardened runtime ([entitlements](packaging/entitlements.plist)). The script then notarizes and staples the DMG. Supply notarization credentials one of two ways:
+
+```sh
+# Once: store an app-specific password or API key as a notarytool profile.
+xcrun notarytool store-credentials diyalamp-notary --apple-id you@example.com --team-id TEAMID
+
+DIYALAMP_SIGN_IDENTITY='Developer ID Application: Your Name (TEAMID)' \
+DIYALAMP_NOTARY_PROFILE=diyalamp-notary \
+  sh desktop/package-macos.sh
+```
+
+Or set `DIYALAMP_NOTARY_KEY` (path to an App Store Connect API `.p8` key), `DIYALAMP_NOTARY_KEY_ID`, and `DIYALAMP_NOTARY_ISSUER`. `DIYALAMP_SIGN_KEYCHAIN` selects a keychain other than the default search list. `DIYALAMP_SKIP_NOTARIZATION=1` builds a signed but unnotarized DMG for local checks.
+
+The GitHub packaging workflow signs when the `macos-signing` environment holds these secrets:
+
+| Secret | Value |
+| --- | --- |
+| `MACOS_CERTIFICATE_P12` | Base64 of the exported Developer ID Application certificate and private key (`base64 -i cert.p12`) |
+| `MACOS_CERTIFICATE_PASSWORD` | Password of that `.p12` export |
+| `MACOS_SIGN_IDENTITY` | The full identity name, such as `Developer ID Application: Your Name (TEAMID)` |
+| `NOTARY_API_KEY_P8` | Contents of the App Store Connect API key (`AuthKey_XXXX.p8`) |
+| `NOTARY_API_KEY_ID` | That key's ID |
+| `NOTARY_API_ISSUER_ID` | The App Store Connect issuer ID |
+
+Signed runs also check the Developer ID authority, the Gatekeeper assessment, and the stapled ticket on the mounted DMG. Update the install guide and release notes only after a signed release opens without a Gatekeeper prompt.
 
 ## Interface design
 
