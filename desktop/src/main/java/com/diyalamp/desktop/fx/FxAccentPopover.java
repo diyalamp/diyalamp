@@ -28,8 +28,11 @@ final class FxAccentPopover {
     Preset(String name, String hex) { this(name, Color.web(hex)); }
   }
   private static final List<Preset> PRESETS = List.of(
-      new Preset("Red", "#EE0000"), new Preset("Blue", "#489CFF"), new Preset("Yellow", "#F7C843"),
-      new Preset("Green", "#4CD980"), new Preset("White", "#FFFFFF"));
+      new Preset("Fired Clay", FxTheme.DEFAULT_ACCENT),
+      new Preset("Apricot Flame", "#E9A576"),
+      new Preset("Honey Gold", "#DDB66E"),
+      new Preset("Clay Rose", "#CF9488"),
+      new Preset("Wick Ash", "#A49183"));
   private static final Pattern HEX = Pattern.compile("#?[0-9a-fA-F]{6}");
   private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
 

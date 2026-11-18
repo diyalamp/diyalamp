@@ -536,13 +536,13 @@ public final class FxWritingPaneTests {
       else if (text.getText().equals("both"))
         check(text.getFont().getName().equals("Inter SemiBold Italic"), "Bold italic text must retain its own real static face");
       else if (text.getText().equals("link"))
-        check(text.getFill().equals(Color.web("#B52828")), "Links must use the readable foreground accent");
+        check(text.getFill().equals(Color.web("#9F3A2B")), "Links must use the readable foreground accent");
     }
     check(headings.size() == 4 && codeRuns.size() == 2, "The actual typography check must include all representative heading levels and both code widgets");
     int bodyStart = editor.area().getAbsolutePosition(4, 0);
     editor.area().selectRange(bodyStart, bodyStart + 4); root.applyCss(); root.layout();
     check(editor.area().lookupAll(".selection").stream().anyMatch(node -> node instanceof javafx.scene.shape.Shape shape
-        && Color.web("#C941413D").equals(shape.getFill())),
+        && Color.web("#B9503D3D").equals(shape.getFill())),
         "The native text selection must use the light palette’s translucent selection color: "
             + editor.area().lookupAll(".selection").stream().map(node -> ((javafx.scene.shape.Shape) node).getFill()).toList());
     System.out.println("RichTextFX body caret height: " + caret.get().getHeight());
@@ -602,7 +602,7 @@ public final class FxWritingPaneTests {
       var quote = (javafx.scene.layout.Region) editor.area().lookup(".md-quote");
       var border = quote.getBorder().getStrokes().getFirst();
       check(quote.getBackground().getFills().getFirst().getFill().equals(FxTheme.EDITOR_BACKGROUND)
-          && border.getLeftStroke().equals(Color.web("#B52828")) && border.getWidths().getLeft() == 3,
+          && border.getLeftStroke().equals(Color.web("#9F3A2B")) && border.getWidths().getLeft() == 3,
           "The quote must have a tinted surface and an accent rule");
       check(editor.area().getParagraphGraphic(6) == null && quote.getPadding().getLeft() == 16,
           "Quote spacing belongs inside the styled paragraph");

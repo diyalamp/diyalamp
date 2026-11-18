@@ -76,14 +76,14 @@ public final class FxThemeTests {
       color((Color) paragraph.getTextFill(), "#302B26", "UI text");
       color((Color) input.getBorder().getStrokes().getFirst().getTopStroke(), "#D6D0C7", "Input border");
       input.requestFocus(); layout(root);
-      color((Color) input.getBorder().getStrokes().getFirst().getTopStroke(), "#B52828CC", "Input focus ring");
+      color((Color) input.getBorder().getStrokes().getFirst().getTopStroke(), "#9F3A2BCC", "Input focus ring");
       tools.requestFocus(); layout(root);
       color((Color) status.getTextFill(), "#665D53", "Secondary text");
       for (Labeled label : List.of(brand, heading, paragraph, status)) font(label.getFont().getSize(), label.getText());
       font(input.getFont().getSize(), "Input");
       for (Node node : tabs.lookupAll(".tab .label")) font(((Label) node).getFont().getSize(), "Tab label");
-      for (Color choice : List.of(Color.web("#EE0000"), Color.web("#489CFF"), Color.web("#F7C843"),
-          Color.web("#4CD980"), Color.WHITE, Color.web("#7B8FB7"), Color.BLACK)) {
+      for (Color choice : List.of(Color.web("#A84230"), Color.web("#E9A576"), Color.web("#DDB66E"),
+          Color.web("#CF9488"), Color.web("#A49183"), Color.WHITE, Color.BLACK)) {
         FxTheme.accent(root, choice);
         Hyperlink link = new Hyperlink("Local link"); link.setStyle("-fx-text-fill: -color-accent-fg;"); writing.getChildren().add(link);
         Button action = new Button("Action"); action.getStyleClass().add(Styles.ACCENT); writing.getChildren().add(action); layout(root);
@@ -91,7 +91,7 @@ public final class FxThemeTests {
         check(FxTheme.contrast(linkInk, FxTheme.EDITOR_BACKGROUND) >= 4.5, "Each accent remains readable as light-surface link text");
         check(FxTheme.contrast((Color) action.getTextFill(), background(action)) >= 4.5, "Each accent action has readable text");
         if (choice.equals(FxTheme.DEFAULT_ACCENT)) {
-          color(linkInk, "#B52828", "Default link"); color(background(action), "#EE0000", "Default action");
+          color(linkInk, "#9F3A2B", "Default link"); color(background(action), "#A84230", "Default action");
         }
         writing.getChildren().removeAll(link, action);
       }

@@ -27,14 +27,14 @@
   -diyalamp-scroll-thumb: #7D756C88;
   -diyalamp-scroll-hover: #7D756CA0;
   -diyalamp-scroll-pressed: #7D756CB8;
-  -color-accent-emphasis: #EE0000;
-  -color-accent-fg: #B52828;
+  -color-accent-emphasis: #A84230;
+  -color-accent-fg: #9F3A2B;
   -diyalamp-accent: -color-accent-emphasis;
   -diyalamp-link: -color-accent-fg;
   -diyalamp-accent-contrast: #FFFFFF;
-  -diyalamp-accent-subtle: #B5282826;
-  -diyalamp-focus: #B52828CC;
-  -diyalamp-selection: #C941413D;
+  -diyalamp-accent-subtle: #9F3A2B26;
+  -diyalamp-focus: #9F3A2BCC;
+  -diyalamp-selection: #B9503D3D;
 }
 .workspace-root:focus-dark, .tooltip:focus-dark, .context-menu:focus-dark {
   -color-fg-default: #CEC9C2;

@@ -114,7 +114,7 @@ public final class FxHoverThemeTests {
                 check(originalTabBounds.equals(inactive.getBoundsInParent()) && originalCloseBounds.equals(close.getBoundsInParent()),
                     "Tab hover must keep both hit areas in place");
                 Region active = (Region) tabs.lookup(".tab:selected");
-                check(Color.web("#B52828").equals(active.getBorder().getStrokes().getFirst().getTopStroke()),
+                check(Color.web("#9F3A2B").equals(active.getBorder().getStrokes().getFirst().getTopStroke()),
                     "Hovering a different tab must leave the selected tab's accent in place");
                 check(close.getAccessibleRole() == AccessibleRole.BUTTON, "The close action remains an accessible button");
                 close.executeAccessibleAction(AccessibleAction.FIRE);

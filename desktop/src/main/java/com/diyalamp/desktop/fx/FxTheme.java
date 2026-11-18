@@ -44,16 +44,16 @@ import org.w3c.dom.Element;
 /** AtlantaFX controls, pinned static Inter faces, and the existing Lucide SVG assets. */
 public final class FxTheme {
   public static final double TEXT_SIZE = 16;
-  public static final Color DEFAULT_ACCENT = Color.web("#EE0000");
+  public static final Color DEFAULT_ACCENT = Color.web("#A84230");
   public static final Color EDITOR_BACKGROUND = Color.web("#FAF8F5");
   private static final String LIGHT_CONTROLS = new CupertinoLight().getUserAgentStylesheet();
   private static final String DARK_CONTROLS = new CupertinoDark().getUserAgentStylesheet();
-  private static final Color LIGHT_LINK = Color.web("#B52828");
-  private static final Color DARK_LINK = Color.web("#FF6B6B");
-  private static final Color LIGHT_FOCUS = Color.web("#B52828CC");
-  private static final Color DEFAULT_FOCUS = Color.web("#FF5555B3");
-  private static final Color DEFAULT_SELECTION = Color.web("#AB2828DD");
-  private static final Color LIGHT_SELECTION = Color.web("#C941413D");
+  private static final Color LIGHT_LINK = Color.web("#9F3A2B");
+  private static final Color DARK_LINK = Color.web("#FF947C");
+  private static final Color LIGHT_FOCUS = Color.web("#9F3A2BCC");
+  private static final Color DEFAULT_FOCUS = Color.web("#F38670B3");
+  private static final Color DEFAULT_SELECTION = Color.web("#853A30DD");
+  private static final Color LIGHT_SELECTION = Color.web("#B9503D3D");
   private static final Color ICON_INK = Color.web("#665D53");
   static final String DISPLAYED_ACCENT = "diyalamp.displayedAccent";
   private static final String DISPLAYED_SURFACE = "diyalamp.displayedSurface";

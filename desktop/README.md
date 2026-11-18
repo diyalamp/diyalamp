@@ -73,7 +73,7 @@ Signed runs also check the Developer ID authority, the Gatekeeper assessment, an
 
 ## Interface design
 
-Use lowercase **diyalamp** and the fixed lamp asset. The workspace opens on a warm paper surface (`#FAF8F5`). Focus mode uses black (`#000000`). Dividers, foreground text, and control states use the shared tokens in `fx-workspace.css`. The default accent is red (`#EE0000`). Preset and custom accents keep readable foreground contrast and transition smoothly.
+Use lowercase **diyalamp** and the fixed lamp asset. The workspace opens on a warm paper surface (`#FAF8F5`). Focus mode uses black (`#000000`). Dividers, foreground text, and control states use the shared tokens in `fx-workspace.css`. The default accent is Fired Clay (`#A84230`). Apricot Flame, Honey Gold, Clay Rose, and Wick Ash take their colors from the lamp. Preset and custom accents keep readable foreground contrast and transition smoothly.
 
 The interface and prose use 16 px Inter. Markdown H1, H2, and H3 use Inter SemiBold at 28, 23, and 19 px. H4–H6 use the 16 px body size. Quotes use a rounded inset with an accent rule. Code uses installed Menlo, and static italic faces preserve emphasis. Use AtlantaFX Cupertino controls and Popover, RichTextFX for editing, and SmartGraph for the Connections panel. Focus mode uses the Cupertino Dark control theme.
 
