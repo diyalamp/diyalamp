@@ -1,4 +1,5 @@
-## diyalamp 1.4.1
+## diyalamp 1.4.2
 
-- Switch between Filenames and Note text with a sliding selector. Case, Whole word, and Regex are grouped under Match, with a separate File filters disclosure for included and excluded paths.
-- Keep the active note or PDF preview in place while opening or closing folders above it in the sidebar.
+- The workspace opens in light mode by default. Focus mode still uses a black workspace and highlights the line you’re writing.
+- PDFs scroll continuously from one page to the next in the preview pane, with page navigation and zoom still available.
+- The Mac app icon and toolbar mark use a warm ivory paper texture behind the lamp.

@@ -1,34 +1,53 @@
-/* Cupertino Dark controls share an 8/16/24 spacing scale, an 8 px control
+/* Cupertino controls share an 8/16/24 spacing scale, an 8 px control
    radius, and quiet borders. One surface spans the chrome and editor. */
 .workspace-root {
   -fx-font-family: "Inter";
   -fx-font-size: 16px;
   -fx-font-weight: normal;
   -fx-background-color: -color-bg-default;
-  -diyalamp-surface: #141312;
+}
+.workspace-root, .tooltip, .context-menu {
+  -diyalamp-surface: #FAF8F5;
   -color-bg-default: -diyalamp-surface;
   -color-bg-subtle: -color-bg-default;
   -color-bg-inset: -color-bg-default;
   -color-bg-overlay: -color-bg-subtle;
-  -color-fg-default: #CEC9C2;
+  -color-fg-default: #302B26;
   -color-editor-fg: -color-fg-default;
-  -color-fg-muted: #A49D95;
-  -color-border-default: #383533;
+  -color-fg-muted: #665D53;
+  -color-border-default: #D6D0C7;
   -color-border-muted: -color-border-default;
   -color-border-subtle: -color-border-default;
-  -diyalamp-divider: #302D2A;
-  -diyalamp-control-hover: #FFFFFF0F;
-  -diyalamp-control-pressed: #FFFFFF1B;
+  -diyalamp-divider: #E3DED6;
+  -diyalamp-control-hover: #34302C12;
+  -diyalamp-control-pressed: #34302C20;
   -color-code-fg: -color-fg-muted;
-  -color-fg-emphasis: #FFFFFF;
+  -diyalamp-ink-strong: #1E1915;
+  -diyalamp-error: #A1292F;
+  -diyalamp-scroll-thumb: #7D756C88;
+  -diyalamp-scroll-hover: #7D756CA0;
+  -diyalamp-scroll-pressed: #7D756CB8;
   -color-accent-emphasis: #EE0000;
-  -color-accent-fg: #FF6B6B;
+  -color-accent-fg: #B52828;
   -diyalamp-accent: -color-accent-emphasis;
   -diyalamp-link: -color-accent-fg;
   -diyalamp-accent-contrast: #FFFFFF;
-  -diyalamp-accent-subtle: #FF555526;
-  -diyalamp-focus: #FF5555B3;
-  -diyalamp-selection: #AB2828DD;
+  -diyalamp-accent-subtle: #B5282826;
+  -diyalamp-focus: #B52828CC;
+  -diyalamp-selection: #C941413D;
+}
+.workspace-root:focus-dark, .tooltip:focus-dark, .context-menu:focus-dark {
+  -color-fg-default: #CEC9C2;
+  -color-fg-muted: #A49D95;
+  -color-border-default: #383533;
+  -diyalamp-divider: #302D2A;
+  -diyalamp-control-hover: #FFFFFF0F;
+  -diyalamp-control-pressed: #FFFFFF1B;
+  -diyalamp-ink-strong: #FFFFFF;
+  -diyalamp-error: #F3A39E;
+  -diyalamp-scroll-thumb: #A8A9AA85;
+  -diyalamp-scroll-hover: #A8A9AA90;
+  -diyalamp-scroll-pressed: #A8A9AA9C;
 }
 .workspace-root .label, .workspace-root .button, .workspace-root .toggle-button, .workspace-root .radio-button,
 .workspace-root .check-box, .workspace-root .text-input, .workspace-root .combo-box-base,
@@ -65,7 +84,7 @@
 .tooltip, .context-menu, .context-menu .label, .context-menu .menu-item {
   -fx-font-family: "Inter"; -fx-font-size: 16px; -fx-font-weight: normal;
 }
-.tooltip, .context-menu { -fx-background-color: -color-bg-default; -fx-text-fill: #CEC9C2; -fx-border-color: #383533; }
+.tooltip, .context-menu { -fx-background-color: -color-bg-default; -fx-text-fill: -color-fg-default; -fx-border-color: -color-border-default; }
 .tooltip { -fx-background-insets: 0; -fx-background-radius: 8; -fx-border-radius: 8; -fx-effect: null; }
 .context-menu {
   -fx-background-insets: 0;
@@ -73,10 +92,10 @@
   -fx-border-radius: 12;
   -fx-effect: null;
 }
-.context-menu .label { -fx-text-fill: #CEC9C2; }
+.context-menu .label { -fx-text-fill: -color-fg-default; }
 .context-menu .menu-item { -fx-background-color: transparent; }
 .context-menu .menu-item:focused { -fx-border-color: -color-border-default; -fx-border-radius: 8; }
-.context-menu .menu-item:focused .label { -fx-text-fill: #CEC9C2; }
+.context-menu .menu-item:focused .label { -fx-text-fill: -color-fg-default; }
 .context-menu.slash-menu {
   -fx-padding: 8;
   -fx-min-width: 224;
@@ -87,10 +106,10 @@
 }
 .context-menu.slash-menu .menu-item > .graphic-container { -fx-padding: 0 8 0 0; }
 .context-menu.slash-menu .menu-item:focused, .context-menu.slash-menu .menu-item:hover {
-  -fx-background-color: #FFFFFF0F;
+  -fx-background-color: -diyalamp-control-hover;
 }
 .context-menu.slash-menu .menu-item:focused .label, .context-menu.slash-menu .menu-item:hover .label {
-  -fx-text-fill: -color-fg-emphasis;
+  -fx-text-fill: -diyalamp-ink-strong;
 }
 .context-menu.slash-menu .menu-item:focused .icon-stroke, .context-menu.slash-menu .menu-item:hover .icon-stroke {
   -fx-stroke: -color-fg-default;
@@ -133,7 +152,7 @@
 }
 .workspace-root .dialog-action:hover, .workspace-root .popover-action:hover, .workspace-root .workspace-empty .button:hover {
   -fx-background-color: -diyalamp-control-hover;
-  -fx-text-fill: -color-fg-emphasis;
+  -fx-text-fill: -diyalamp-ink-strong;
 }
 .workspace-root .dialog-action:pressed, .workspace-root .popover-action:pressed, .workspace-root .workspace-empty .button:pressed {
   -fx-background-color: -diyalamp-control-pressed;
@@ -228,7 +247,7 @@
 }
 .workspace-toolbar .sidebar-toggle:selected:hover,
 .workspace-toolbar .sidebar-toggle:selected:pressed { -fx-background-color: -diyalamp-control-pressed; }
-.workspace-toolbar .sidebar-toggle:selected .icon-stroke { -fx-stroke: -color-fg-emphasis; }
+.workspace-toolbar .sidebar-toggle:selected .icon-stroke { -fx-stroke: -diyalamp-ink-strong; }
 .workspace-root .workspace-tool:focus-visible {
   -fx-background-color: -diyalamp-focus, -color-bg-subtle;
   -fx-background-insets: 0, 1; -fx-background-radius: 8, 7;
@@ -237,7 +256,7 @@
   -fx-background-color: -diyalamp-focus, -color-bg-default, -diyalamp-accent-subtle;
   -fx-background-insets: 0, 1, 1; -fx-background-radius: 8, 7, 7;
 }
-.icon-stroke { -fx-stroke: #A49D95; }
+.icon-stroke { -fx-stroke: -color-fg-muted; }
 .workspace-band {
   -fx-min-height: 40; -fx-pref-height: 40; -fx-max-height: 40;
   -fx-padding: 4 8;
@@ -291,7 +310,7 @@
   -fx-border-radius: 6;
   -fx-border-insets: 2 0;
 }
-.file-tree .tree-cell:filled:selected .label { -fx-text-fill: -color-fg-emphasis; }
+.file-tree .tree-cell:filled:selected .label { -fx-text-fill: -diyalamp-ink-strong; }
 .file-tree .tree-cell:filled:selected .file-kind .icon-stroke { -fx-stroke: -color-accent-fg; }
 .file-tree .file-disclosure-chevron {
   transition-property: -fx-rotate;
@@ -331,7 +350,7 @@
   -fx-background-insets: 0; -fx-background-radius: 8;
   -fx-border-radius: 8; -fx-effect: null;
 }
-.workspace-root .file-rename-field:invalid { -fx-border-color: #F3A39E; }
+.workspace-root .file-rename-field:invalid { -fx-border-color: -diyalamp-error; }
 .writing-split { -fx-padding: 0; -fx-border-width: 0; -fx-background-color: -color-bg-default; }
 .writing-split > .split-pane-divider { -fx-padding: 0 .5; -fx-background-color: -diyalamp-divider; }
 .document-pane { -fx-background-color: -color-bg-default; -fx-min-width: 200; }
@@ -373,7 +392,7 @@
 }
 .workspace-root:reduced-motion .document-tabs .tab > .tab-box > .label { transition-duration: 0s; }
 .document-tabs .tab:hover > .tab-box > .label { -fx-text-fill: -color-fg-default; }
-.document-tabs .tab:selected > .tab-box > .label { -fx-text-fill: -color-fg-emphasis; }
+.document-tabs .tab:selected > .tab-box > .label { -fx-text-fill: -diyalamp-ink-strong; }
 .document-tabs .tab:selected .icon-stroke { -fx-stroke: -color-accent-fg; }
 .document-tabs.floating > .root-container > .tabs > .tab > .tab-box > .close-button {
   -fx-max-height: 28; -fx-padding: 7;
@@ -392,7 +411,7 @@
 }
 .workspace-root:reduced-motion .document-tabs .tab > .tab-box > .close-button { transition-duration: 0s; }
 .document-tabs .tab > .tab-box > .close-button > .graphic { -fx-background-color: -color-fg-muted; }
-.document-tabs .tab > .tab-box > .close-button:hover > .graphic { -fx-background-color: -color-fg-emphasis; }
+.document-tabs .tab > .tab-box > .close-button:hover > .graphic { -fx-background-color: -diyalamp-ink-strong; }
 .document-tabs .tab > .tab-box > .close-button:pressed > .graphic { -fx-opacity: .72; }
 .workspace-band.document-location { -fx-padding: 0 16; }
 .workspace-root .document-breadcrumb { -fx-padding: 0; -fx-background-color: transparent; }
@@ -404,7 +423,7 @@
   transition: -fx-background-color 140ms ease-out, -fx-text-fill 140ms ease-out;
 }
 .workspace-root .document-crumb:last { -fx-text-fill: -color-fg-default; -fx-font-family: "Inter SemiBold"; }
-.workspace-root .document-crumb:hover { -fx-background-color: -diyalamp-control-hover; -fx-text-fill: -color-fg-emphasis; }
+.workspace-root .document-crumb:hover { -fx-background-color: -diyalamp-control-hover; -fx-text-fill: -diyalamp-ink-strong; }
 .workspace-root .document-crumb:pressed { -fx-background-color: -diyalamp-control-pressed; }
 .workspace-root .document-crumb:focus-visible { -fx-border-color: -diyalamp-focus; }
 .workspace-root:reduced-motion .document-crumb { transition-duration: 0s; }
@@ -417,7 +436,7 @@
   -fx-min-height: 28; -fx-pref-height: 28; -fx-max-height: 28;
   -fx-padding: 0; -fx-opacity: 1;
   -color-button-fg: -color-fg-muted;
-  -color-button-fg-hover: -color-fg-emphasis;
+  -color-button-fg-hover: -diyalamp-ink-strong;
 }
 .workspace-root .file-preview-zoom:disabled { -fx-opacity: 0.4; }
 .workspace-root .file-preview-zoom > .label { -fx-padding: 0 4 0 8; }
@@ -472,7 +491,7 @@
 }
 .writing-area .check-box.md-task:selected > .box > .mark { -fx-opacity: 1; }
 .writing-area .check-box.md-task:hover > .box { -fx-border-color: -color-accent-fg; }
-.writing-area .check-box.md-task:focused > .box { -fx-border-color: -color-fg-emphasis; }
+.writing-area .check-box.md-task:focused > .box { -fx-border-color: -diyalamp-ink-strong; }
 .workspace-root:reduced-motion .writing-area .check-box.md-task > .box { transition-duration: 0s; }
 .workspace-status {
   -fx-background-color: -color-bg-inset;
@@ -484,7 +503,7 @@
 .workspace-status .status-divider { -fx-max-height: 16; }
 .workspace-status .status-divider > .line { -fx-border-color: transparent -diyalamp-divider transparent transparent; }
 .workspace-empty { -fx-padding: 24; -fx-background-color: -color-bg-default; }
-.workspace-empty-title { -fx-font-family: "Inter SemiBold"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: #CEC9C2; }
+.workspace-empty-title { -fx-font-family: "Inter SemiBold"; -fx-font-size: 16px; -fx-font-weight: normal; -fx-text-fill: -color-fg-default; }
 .empty-detail { -fx-text-fill: -color-fg-muted; }
 .save-warning {
   -fx-background-color: -color-bg-default; -fx-padding: 8 16;
@@ -492,11 +511,12 @@
 }
 .save-warning-message { -fx-padding: 0; }
 .accent-swatch { -fx-min-width: 12; -fx-pref-width: 12; -fx-max-width: 12; -fx-min-height: 12; -fx-pref-height: 12; -fx-max-height: 12; -fx-background-radius: 99; }
+.workspace-accent-button .accent-swatch { -fx-border-color: -color-border-default; -fx-border-radius: 99; }
 
 .workspace-root .scroll-bar, .workspace-root .scroll-pane > .corner { -fx-background-color: transparent; }
-.workspace-root .scroll-bar .thumb { -fx-background-color: #A8A9AA85; }
-.workspace-root .scroll-bar .thumb:hover { -fx-background-color: #A8A9AA90; }
-.workspace-root .scroll-bar .thumb:pressed { -fx-background-color: #A8A9AA9C; }
+.workspace-root .scroll-bar .thumb { -fx-background-color: -diyalamp-scroll-thumb; }
+.workspace-root .scroll-bar .thumb:hover { -fx-background-color: -diyalamp-scroll-hover; }
+.workspace-root .scroll-bar .thumb:pressed { -fx-background-color: -diyalamp-scroll-pressed; }
 
 .workspace-sidebars > .split-pane-divider {
   -fx-padding: 0 3;

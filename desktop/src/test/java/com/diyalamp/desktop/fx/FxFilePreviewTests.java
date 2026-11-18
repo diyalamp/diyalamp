@@ -20,7 +20,10 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.PickResult;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
@@ -43,6 +46,7 @@ public final class FxFilePreviewTests {
     try {
       textAndImages(folder);
       pdfNavigation(folder);
+      pdfLongDocument(folder);
       previewErrors(folder);
       System.out.println("Passed JavaFX file preview checks.");
     } finally {
@@ -90,29 +94,21 @@ public final class FxFilePreviewTests {
     Path source = folder.resolve("pages.pdf");
     writePdf(source, false);
     FxFilePreview pdf = fx(() -> new FxFilePreview(source));
-    Stage stage = fx(() -> {
-      StackPane root = new StackPane(pdf);
-      root.getStyleClass().add("workspace-root");
-      Stage window = new Stage(StageStyle.UNDECORATED);
-      Scene scene = new Scene(root, 200, 220);
-      scene.getStylesheets().add(FxFilePreviewTests.class.getResource("/fx-workspace.css").toExternalForm());
-      window.setScene(scene);
-      window.show();
-      return window;
-    });
-    await("the first PDF page", () -> onPage(pdf, "Page 1 of 2"));
+    Stage stage = fx(() -> show(pdf, 200, 220));
+    await("the first PDF page", () -> pageReady(pdf, 1));
     fx(() -> {
+      check(onPage(pdf, "Page 1 of 2"), "The page counter starts at the beginning of the document");
       check(previous(pdf).isDisabled() && !next(pdf).isDisabled(), "The first page has only forward navigation");
-      check(colorAtCenter(pdf).getBlue() > .9, "The first page rendered its own contents");
+      check(colorAtCenter(pdf, 1).getBlue() > .9, "The first page rendered its own contents");
       MenuButton zoom = zoom(pdf);
       check(zoom.isFocusTraversable() && zoom.getAccessibleText().equals("Preview zoom, Fit to width"),
           "The zoom menu announces its current mode and is reachable by keyboard");
       selectZoom(pdf, "100%");
-      check(imageView(pdf).getFitWidth() == 100, "Actual size uses PDF points rather than doubled raster pixels");
+      check(pageView(pdf, 1).getFitWidth() == 100, "Actual size uses PDF points rather than doubled raster pixels");
       selectZoom(pdf, "200%");
       pdf.applyCss();
       pdf.layout();
-      check(imageView(pdf).getFitWidth() == 200 && visibleBar(scroll(pdf), Orientation.HORIZONTAL)
+      check(pageView(pdf, 1).getFitWidth() == 200 && visibleBar(scroll(pdf), Orientation.HORIZONTAL)
               && visibleBar(scroll(pdf), Orientation.VERTICAL),
           "An enlarged PDF can scroll on both axes within a compact split");
       check(zoom.getBoundsInParent().getMaxX() <= pdf.getWidth()
@@ -120,6 +116,26 @@ public final class FxFilePreviewTests {
           "Page navigation and zoom stay visible in a 200 px preview");
       pdf.focus();
       check(stage.getScene().getFocusOwner() == scroll(pdf), "Keyboard focus starts on the page viewport");
+      return null;
+    });
+
+    await("the second page is prefetched", () -> pageReady(pdf, 2));
+    fx(() -> {
+      ScrollPane viewport = scroll(pdf);
+      ImageView firstPage = pageView(pdf, 1);
+      firstPage.fireEvent(new ScrollEvent(ScrollEvent.SCROLL, 100, 100, 100, 100,
+          false, false, false, false, true, false, 0, -70, 0, -70,
+          ScrollEvent.HorizontalTextScrollUnits.NONE, 0, ScrollEvent.VerticalTextScrollUnits.NONE, 0, 0,
+          new PickResult(firstPage, 100, 100)));
+      check(viewport.getVvalue() > 0 && viewport.getVvalue() < 1,
+          "A scroll gesture moves the PDF by part of a page");
+      viewport.setVvalue(.5);
+      check(viewport.getVvalue() == .5 && pageView(pdf, 1).getImage() != null && pageView(pdf, 2).getImage() != null,
+          "Scrolling between pages keeps both page images on the same continuous surface");
+      viewport.setVvalue(1);
+      check(onPage(pdf, "Page 2 of 2"), "The page counter follows the viewport when scrolling");
+      viewport.setVvalue(0);
+      check(onPage(pdf, "Page 1 of 2"), "Scrolling upward restores the earlier page counter");
       return null;
     });
 
@@ -132,14 +148,14 @@ public final class FxFilePreviewTests {
     await("the next page after relocating the open PDF", () -> onPage(pdf, "Page 2 of 2"));
     fx(() -> {
       check(!previous(pdf).isDisabled() && next(pdf).isDisabled(), "The last page has only backward navigation");
-      check(colorAtCenter(pdf).getRed() > .9, "The second page rendered from the new path");
-      check(imageView(pdf).getFitWidth() == 240 && zoom(pdf).getText().equals("200%")
+      check(colorAtCenter(pdf, 2).getRed() > .9, "The second page rendered correctly");
+      check(pageView(pdf, 2).getFitWidth() == 240 && zoom(pdf).getText().equals("200%")
               && stage.getScene().getFocusOwner() == scroll(pdf),
           "Page changes preserve zoom and viewport focus, including a rotated page");
       selectZoom(pdf, "Fit to width");
       pdf.applyCss();
       pdf.layout();
-      check(imageView(pdf).getFitWidth() <= scroll(pdf).getViewportBounds().getWidth(),
+      check(pageView(pdf, 2).getFitWidth() <= scroll(pdf).getViewportBounds().getWidth(),
           "Fit to width brings the rotated page back inside the viewport");
       previous(pdf).fire();
       return null;
@@ -157,6 +173,65 @@ public final class FxFilePreviewTests {
       check(!(closed.getCenter() instanceof ScrollPane), "A cancelled request must leave no rendered page");
       return null;
     });
+  }
+
+  private static void pdfLongDocument(Path folder) throws Exception {
+    Path source = folder.resolve("long.pdf");
+    try (PDDocument document = new PDDocument()) {
+      for (int index = 0; index < 48; index++) {
+        document.addPage(new PDPage(new PDRectangle(200, index == 47 ? 20 : 300)));
+      }
+      document.save(source.toFile());
+    }
+    FxFilePreview pdf = fx(() -> new FxFilePreview(source));
+    Stage stage = fx(() -> show(pdf, 380, 420));
+    try {
+      await("the first page of the long PDF", () -> pageReady(pdf, 1));
+      Path relocated = Files.move(source, folder.resolve("long-relocated.pdf"));
+      fx(() -> {
+        check(pageView(pdf, 48) == null, "Far-away PDF pages are not eagerly retained");
+        pdf.relocate(relocated);
+        scroll(pdf).setVvalue(1);
+        check(onPage(pdf, "Page 48 of 48"), "The bottom position includes a short final page in the counter");
+        check(pageView(pdf, 1) == null, "A large scroll jump releases pages outside the viewport");
+        return null;
+      });
+      await("the last page after relocating and scrolling the long PDF", () -> pageReady(pdf, 48));
+      fx(() -> {
+        check(next(pdf).isDisabled(), "Reaching the bottom disables forward navigation");
+        scroll(pdf).setVvalue(0);
+        check(onPage(pdf, "Page 1 of 48"), "Jumping to the top restores the first page number");
+        return null;
+      });
+      await("the first page renders again after eviction", () -> pageReady(pdf, 1));
+    } finally {
+      fx(() -> { pdf.dispose(); stage.hide(); return null; });
+    }
+  }
+
+  private static Stage show(FxFilePreview preview, int width, int height) {
+    StackPane root = new StackPane(preview);
+    root.getStyleClass().add("workspace-root");
+    Stage window = new Stage(StageStyle.UNDECORATED);
+    Scene scene = new Scene(root, width, height);
+    scene.getStylesheets().add(FxFilePreviewTests.class.getResource("/fx-workspace.css").toExternalForm());
+    window.setScene(scene);
+    window.show();
+    return window;
+  }
+
+  private static ImageView pageView(FxFilePreview preview, int number) {
+    Pane surface = (Pane) scroll(preview).getContent();
+    return surface.getChildren().stream()
+        .map(node -> ((StackPane) node).getChildren().getFirst())
+        .filter(node -> node instanceof ImageView view && ("PDF page " + number).equals(view.getAccessibleText()))
+        .map(ImageView.class::cast).findFirst().orElse(null);
+  }
+
+  private static boolean pageReady(FxFilePreview preview, int number) {
+    if (!(preview.getCenter() instanceof FxPdfPages)) return false;
+    ImageView view = pageView(preview, number);
+    return view != null && view.getImage() != null;
   }
 
   private static void previewErrors(Path folder) throws Exception {
@@ -212,8 +287,8 @@ public final class FxFilePreviewTests {
         .anyMatch(node -> node instanceof ScrollBar bar && bar.getOrientation() == orientation && bar.isVisible());
   }
 
-  private static Color colorAtCenter(FxFilePreview preview) {
-    Image page = image(preview);
+  private static Color colorAtCenter(FxFilePreview preview, int number) {
+    Image page = pageView(preview, number).getImage();
     return page.getPixelReader().getColor((int) (page.getWidth() / 2), (int) (page.getHeight() / 2));
   }
 

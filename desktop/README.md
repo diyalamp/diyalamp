@@ -73,9 +73,9 @@ Signed runs also check the Developer ID authority, the Gatekeeper assessment, an
 
 ## Interface design
 
-Use lowercase **diyalamp** and the fixed lamp asset. The dark workspace uses one warm charcoal surface (`#141312`) and black (`#000000`) in Focus mode. Dividers, foreground text, and control states use the shared tokens in `fx-workspace.css`. The default accent is red (`#EE0000`). Preset and custom accents keep readable foreground contrast and transition smoothly.
+Use lowercase **diyalamp** and the fixed lamp asset. The workspace opens on a warm paper surface (`#FAF8F5`). Focus mode uses black (`#000000`). Dividers, foreground text, and control states use the shared tokens in `fx-workspace.css`. The default accent is red (`#EE0000`). Preset and custom accents keep readable foreground contrast and transition smoothly.
 
-The interface and prose use 16 px Inter. Markdown H1, H2, and H3 use Inter SemiBold at 28, 23, and 19 px. H4–H6 use the 16 px body size. Quotes use a rounded inset with an accent rule. Code uses installed Menlo, and static italic faces preserve emphasis. Use AtlantaFX CupertinoDark controls and Popover, RichTextFX for editing, and SmartGraph for the Connections panel.
+The interface and prose use 16 px Inter. Markdown H1, H2, and H3 use Inter SemiBold at 28, 23, and 19 px. H4–H6 use the 16 px body size. Quotes use a rounded inset with an accent rule. Code uses installed Menlo, and static italic faces preserve emphasis. Use AtlantaFX Cupertino controls and Popover, RichTextFX for editing, and SmartGraph for the Connections panel. Focus mode uses the Cupertino Dark control theme.
 
 Workspace spacing uses an 8 px grid. The wordmark, toolbar controls, search fields, dialog actions, and popover actions share a 36 px control height and 8 px corners. The window toolbar is 52 px tall. The two shared workspace bands are 40 px tall, with a 32 px Files search field. Tabs fill the editor header row and keep their labels and close targets centered. Use the shared 140 ms control transition for hover and focus. Dialogs use 24 px inner padding and 12 px surface corners. Entrance motion leaves adjacent controls in place and follows the system Reduce Motion setting. Action buttons share a visible keyboard focus ring and stable geometry across dialogs and popovers.
 
@@ -90,6 +90,7 @@ Workspace spacing uses an 8 px grid. The wordmark, toolbar controls, search fiel
 - The bottom status bar reports characters, words, and logical lines from rendered text, plus the UTF-8 size of the current Markdown, including current unsaved edits. Wrapped display lines do not inflate the logical-line count.
 - Autosave writes local files. A changed disk fingerprint stops an overwrite and keeps edits open for export. Use File → Reload note from disk… to reload after exporting a recovery copy; unsaved edits require confirmation before replacement.
 - Deleted notes move to `.diyalamp-trash` inside the chosen folder. They can be restored from the app.
+- Scroll continuously through PDF pages. The preview toolbar shows the current page and provides previous and next controls and zoom.
 
 Common Markdown is supported; this first release does not implement the full CommonMark specification, rich table layout, remote-image loading, plugins, sync, or team workspaces. HTML remains literal text. Unsupported text is retained rather than executed.
 

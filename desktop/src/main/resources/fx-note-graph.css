@@ -1,7 +1,7 @@
 .graph { -fx-background-color: -color-bg-default; }
 .vertex { -fx-fill: -color-fg-muted; -fx-stroke: -color-bg-default; -fx-stroke-width: 1; }
 .vertex.current-note { -fx-fill: -diyalamp-link; -fx-stroke: -diyalamp-accent-subtle; -fx-stroke-width: 3; }
-.vertex.inspected-note { -fx-fill: -color-fg-emphasis; -fx-stroke: -diyalamp-link; -fx-stroke-width: 2; }
+.vertex.inspected-note { -fx-fill: -diyalamp-ink-strong; -fx-stroke: -diyalamp-link; -fx-stroke-width: 2; }
 .vertex.related-note { -fx-fill: -color-fg-default; }
 .vertex.muted-note { -fx-opacity: .42; }
 
@@ -10,7 +10,7 @@
   -fx-fill: -color-fg-muted;
 }
 .vertex-label.current-note, .vertex-label.inspected-note {
-  -fx-fill: -color-fg-emphasis; -fx-background-color: -color-bg-default;
+  -fx-fill: -diyalamp-ink-strong; -fx-background-color: -color-bg-default;
   -fx-background-radius: 4; -fx-background-insets: -1 -3;
 }
 .edge { -fx-stroke: -color-fg-muted; -fx-stroke-width: .85; -fx-opacity: .50; -fx-fill: transparent; }

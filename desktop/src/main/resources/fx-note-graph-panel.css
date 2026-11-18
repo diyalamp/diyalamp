@@ -39,7 +39,7 @@
   -fx-background-radius: 6, 5;
 }
 .note-graph-panel .graph-list-toggle:hover .graph-list-heading,
-.note-graph-panel .graph-list-toggle:focus-visible .graph-list-heading { -fx-text-fill: -color-fg-emphasis; }
+.note-graph-panel .graph-list-toggle:focus-visible .graph-list-heading { -fx-text-fill: -diyalamp-ink-strong; }
 .graph-list-heading { -fx-font-size: 16px; -fx-font-weight: 600; -fx-text-fill: -color-fg-default; }
 .graph-disclosure-chevron {
   transition-property: -fx-rotate;
@@ -67,7 +67,7 @@
   -fx-background-color: -diyalamp-control-pressed;
   -fx-background-insets: 2 0;
   -fx-background-radius: 6;
-  -fx-text-fill: -color-fg-emphasis;
+  -fx-text-fill: -diyalamp-ink-strong;
 }
 .graph-note-list:focus-visible .list-cell:filled:focused { -fx-border-color: -diyalamp-focus; }
 .graph-note-list .list-cell:filled:selected .icon-stroke { -fx-stroke: -color-accent-fg; }

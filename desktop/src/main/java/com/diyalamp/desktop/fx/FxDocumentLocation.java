@@ -14,7 +14,7 @@ import javafx.scene.text.Text;
 
 /** A pane's note and enclosing folder, using AtlantaFX's keyboard-accessible breadcrumbs. */
 final class FxDocumentLocation extends Breadcrumbs<Path> {
-  private final Tooltip location = new Tooltip();
+  private final Tooltip location = FxTheme.tooltip();
   private Path workspace, note;
   private boolean showWorkspace;
 
@@ -41,7 +41,7 @@ final class FxDocumentLocation extends Breadcrumbs<Path> {
       button.getStyleClass().addAll("flat", "document-crumb");
       button.setAlignment(Pos.CENTER_LEFT);
       button.setTextOverrun(OverrunStyle.ELLIPSIS);
-      button.setTooltip(new Tooltip(path.toString()));
+      button.setTooltip(FxTheme.tooltip(path.toString()));
       button.setAccessibleText((crumb.isLast() ? "Current note, " : "Reveal folder, ") + path);
       // The stock skin lays out children at their preferred sizes.
       Text measurement = new Text(title);

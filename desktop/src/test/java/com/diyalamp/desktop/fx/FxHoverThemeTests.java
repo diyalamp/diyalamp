@@ -58,7 +58,7 @@ public final class FxHoverThemeTests {
         tool.addEventHandler(TransitionEvent.START, event -> starts.incrementAndGet());
         Robot pointer = new Robot();
         pointer.mouseMove(root.localToScreen(root.getWidth() / 2, root.getHeight() / 2));
-        Color target = Color.web("#141312"), outline = Color.web("#383533");
+        Color target = Color.web("#FAF8F5"), outline = Color.web("#D6D0C7");
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
         scene.addPostLayoutPulseListener(new Runnable() {
           private boolean hoverStarted;
@@ -101,20 +101,20 @@ public final class FxHoverThemeTests {
                 moveToCenter(pointer, close);
                 checkingTabHover = true;
               } else if (checkingTabHover && inactive.isHover() && close.isHover()) {
-                check(paint(inactive).equals(Color.web("#FFFFFF0F"))
+                check(paint(inactive).equals(Color.web("#34302C12"))
                     && inactive.getBackground().getFills().stream().allMatch(fill ->
                         fill.getInsets().equals(Insets.EMPTY) && fill.getRadii().equals(CornerRadii.EMPTY)),
                     "The hovered tab must have a flat, full-width tint: " + paint(inactive) + " / "
                         + inactive.getBackground().getFills().stream().map(fill -> fill.getInsets() + " " + fill.getRadii()).toList());
-                check(paint(close).equals(Color.web("#FFFFFF0F"))
+                check(paint(close).equals(Color.web("#34302C12"))
                         && close.getBackground().getFills().size() == 1
                         && close.getBackground().getFills().getFirst().getInsets().equals(new Insets(2))
-                        && close.getBorder() == null && paint((Region) close.lookup(".graphic")).equals(Color.WHITE),
+                        && close.getBorder() == null && paint((Region) close.lookup(".graphic")).equals(Color.web("#1E1915")),
                     "Hovering close adds one quiet inset fill and brightens its glyph");
                 check(originalTabBounds.equals(inactive.getBoundsInParent()) && originalCloseBounds.equals(close.getBoundsInParent()),
                     "Tab hover must keep both hit areas in place");
                 Region active = (Region) tabs.lookup(".tab:selected");
-                check(Color.web("#FF6B6B").equals(active.getBorder().getStrokes().getFirst().getTopStroke()),
+                check(Color.web("#B52828").equals(active.getBorder().getStrokes().getFirst().getTopStroke()),
                     "Hovering a different tab must leave the selected tab's accent in place");
                 check(close.getAccessibleRole() == AccessibleRole.BUTTON, "The close action remains an accessible button");
                 close.executeAccessibleAction(AccessibleAction.FIRE);

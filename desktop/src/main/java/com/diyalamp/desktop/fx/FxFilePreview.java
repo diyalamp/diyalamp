@@ -2,7 +2,6 @@ package com.diyalamp.desktop.fx;
 
 import com.diyalamp.desktop.NoteStore;
 import com.diyalamp.desktop.NoteStore.DocumentKind;
-import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -33,19 +32,11 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.image.PixelFormat;
-import javafx.scene.image.WritableImage;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.io.MemoryUsageSetting;
-import org.apache.pdfbox.io.ScratchFile;
-import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
-import org.apache.pdfbox.rendering.ImageType;
-import org.apache.pdfbox.rendering.PDFRenderer;
 
 /** A local read-only tab. File validation and workspace permissions belong to the caller. */
 final class FxFilePreview extends BorderPane {
@@ -53,10 +44,8 @@ final class FxFilePreview extends BorderPane {
   private static final int MAX_TEXT_BYTES = 5 * MEBIBYTE;
   private static final int MAX_IMAGE_BYTES = 32 * MEBIBYTE;
   private static final long MAX_IMAGE_PIXELS = 32_000_000;
-  private static final long MAX_PDF_BYTES = 100L * MEBIBYTE;
   private static final int MAX_RASTER_EDGE = 2400;
   private static final int MAX_DISPLAY_EDGE = 32_768;
-  private static final double MAX_PAGE_PIXELS = 4_000_000;
   private static final double IMAGE_GUTTER = 24;
   private static final ScheduledThreadPoolExecutor LOADER = new ScheduledThreadPoolExecutor(2, action -> {
     Thread thread = new Thread(action, "diyalamp-file-preview");
@@ -70,10 +59,11 @@ final class FxFilePreview extends BorderPane {
 
   private Path path;
   private final DocumentKind kind;
+  private FxPdfPages pdf;
   private int page, pageCount;
   private final Label pageNumber = new Label();
-  private final Button previous = FxTheme.iconButton("chevron-right", "Previous PDF page", () -> loadPage(page - 1));
-  private final Button next = FxTheme.iconButton("chevron-right", "Next PDF page", () -> loadPage(page + 1));
+  private final Button previous = FxTheme.iconButton("chevron-right", "Previous PDF page", () -> pdf.goToPage(page - 1));
+  private final Button next = FxTheme.iconButton("chevron-right", "Next PDF page", () -> pdf.goToPage(page + 1));
   private final IntegerProperty zoomPercent = new SimpleIntegerProperty();
   private final MenuButton zoom = new MenuButton("Fit");
   private Future<?> loading;
@@ -122,6 +112,7 @@ final class FxFilePreview extends BorderPane {
       pageNumber.setMinWidth(0);
       navigation.setAlignment(Pos.CENTER);
       navigation.getChildren().addAll(previous, pageNumber, next);
+      updateNavigation();
     } else {
       navigation.setAlignment(Pos.CENTER_RIGHT);
     }
@@ -133,8 +124,16 @@ final class FxFilePreview extends BorderPane {
     Path source = path;
     switch (kind) {
       case TEXT -> submit(() -> loadText(source), this::showText);
-      case IMAGE -> submit(() -> loadImage(source), result -> showImage(result.image(), result.naturalWidth(), false));
-      case PDF -> loadPage(page);
+      case IMAGE -> submit(() -> loadImage(source), result -> showImage(result.image(), result.naturalWidth()));
+      case PDF -> submit(() -> FxPdfPages.read(source), pages -> {
+        pageCount = pages.size();
+        pdf = new FxPdfPages(source, pages, zoomPercent, LOADER, index -> {
+          page = index;
+          updateNavigation();
+        });
+        setCenter(pdf);
+        updateNavigation();
+      });
       default -> showError("This file type cannot be previewed.");
     }
   }
@@ -144,6 +143,7 @@ final class FxFilePreview extends BorderPane {
     path = checkedPath;
     describePath();
     if (loading != null) loadCurrent();
+    if (pdf != null) pdf.relocate(checkedPath);
   }
 
   private void describePath() { setAccessibleText("Read-only preview of " + path.getFileName()); }
@@ -159,26 +159,7 @@ final class FxFilePreview extends BorderPane {
     generation++;
     if (loading != null) loading.cancel(true);
     loading = null;
-  }
-
-  private void loadPage(int requested) {
-    if (requested < 0 || pageCount > 0 && requested >= pageCount) return;
-    page = requested;
-    updateNavigation();
-    pageNumber.setText("…");
-    pageNumber.setAccessibleText("Loading page " + (requested + 1));
-    Path source = path;
-    submit(() -> renderPage(source, requested), this::showPage);
-  }
-
-  private void showPage(PdfPage result) {
-    page = result.index();
-    pageCount = result.count();
-    WritableImage image = new WritableImage(result.width(), result.height());
-    image.getPixelWriter().setPixels(0, 0, result.width(), result.height(),
-        PixelFormat.getIntArgbInstance(), result.pixels(), 0, result.width());
-    showImage(image, result.naturalWidth(), true);
-    updateNavigation();
+    if (pdf != null) pdf.dispose();
   }
 
   private void updateNavigation() {
@@ -188,26 +169,26 @@ final class FxFilePreview extends BorderPane {
     next.setDisable(pageCount == 0 || page >= pageCount - 1);
   }
 
-  private void showImage(Image image, double naturalWidth, boolean pdf) {
+  private void showImage(Image image, double naturalWidth) {
     ImageView view = new ImageView(image);
     view.setPreserveRatio(true);
     view.setSmooth(true);
-    view.setAccessibleText(pdf ? "PDF page " + (page + 1) : path.getFileName().toString());
+    view.setAccessibleText(path.getFileName().toString());
     StackPane sheet = new StackPane(view);
     sheet.setPadding(new Insets(IMAGE_GUTTER));
     ScrollPane scroll = new ScrollPane(sheet);
     scroll.getStyleClass().addAll("edge-to-edge", "file-preview-scroll");
     scroll.setFitToWidth(true);
-    scroll.setFitToHeight(!pdf);
+    scroll.setFitToHeight(true);
     scroll.setPannable(true);
     scroll.setFocusTraversable(true);
-    scroll.setAccessibleText(pdf ? "PDF page " + (page + 1) : "Image preview");
-    // Bound layout as well as raster memory, including PDFs that report enormous page dimensions.
+    scroll.setAccessibleText("Image preview");
+    // Bound layout as well as raster memory.
     double maxWidth = MAX_DISPLAY_EDGE * image.getWidth() / Math.max(image.getWidth(), image.getHeight());
     view.fitWidthProperty().bind(Bindings.createDoubleBinding(() -> zoomPercent.get() == 0
         ? Math.min(image.getWidth(), Math.max(1, scroll.getViewportBounds().getWidth() - 2 * IMAGE_GUTTER))
         : Math.min(maxWidth, naturalWidth * zoomPercent.get() / 100), zoomPercent, scroll.viewportBoundsProperty()));
-    if (!pdf) view.fitHeightProperty().bind(Bindings.createDoubleBinding(() -> zoomPercent.get() == 0
+    view.fitHeightProperty().bind(Bindings.createDoubleBinding(() -> zoomPercent.get() == 0
         ? Math.min(image.getHeight(), Math.max(1, scroll.getViewportBounds().getHeight() - 2 * IMAGE_GUTTER))
         : 0, zoomPercent, scroll.viewportBoundsProperty()));
     setCenter(scroll);
@@ -312,31 +293,6 @@ final class FxFilePreview extends BorderPane {
     return new PreviewImage(image, width);
   }
 
-  private static PdfPage renderPage(Path path, int requested) throws IOException {
-    if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) throw new IOException("PDF is not available");
-    if (Files.size(path) > MAX_PDF_BYTES) throw new PreviewProblem("This PDF is larger than 100 MiB.");
-    try (PDDocument document = Loader.loadPDF(path.toFile(),
-        () -> new ScratchFile(MemoryUsageSetting.setupTempFileOnly(3 * MAX_PDF_BYTES)))) {
-      int count = document.getNumberOfPages();
-      if (count == 0) throw new PreviewProblem("This PDF has no pages.");
-      int index = Math.min(requested, count - 1);
-      var page = document.getPage(index);
-      var box = page.getCropBox();
-      double width = box.getWidth(), height = box.getHeight();
-      if (!Double.isFinite(width * height) || width <= 0 || height <= 0)
-        throw new PreviewProblem("This PDF page has invalid dimensions.");
-      float scale = (float) Math.min(2, Math.min(MAX_RASTER_EDGE / Math.max(width, height),
-          Math.sqrt(MAX_PAGE_PIXELS / (width * height))));
-      PDFRenderer renderer = new PDFRenderer(document);
-      renderer.setSubsamplingAllowed(true);
-      BufferedImage image = renderer.renderImage(index, scale, ImageType.RGB);
-      int renderedWidth = image.getWidth(), renderedHeight = image.getHeight();
-      double naturalWidth = page.getRotation() % 180 == 0 ? width : height;
-      return new PdfPage(index, count, renderedWidth, renderedHeight, naturalWidth,
-          image.getRGB(0, 0, renderedWidth, renderedHeight, null, 0, renderedWidth));
-    }
-  }
-
   private static byte[] readBounded(Path path, int maximum, String tooLarge) throws IOException {
     try (var input = Files.newInputStream(path, LinkOption.NOFOLLOW_LINKS)) {
       byte[] bytes = input.readNBytes(maximum + 1);
@@ -347,12 +303,10 @@ final class FxFilePreview extends BorderPane {
 
   private record PreviewImage(Image image, double naturalWidth) {}
 
-  private record PdfPage(int index, int count, int width, int height, double naturalWidth, int[] pixels) {}
-
   @FunctionalInterface
   private interface ReadPreview<T> { T read() throws IOException; }
 
-  private static final class PreviewProblem extends IOException {
+  static final class PreviewProblem extends IOException {
     PreviewProblem(String message) { super(message); }
   }
 }

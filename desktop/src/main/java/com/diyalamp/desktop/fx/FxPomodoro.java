@@ -173,7 +173,7 @@ final class FxPomodoro implements AutoCloseable {
     control.setGraphic(toolbarDisplay);
     control.getStyleClass().addAll("flat", "workspace-tool", "pomodoro-control");
     control.getStylesheets().add(FxPomodoro.class.getResource("/fx-popovers.css").toExternalForm());
-    control.setTooltip(new Tooltip());
+    control.setTooltip(FxTheme.tooltip());
     control.setOnAction(event -> show());
     toolbarDisplay.setAlignment(Pos.CENTER);
     toolbarPhase.getStyleClass().add("pomodoro-toolbar-phase");

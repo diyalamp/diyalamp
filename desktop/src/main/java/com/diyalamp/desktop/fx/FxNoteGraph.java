@@ -69,7 +69,7 @@ final class FxNoteGraph implements AutoCloseable {
   private final VBox content = new VBox();
   private final Label selected = new Label("No note selected"), detail = new Label();
   private final Label linkedCount = new Label();
-  private final Tooltip linkedCountTip = new Tooltip();
+  private final Tooltip linkedCountTip = FxTheme.tooltip();
   private final IntegerProperty linkedNotes = new SimpleIntegerProperty();
   private final Node noteIcon = FxTheme.icon("file-text", 16);
   private final Label incomingTitle = new Label("Incoming"), outgoingTitle = new Label("Outgoing");
@@ -317,7 +317,7 @@ final class FxNoteGraph implements AutoCloseable {
         super.updateItem(path, emptyCell);
         setText(emptyCell || path == null ? null : title(path));
         setGraphic(emptyCell || path == null ? null : icon);
-        setTooltip(emptyCell || path == null || store == null ? null : new Tooltip(store.root().relativize(path).toString()));
+        setTooltip(emptyCell || path == null || store == null ? null : FxTheme.tooltip(store.root().relativize(path).toString()));
       }
     });
     list.setOnKeyPressed(event -> { if (event.getCode() == KeyCode.ENTER) { openSelected(list); event.consume(); } });
@@ -442,7 +442,7 @@ final class FxNoteGraph implements AutoCloseable {
   private void render() {
     selected.setText(active == null ? "No note selected" : title(active));
     selected.setGraphic(active == null ? null : noteIcon);
-    selected.setTooltip(active == null || store == null ? null : new Tooltip(store.root().relativize(active).toString()));
+    selected.setTooltip(active == null || store == null ? null : FxTheme.tooltip(store.root().relativize(active).toString()));
     List<Path> in = snapshot == null || active == null ? List.of() : snapshot.incoming(active);
     List<Path> out = snapshot == null || active == null ? List.of() : snapshot.outgoing(active);
     List<Path> neighbors = java.util.stream.Stream.concat(in.stream(), out.stream())
@@ -502,7 +502,7 @@ final class FxNoteGraph implements AutoCloseable {
     });
     zoom = new ContentZoomScrollPane(graph, 4, .15);
     zoom.getStyleClass().add("note-graph-zoom"); zoom.setMinSize(0, 0);
-    Tooltip.install(zoom, new Tooltip("Hover to inspect · scroll to zoom · drag to pan · double-click to open"));
+    Tooltip.install(zoom, FxTheme.tooltip("Hover to inspect · scroll to zoom · drag to pan · double-click to open"));
     zoom.scaleFactorProperty().addListener((observable, previous, scale) -> updateLabels());
     graph.automaticLayoutProperty().addListener((observable, previous, moving) -> updateLabels());
     zoom.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> reheat());
