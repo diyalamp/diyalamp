@@ -211,8 +211,12 @@ public final class FxShellTests {
       check(choices.stream().allMatch(button -> button.getFont().getName().equals("Inter Regular") && button.getFont().getSize() == 16),
           "Actual palette buttons must use the shared regular UI typography");
       var widths = choices.stream().map(Button::getWidth).toList();
-      check(widths.getFirst() > 100 && widths.stream().allMatch(width -> Math.abs(width - widths.getFirst()) <= 1),
-          "The accent picker uses two stable equal-width columns");
+      check(widths.getFirst() >= 250 && widths.stream().allMatch(width -> Math.abs(width - widths.getFirst()) <= 1)
+              && choices.stream().map(Button::getLayoutY).distinct().count() == choices.size(),
+          "The accent picker uses a single column with full-width buttons");
+      check(choices.stream().allMatch(button -> button.lookup(".text") instanceof javafx.scene.text.Text label
+              && button.getText().equals(label.getText())),
+          "Each accent button displays its full label");
       PseudoClass selected = PseudoClass.getPseudoClass("selected");
       check(FxTheme.accentOf(root).equals(FxTheme.DEFAULT_ACCENT) && palette.get("Fired Clay").getPseudoClassStates().contains(selected),
           "A clean workspace must begin with Fired Clay selected");
@@ -223,7 +227,7 @@ public final class FxShellTests {
         choice.fire();
         popup.getRoot().applyCss(); popup.getRoot().layout();
         check(widths.equals(choices.stream().map(Button::getWidth).toList()),
-            "Selecting " + name + " must keep both columns stable");
+            "Selecting " + name + " must keep the row width stable");
         check(choice.getPseudoClassStates().contains(selected) && choice.getAccessibleText().endsWith(", selected")
                 && choice.getText().equals(name),
             "The styled selection and accessible name must leave the visible label unchanged");
