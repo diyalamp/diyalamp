@@ -1,6 +1,5 @@
 package com.diyalamp.desktop.fx;
 
-import javafx.application.ColorScheme;
 import javafx.application.ConditionalFeature;
 import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyDoubleProperty;
@@ -25,7 +24,6 @@ final class FxWindowHeader {
     }
 
     stage.initStyle(StageStyle.EXTENDED);
-    HeaderBar.setSystemColorScheme(stage, ColorScheme.DARK);
     // Use macOS's large native toolbar style to center its buttons in the workspace row.
     HeaderBar.setSystemButtonHeight(stage, 52);
     MacWindowButtons.bind(stage, zenProgress);

@@ -77,7 +77,7 @@ final class FxDocumentTabs extends TabLine {
           if (header.getTab().isSelected()) queueSelectedTabReveal();
         }
         if (!title.tooltipProperty().isBound()) {
-          Tooltip fullName = new Tooltip();
+          Tooltip fullName = FxTheme.tooltip();
           fullName.textProperty().bind(title.textProperty());
           var original = header.getTab().tooltipProperty();
           title.tooltipProperty().bind(Bindings.createObjectBinding(

@@ -13,8 +13,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TitledPane;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -28,24 +26,19 @@ final class FxAccentPopover {
     Preset(String name, String hex) { this(name, Color.web(hex)); }
   }
   private static final List<Preset> PRESETS = List.of(
-      new Preset("Red", "#EE0000"), new Preset("Blue", "#489CFF"), new Preset("Yellow", "#F7C843"),
-      new Preset("Green", "#4CD980"), new Preset("White", "#FFFFFF"));
+      new Preset("Fired Clay", FxTheme.DEFAULT_ACCENT),
+      new Preset("Apricot Flame", "#E9A576"),
+      new Preset("Honey Gold", "#DDB66E"),
+      new Preset("Clay Rose", "#CF9488"),
+      new Preset("Wick Ash", "#A49183"));
   private static final Pattern HEX = Pattern.compile("#?[0-9a-fA-F]{6}");
   private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
 
   static Popover create(Window owner, ObjectProperty<Color> accent) {
     Label title = new Label("Accent color");
     title.getStyleClass().add("popover-title");
-    GridPane choices = new GridPane();
-    choices.setHgap(4);
-    choices.setVgap(4);
-    for (int i = 0; i < 2; i++) {
-      ColumnConstraints column = new ColumnConstraints();
-      column.setPercentWidth(50);
-      choices.getColumnConstraints().add(column);
-    }
-    for (int i = 0; i < PRESETS.size(); i++) {
-      Preset preset = PRESETS.get(i);
+    VBox choices = new VBox(4);
+    for (Preset preset : PRESETS) {
       Region dot = swatch();
       paint(dot, preset.color());
       Button choice = new Button(preset.name(), dot);
@@ -60,7 +53,7 @@ final class FxAccentPopover {
       select.run();
       accent.addListener((observable, previous, next) -> select.run());
       choice.setOnAction(event -> accent.set(preset.color()));
-      choices.add(choice, i % 2, i / 2);
+      choices.getChildren().add(choice);
     }
 
     CustomTextField hex = new CustomTextField();

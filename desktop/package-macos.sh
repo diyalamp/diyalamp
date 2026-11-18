@@ -79,7 +79,7 @@ if [ -n "$SIGN_IDENTITY" ]; then
   set -- --mac-sign --mac-app-image-sign-identity "$SIGN_IDENTITY" --mac-entitlements packaging/entitlements.plist
   if [ -n "$SIGN_KEYCHAIN" ]; then set -- "$@" --mac-signing-keychain "$SIGN_KEYCHAIN"; fi
 fi
-"$JDK/bin/jpackage" "$@" --type app-image --name diyalamp --input build/input --main-jar diyalamp.jar --main-class com.diyalamp.desktop.DesktopLauncher --runtime-image "$RUNTIME" --app-version "$VERSION" --vendor diyalamp --description 'Local Markdown editor for macOS. No account required.' --mac-package-identifier com.diyalamp.desktop --icon build/diyalamp.icns --java-options "--module-path=\$APPDIR/fx-deps/$FX_PLATFORM" --java-options '--add-modules=javafx.controls' --java-options '--enable-native-access=javafx.graphics,ALL-UNNAMED' --java-options '-Dapple.awt.application.appearance=NSAppearanceNameDarkAqua' --dest "$APP_DEST"
+"$JDK/bin/jpackage" "$@" --type app-image --name diyalamp --input build/input --main-jar diyalamp.jar --main-class com.diyalamp.desktop.DesktopLauncher --runtime-image "$RUNTIME" --app-version "$VERSION" --vendor diyalamp --description 'Local Markdown editor for macOS. No account required.' --mac-package-identifier com.diyalamp.desktop --icon build/diyalamp.icns --java-options "--module-path=\$APPDIR/fx-deps/$FX_PLATFORM" --java-options '--add-modules=javafx.controls' --java-options '--enable-native-access=javafx.graphics,ALL-UNNAMED' --java-options '-Dapple.awt.application.appearance=NSAppearanceNameAqua' --dest "$APP_DEST"
 TARGET="build/release/diyalamp-${VERSION}-macos-${ARCH}.dmg"
 if [ -n "$SIGN_IDENTITY" ]; then
   codesign --verify --deep --strict "$APP_DEST/diyalamp.app"

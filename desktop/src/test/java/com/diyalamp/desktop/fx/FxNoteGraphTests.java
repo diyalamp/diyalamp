@@ -78,10 +78,10 @@ public final class FxNoteGraphTests {
         check(graph != null, "Selected saved note creates the real SmartGraph component");
         retainedGraph.set(graph); retainedZoom.set((ContentZoomScrollPane) field(chosen, "zoom"));
         check(graph.getBackground().getFills().getLast().getFill().equals(FxTheme.EDITOR_BACKGROUND),
-            "Actual graph canvas must use the VS Code default dark editor color");
+            "Actual graph canvas must use the shared editor surface");
         javafx.scene.layout.VBox inspector = (javafx.scene.layout.VBox) field(chosen, "content");
         check(inspector.getBackground().getFills().getLast().getFill().equals(FxTheme.EDITOR_BACKGROUND),
-            "Actual inspector must use the VS Code default dark sidebar color");
+            "Actual inspector must use the shared sidebar surface");
         var graphLabels = graph.lookupAll(".vertex-label").stream()
             .filter(node -> node instanceof javafx.scene.text.Text).toList();
         check(!graphLabels.isEmpty(), "Real diagram labels must be present for typography checks");

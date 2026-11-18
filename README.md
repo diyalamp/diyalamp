@@ -7,8 +7,8 @@
 </div>
 
 <p align="center">
-  <a href="docs/assets/database-workspace.webp?v=1.4.1-r2"><img src="docs/assets/database-workspace.webp?v=1.4.1-r2" alt="diyalamp showing a rendered database index note, a local graph, four incoming links, and five outgoing links" width="1100"></a><br>
-  <sub>Database Indexes, with its incoming and outgoing note links.</sub>
+  <a href="docs/assets/database-workspace.webp?v=1.4.2-light"><img src="docs/assets/database-workspace.webp?v=1.4.2-light" alt="DiyaLamp’s light Markdown workspace with a Database Indexes note and a graph of connected notes" width="1100"></a><br>
+  <sub>Version 1.4.2 preview · Database Indexes, with its incoming and outgoing note links.</sub>
 </p>
 
 ## Download for Mac
@@ -24,16 +24,16 @@ Sizes are compressed DMG downloads. The [under-5-MB installed target](https://gi
 
 Open the DMG and drag **diyalamp** into **Applications**. Then press `⌘O` to open your Markdown folder. The release is ad hoc signed, and macOS may block first launch. The [install guide](docs/install.md) covers checksum verification, macOS compatibility, and updates.
 
-[Download the sample notes (ZIP)](https://diyalamp.com/downloads/database-systems-demo.zip) to try the workspace shown above. Unzip the archive, open the **Database Systems Demo** folder in diyalamp, and start with **Database Indexes**.
+[Download the sample notes (ZIP)](https://diyalamp.com/downloads/database-systems-demo.zip) to try a smaller version of the workspace shown above. Unzip the archive, open the **Database Systems Demo** folder in diyalamp, and start with **Database Indexes**.
 
 ## The writing workspace
 
-Edit headings, checklists, quotes, links, and fenced code blocks with live formatting. Type `/` on an empty line for block commands. Drag a note into a second pane to keep a reference in view while you write. Reorder tabs, rename a note inline, or drag it to another folder. Select a folder to create a note inside it, rename it, or move it to Deleted Items.
+Edit headings, checklists, quotes, links, and fenced code blocks with live formatting. The 1.4.2 preview opens in warm light mode, with a black workspace in Focus mode. Type `/` on an empty line for block commands. Drag a note into a second pane to keep a reference in view while you write. Reorder tabs, rename a note inline, or drag it to another folder. Select a folder to create a note inside it, rename it, or move it to Deleted Items.
 
-Preview text files, PDFs, and images beside a Markdown note. The last workspace can reopen with its tabs and split layout after you quit.
+Preview text files, PDFs, and images beside a Markdown note. The 1.4.2 preview scrolls through PDF pages continuously. The last workspace can reopen with its tabs and split layout after you quit.
 
 <p align="center">
-  <a href="docs/assets/database-search-and-split.webp?v=1.4.1-r2"><img src="docs/assets/database-search-and-split.webp?v=1.4.1-r2" alt="Search results for index alongside the Database Indexes and Query Plans notes in two editing panes" width="1100"></a><br>
+  <a href="docs/assets/database-search-and-split.webp?v=1.4.2-light"><img src="docs/assets/database-search-and-split.webp?v=1.4.2-light" alt="Search results for index alongside the Database Indexes and Query Plans notes in two editing panes" width="1100"></a><br>
   <sub>Search note text while keeping Database Indexes and Query Plans open.</sub>
 </p>
 
@@ -42,11 +42,11 @@ Preview text files, PDFs, and images beside a Markdown note. The last workspace 
 Use `⌘P` to find files, `⌥⌘F` to search text across the folder, or `⌘F` to find text in the open note. In workspace search, use **Match** for case, whole words, and regular expressions. Expand **File filters** to include or exclude paths.
 
 <p align="center">
-  <a href="docs/assets/workspace-search.webp?v=1.4.1-r2"><img src="docs/assets/workspace-search.webp?v=1.4.1-r2" width="288" alt="Note text search with Case, Whole word, and Regex switches, a File filters disclosure, and a highlighted match"></a>
+  <a href="docs/assets/workspace-search.webp?v=1.4.2-light"><img src="docs/assets/workspace-search.webp?v=1.4.2-light" width="288" alt="Note text search with Case, Whole word, and Regex switches, a File filters disclosure, and a highlighted match"></a>
 </p>
 
 <p align="center">
-  <a href="docs/assets/find-in-note.webp?v=1.4.1-r2"><img src="docs/assets/find-in-note.webp?v=1.4.1-r2" width="740" alt="Inline Find bar showing one match for order feed, highlighted in the note"></a>
+  <a href="docs/assets/find-in-note.webp?v=1.4.2-light"><img src="docs/assets/find-in-note.webp?v=1.4.2-light" width="740" alt="Inline Find bar showing one match for order feed, highlighted in the note"></a>
 </p>
 
 ### Follow links and backlinks
@@ -54,7 +54,7 @@ Use `⌘P` to find files, `⌥⌘F` to search text across the folder, or `⌘F` 
 Type `[[Note name]]` or use a relative Markdown link. The Connections panel shows the active note’s graph along with its incoming and outgoing links.
 
 <p align="center">
-  <a href="docs/assets/connections-hover.webp?v=1.4.1-r2"><img src="docs/assets/connections-hover.webp?v=1.4.1-r2" width="344" alt="The Connections panel highlights links to and from Composite Indexes while it is hovered"></a>
+  <a href="docs/assets/connections-hover.webp?v=1.4.2-light"><img src="docs/assets/connections-hover.webp?v=1.4.2-light" width="344" alt="The Connections panel highlights links to and from Composite Indexes while it is hovered"></a>
 </p>
 
 ### Keep the active line in view
@@ -62,7 +62,7 @@ Type `[[Note name]]` or use a relative Markdown link. The Connections panel show
 Focus mode keeps the line you’re writing bright and dims the surrounding text and workspace.
 
 <p align="center">
-  <a href="docs/assets/focus-active-line.webp?v=1.4.1-r2"><img src="docs/assets/focus-active-line.webp?v=1.4.1-r2" width="740" alt="The active paragraph stays readable on black while nearby text fades"></a>
+  <a href="docs/assets/focus-active-line.webp?v=1.4.2-light"><img src="docs/assets/focus-active-line.webp?v=1.4.2-light" width="740" alt="The active paragraph stays readable on black while nearby text fades"></a>
 </p>
 
 ### Set a timer and choose an accent
@@ -70,8 +70,8 @@ Focus mode keeps the line you’re writing bright and dims the surrounding text 
 Set focus and break lengths in the toolbar Pomodoro, then run one cycle or repeat. Choose an accent preset or enter your own hex color.
 
 <p align="center">
-  <a href="docs/assets/pomodoro-controls.webp?v=1.4.1-r2"><img src="docs/assets/pomodoro-controls.webp?v=1.4.1-r2" width="304" align="top" alt="Pomodoro controls with editable focus and break durations and Repeat selected"></a>
-  <a href="docs/assets/accent-palette.webp?v=1.4.1-r2"><img src="docs/assets/accent-palette.webp?v=1.4.1-r2" width="360" align="top" alt="Accent color picker with red, blue, yellow, green, white, and custom choices"></a>
+  <a href="docs/assets/pomodoro-controls.webp?v=1.4.2-light"><img src="docs/assets/pomodoro-controls.webp?v=1.4.2-light" width="304" align="top" alt="Pomodoro controls with editable focus and break durations and Repeat selected"></a>
+  <a href="docs/assets/accent-palette.webp?v=1.4.2-light"><img src="docs/assets/accent-palette.webp?v=1.4.2-light" width="360" align="top" alt="Five lamp-inspired accent colors in a single-column picker with a custom option"></a>
 </p>
 
 ## Bring your notes

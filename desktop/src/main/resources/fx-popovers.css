@@ -19,7 +19,7 @@
 .diyalamp-popover .popover-title, .diyalamp-popover .pomodoro-time {
   -fx-font-family: "Inter SemiBold";
   -fx-font-weight: normal;
-  -fx-text-fill: -color-fg-emphasis;
+  -fx-text-fill: -diyalamp-ink-strong;
 }
 .diyalamp-popover .popover-section-title {
   -fx-font-family: "Inter SemiBold";
@@ -41,18 +41,18 @@
 .diyalamp-popover .accent-choice { -fx-alignment: center-left; }
 .diyalamp-popover .accent-choice:hover {
   -fx-background-color: -diyalamp-control-hover;
-  -fx-text-fill: -color-fg-emphasis;
+  -fx-text-fill: -diyalamp-ink-strong;
 }
 .diyalamp-popover .accent-choice:pressed {
   -fx-background-color: -diyalamp-control-pressed;
 }
 .diyalamp-popover .accent-choice:selected {
   -fx-background-color: -diyalamp-accent-subtle;
-  -fx-text-fill: -color-fg-emphasis;
+  -fx-text-fill: -diyalamp-ink-strong;
 }
-.diyalamp-popover .accent-choice:selected .accent-swatch { -fx-border-color: -color-fg-emphasis; }
+.diyalamp-popover .accent-choice:selected .accent-swatch { -fx-border-color: -diyalamp-ink-strong; }
 .diyalamp-popover .pomodoro-phase:hover, .diyalamp-popover .pomodoro-phase:selected {
-  -fx-text-fill: -color-fg-emphasis;
+  -fx-text-fill: -diyalamp-ink-strong;
 }
 .diyalamp-popover .accent-choice:focus-visible, .diyalamp-popover .pomodoro-phase:focus-visible {
   -fx-border-color: -diyalamp-focus;
@@ -61,7 +61,7 @@
   -fx-padding: 0 8 0 0;
   -fx-border-width: 1;
   -fx-highlight-fill: -diyalamp-selection;
-  -fx-highlight-text-fill: -color-fg-emphasis;
+  -fx-highlight-text-fill: -diyalamp-ink-strong;
 }
 .accent-hex .left-pane { -fx-padding: 0 8 0 10; }
 .accent-custom { -fx-background-color: transparent; -fx-text-fill: -color-fg-default; }
@@ -122,8 +122,9 @@
 }
 .pomodoro-control .pomodoro-toolbar-time {
   -fx-min-width: 64; -fx-pref-width: 64; -fx-max-width: 64;
-  -fx-font-family: "Inter SemiBold"; -fx-text-fill: -color-fg-emphasis;
+  -fx-font-family: "Inter SemiBold";
 }
+.workspace-root .pomodoro-control .pomodoro-toolbar-time { -fx-text-fill: -diyalamp-ink-strong; }
 .pomodoro-control .pomodoro-toolbar-state {
   -fx-min-width: 12; -fx-pref-width: 12; -fx-max-width: 12;
   -fx-min-height: 12; -fx-pref-height: 12; -fx-max-height: 12;
@@ -149,8 +150,8 @@
 }
 .workspace-root .pomodoro-minutes.note-search-field { -fx-padding: 0 0 0 10; }
 .pomodoro-minutes .right-pane { -fx-padding: 0 10 0 6; }
-.diyalamp-popover .pomodoro-error { -fx-text-fill: #F3A39E; }
-.diyalamp-popover .pomodoro-minutes:timer-invalid { -fx-border-color: #F3A39E; }
+.diyalamp-popover .pomodoro-error { -fx-text-fill: -diyalamp-error; }
+.diyalamp-popover .pomodoro-minutes:timer-invalid { -fx-border-color: -diyalamp-error; }
 
 .accent-bubble .accent-swatch {
   -fx-min-width: 16;

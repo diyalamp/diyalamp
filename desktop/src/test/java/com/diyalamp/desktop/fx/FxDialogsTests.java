@@ -82,9 +82,9 @@ public final class FxDialogsTests {
           "The dialog must drop native window chrome when transparent windows are supported");
       var rendered = window.getScene().snapshot(null).getPixelReader();
       check(rendered.getColor(0, 0).getOpacity() == 0 && rendered.getColor(210, 12).isOpaque(),
-          "The scene must render transparent corners around its opaque dark surface");
+          "The scene must render transparent corners around its opaque workspace surface");
     } else check(window.getStyle() == StageStyle.UNDECORATED,
-        "Platforms without window transparency must still use an undecorated dark surface");
+        "Platforms without window transparency must still use an undecorated workspace surface");
     Label prompt = (Label) input.getDialogPane().getContent().lookup(".label");
     check(prompt != null && prompt.getLabelFor() == input.getEditor()
             && prompt.getBoundsInParent().getMaxY() < input.getEditor().getBoundsInParent().getMinY(),

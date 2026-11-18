@@ -20,8 +20,8 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
-/** Rendered control surfaces, real popup windows, and dark-aware accent colors. */
-public final class FxDarkThemeTests {
+/** Rendered control surfaces, real popup windows, and both workspace palettes. */
+public final class FxThemeTests {
   private static int checks;
   private static void check(boolean value, String message) {
     checks++; if (!value) throw new AssertionError(message);
@@ -33,22 +33,22 @@ public final class FxDarkThemeTests {
       catch (Throwable error) { failure.set(error); }
       finally { done.countDown(); }
     });
-    if (!done.await(20, TimeUnit.SECONDS)) throw new AssertionError("Dark component checks timed out");
+    if (!done.await(20, TimeUnit.SECONDS)) throw new AssertionError("Theme component checks timed out");
     Platform.exit();
-    if (failure.get() != null) throw new AssertionError("Dark component regression", failure.get());
-    System.out.println("Passed " + checks + " dark-theme component checks.");
+    if (failure.get() != null) throw new AssertionError("Theme component regression", failure.get());
+    System.out.println("Passed " + checks + " theme component checks.");
   }
 
   private static void surfaces() {
     FxTheme.setup();
-    check(Application.getUserAgentStylesheet().contains("cupertino-dark"), "Maintained CupertinoDark supplies controls");
+    check(Application.getUserAgentStylesheet().contains("cupertino-light"), "Maintained CupertinoLight supplies controls");
     Node firstIcon = FxTheme.icon("search"), secondIcon = FxTheme.icon("search");
     HBox independentIcons = new HBox(firstIcon, secondIcon);
     var firstStroke = (Shape) firstIcon.lookup(".icon-stroke");
     var secondStroke = (Shape) secondIcon.lookup(".icon-stroke");
     firstStroke.setStroke(Color.WHITE);
     check(independentIcons.getChildren().size() == 2 && firstStroke != secondStroke
-        && secondStroke.getStroke().equals(Color.web("#A49D95")),
+        && secondStroke.getStroke().equals(Color.web("#665D53")),
         "Cached icon geometry must still give each control its own rendered shapes");
     BorderPane root = new BorderPane(); root.getStyleClass().add("workspace-root");
     root.getStylesheets().add(FxTheme.class.getResource("/fx-workspace.css").toExternalForm());
@@ -68,43 +68,48 @@ public final class FxDarkThemeTests {
     Label status = new Label("All changes saved"); HBox footer = new HBox(status); footer.getStyleClass().add("workspace-status"); root.setBottom(footer);
     Stage stage = new Stage(); stage.setScene(new Scene(root, 1000, 650)); stage.show(); layout(root);
     try (FxPomodoro timer = new FxPomodoro(stage, ignored -> {})) {
-      color(background(root), "#141312", "Workspace");
-      color(background(toolbar), "#141312", "Toolbar"); color(background(sidebar), "#141312", "Sidebar");
-      color(background(writing), "#141312", "Editor"); color(background(footer), "#141312", "Status bar");
-      color(background(input), "#141312", "Search field"); color((Color) css(input, "-fx-text-fill"), "#CEC9C2", "Input text");
-      color((Color) css(input, "-fx-prompt-text-fill"), "#A49D95", "Placeholder");
-      color((Color) paragraph.getTextFill(), "#CEC9C2", "UI text");
-      color((Color) input.getBorder().getStrokes().getFirst().getTopStroke(), "#383533", "Input border");
+      color(background(root), "#FAF8F5", "Workspace");
+      color(background(toolbar), "#FAF8F5", "Toolbar"); color(background(sidebar), "#FAF8F5", "Sidebar");
+      color(background(writing), "#FAF8F5", "Editor"); color(background(footer), "#FAF8F5", "Status bar");
+      color(background(input), "#FAF8F5", "Search field"); color((Color) css(input, "-fx-text-fill"), "#302B26", "Input text");
+      color((Color) css(input, "-fx-prompt-text-fill"), "#665D53", "Placeholder");
+      color((Color) paragraph.getTextFill(), "#302B26", "UI text");
+      color((Color) input.getBorder().getStrokes().getFirst().getTopStroke(), "#D6D0C7", "Input border");
       input.requestFocus(); layout(root);
-      color((Color) input.getBorder().getStrokes().getFirst().getTopStroke(), "#FF5555B3", "Input focus ring");
+      color((Color) input.getBorder().getStrokes().getFirst().getTopStroke(), "#9F3A2BCC", "Input focus ring");
       tools.requestFocus(); layout(root);
-      color((Color) status.getTextFill(), "#A49D95", "Secondary text");
+      color((Color) status.getTextFill(), "#665D53", "Secondary text");
       for (Labeled label : List.of(brand, heading, paragraph, status)) font(label.getFont().getSize(), label.getText());
       font(input.getFont().getSize(), "Input");
       for (Node node : tabs.lookupAll(".tab .label")) font(((Label) node).getFont().getSize(), "Tab label");
-      for (Color choice : List.of(Color.web("#EE0000"), Color.web("#489CFF"), Color.web("#F7C843"),
-          Color.web("#4CD980"), Color.WHITE, Color.web("#7B8FB7"), Color.BLACK)) {
+      for (Color choice : List.of(Color.web("#A84230"), Color.web("#E9A576"), Color.web("#DDB66E"),
+          Color.web("#CF9488"), Color.web("#A49183"), Color.WHITE, Color.BLACK)) {
         FxTheme.accent(root, choice);
         Hyperlink link = new Hyperlink("Local link"); link.setStyle("-fx-text-fill: -color-accent-fg;"); writing.getChildren().add(link);
         Button action = new Button("Action"); action.getStyleClass().add(Styles.ACCENT); writing.getChildren().add(action); layout(root);
         Color linkInk = (Color) link.getTextFill();
-        check(FxTheme.contrast(linkInk, FxTheme.EDITOR_BACKGROUND) >= 4.5, "Each accent remains readable as dark-surface link text");
+        check(FxTheme.contrast(linkInk, FxTheme.EDITOR_BACKGROUND) >= 4.5, "Each accent remains readable as light-surface link text");
         check(FxTheme.contrast((Color) action.getTextFill(), background(action)) >= 4.5, "Each accent action has readable text");
         if (choice.equals(FxTheme.DEFAULT_ACCENT)) {
-          color(linkInk, "#FF6B6B", "Default link"); color(background(action), "#EE0000", "Default action");
+          color(linkInk, "#9F3A2B", "Default link"); color(background(action), "#A84230", "Default action");
         }
         writing.getChildren().removeAll(link, action);
       }
       FxTheme.accent(root, FxTheme.DEFAULT_ACCENT);
       TextInputDialog dialog = new TextInputDialog("Fictional note"); dialog.setHeaderText("Rename note");
       FxDialogs.style(dialog, stage); dialog.show(); layout(dialog.getDialogPane());
-      color(background(dialog.getDialogPane()), "#141312", "Dialog");
-      color(background(dialog.getEditor()), "#141312", "Dialog input");
+      color(background(dialog.getDialogPane()), "#FAF8F5", "Dialog");
+      color(background(dialog.getEditor()), "#FAF8F5", "Dialog input");
       for (Node node : dialog.getDialogPane().lookupAll(".label")) font(((Label) node).getFont().getSize(), "Dialog label/header");
       for (ButtonType type : dialog.getDialogPane().getButtonTypes()) font(((Button) dialog.getDialogPane().lookupButton(type)).getFont().getSize(), "Dialog action");
-      FxTheme.focusSurface(root, 1); layout(dialog.getDialogPane());
+      FxTheme.focusSurface(root, 1); layout(root); layout(dialog.getDialogPane());
+      color(background(root), "#000000", "Focus workspace");
+      color((Color) paragraph.getTextFill(), "#CEC9C2", "Focus workspace ink");
+      check(stage.getScene().getUserAgentStylesheet().contains("cupertino-dark"),
+          "Focus mode adopts matching Cupertino Dark controls");
       color(background(dialog.getDialogPane()), "#000000", "Focus dialog");
       color(background(dialog.getEditor()), "#000000", "Focus dialog input");
+      color((Color) css(dialog.getEditor(), "-fx-text-fill"), "#CEC9C2", "Focus dialog input ink");
       FxTheme.focusSurface(root, 0);
       dialog.close();
       toolbar.getChildren().add(timer.button()); layout(root); timer.popover().setAnimated(false); timer.show();
@@ -118,16 +123,21 @@ public final class FxDarkThemeTests {
       for (Node node : timer.popover().getRoot().lookupAll(".button")) font(((Button) node).getFont().getSize(), "Timer action");
       for (Node node : timer.popover().getRoot().lookupAll(".toggle-button")) font(((ToggleButton) node).getFont().getSize(), "Timer phase");
       var border = (javafx.scene.shape.Shape) timer.popover().getRoot().lookup(".border");
-      color((Color) border.getFill(), "#141312", "Popover"); timer.popover().hide(Duration.ZERO);
+      color((Color) border.getFill(), "#FAF8F5", "Popover"); timer.popover().hide(Duration.ZERO);
       Tooltip tip = tools.getTooltip(); tip.show(stage, 100, 100); tip.getScene().getRoot().applyCss();
-      font(tip.getFont().getSize(), "Tooltip"); color((Color) ((Label) tip.getSkin().getNode()).getTextFill(), "#CEC9C2", "Tooltip ink"); tip.hide();
+      Label tipLabel = (Label) tip.getSkin().getNode();
+      font(tip.getFont().getSize(), "Tooltip"); color((Color) tipLabel.getTextFill(), "#302B26", "Tooltip ink");
+      FxTheme.focusSurface(root, 1); layout(tip.getScene().getRoot());
+      color(background(tipLabel), "#000000", "Focus tooltip");
+      color((Color) tipLabel.getTextFill(), "#CEC9C2", "Focus tooltip ink");
+      FxTheme.focusSurface(root, 0); tip.hide();
       ContextMenu menu = FxTheme.contextMenu();
       menu.getItems().add(new MenuItem("Copy"));
       menu.show(tools, Side.BOTTOM, 0, 0);
       layout(menu.getScene().getRoot());
       for (Node node : menu.getScene().getRoot().lookupAll(".menu-item .label")) font(((Label) node).getFont().getSize(), "Context menu");
       Region menuSurface = (Region) menu.getSkin().getNode();
-      color(background(menuSurface), "#141312", "Context menu");
+      color(background(menuSurface), "#FAF8F5", "Context menu");
       FxTheme.focusSurface(root, 1); layout(menu.getScene().getRoot());
       color(background(menuSurface), "#000000", "Focus context menu");
       FxTheme.focusSurface(root, 0); menu.hide();

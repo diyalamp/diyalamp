@@ -166,7 +166,7 @@ public final class FxSidebarSearch extends VBox {
     searchOptions.getStyleClass().addAll("flat", "button-icon", "workspace-tool", "file-row-action", "sidebar-search-toggle");
     searchOptions.setAccessibleText("Search options");
     searchOptions.setAccessibleHelp("Show or hide search scope and filters.");
-    Tooltip optionsTooltip = new Tooltip();
+    Tooltip optionsTooltip = FxTheme.tooltip();
     optionsTooltip.textProperty().bind(Bindings.when(searchOptions.selectedProperty())
         .then("Hide search options").otherwise("Show search options"));
     searchOptions.setTooltip(optionsTooltip);
@@ -407,7 +407,7 @@ public final class FxSidebarSearch extends VBox {
       fileGroup = new VBox(4, fileHeading);
       int count = getTreeItem().getChildren().size();
       setAccessibleText(relative + (count == 0 ? "" : ", " + quantity(count, "match", "matches")));
-      setTooltip(new Tooltip(relative.toString()));
+      setTooltip(FxTheme.tooltip(relative.toString()));
       if (count > 0) {
         Label badge = new Label(Integer.toString(count));
         badge.getStyleClass().add("sidebar-search-count");
@@ -450,7 +450,7 @@ public final class FxSidebarSearch extends VBox {
           row.prefWidthProperty(), row.spacingProperty(), number.fontProperty()));
       row.getStyleClass().add("sidebar-search-match");
       setAccessibleText(relative(result.path()) + ", line " + match.line() + ", column " + match.column() + ": " + match.excerpt());
-      setTooltip(new Tooltip(match.excerpt()));
+      setTooltip(FxTheme.tooltip(match.excerpt()));
       return row;
     }
   }

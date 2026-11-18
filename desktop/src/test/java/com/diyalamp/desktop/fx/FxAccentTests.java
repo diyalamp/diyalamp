@@ -60,19 +60,19 @@ public final class FxAccentTests {
       var content = popup.getContentNode();
       var presets = content.lookupAll(".accent-choice").stream().map(Button.class::cast).toList();
       check(presets.size() == 5, "The five accent presets must remain directly selectable");
-      Button blue = presets.stream().filter(button -> button.getText().equals("Blue")).findFirst().orElseThrow();
-      blue.fire();
-      check(accent.get().equals(Color.web("#489CFF")) && blue.getAccessibleText().contains(", selected"),
+      Button apricot = presets.stream().filter(button -> button.getText().equals("Apricot Flame")).findFirst().orElseThrow();
+      apricot.fire();
+      check(accent.get().equals(Color.web("#E9A576")) && apricot.getAccessibleText().contains(", selected"),
           "Preset selection must update the workspace and accessible state");
       TitledPane custom = (TitledPane) content.lookup(".accent-custom");
       check(!custom.isExpanded() && !custom.isAnimated(), "The native custom disclosure must honor Reduce Motion");
       custom.setExpanded(true);
       CustomTextField hex = (CustomTextField) custom.getContent().lookup(".accent-hex");
       Button apply = (Button) custom.getContent().lookup(".popover-action");
-      check(hex.getText().equals("#489CFF") && hex.getLeft() instanceof Region,
+      check(hex.getText().equals("#E9A576") && hex.getLeft() instanceof Region,
           "The hex input must start at the current accent with a native preview slot");
       hex.setText("#0");
-      check(apply.isDisabled() && accent.get().equals(Color.web("#489CFF")),
+      check(apply.isDisabled() && accent.get().equals(Color.web("#E9A576")),
           "Incomplete hex text must never change the workspace accent");
       hex.setText("AA66CC");
       check(hex.getLeft().getStyle().contains("#AA66CC") && !apply.isDisabled(),

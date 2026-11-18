@@ -55,9 +55,9 @@
   -fx-background-color: -color-accent-fg;
   -fx-opacity: 1;
 }
-.workspace-root .quick-task-row .check-box:focus-visible > .box { -fx-border-color: -color-fg-emphasis; }
+.workspace-root .quick-task-row .check-box:focus-visible > .box { -fx-border-color: -diyalamp-ink-strong; }
 .quick-task-row:completed .check-box > .text { -fx-strikethrough: true; }
 .quick-task-row .file-row-action .icon-stroke { -fx-stroke: -color-fg-muted; }
-.quick-task-row .file-row-action:hover .icon-stroke { -fx-stroke: -color-fg-emphasis; }
+.quick-task-row .file-row-action:hover .icon-stroke { -fx-stroke: -diyalamp-ink-strong; }
 .diyalamp-popover .quick-tasks-status { -fx-text-fill: -color-fg-muted; }
 .workspace-root:reduced-motion .quick-task-row { transition-duration: 0s; }

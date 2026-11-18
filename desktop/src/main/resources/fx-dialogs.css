@@ -19,7 +19,7 @@
 .diyalamp-dialog > .header-panel > .label {
   -fx-font-family: "Inter SemiBold";
   -fx-font-weight: normal;
-  -fx-text-fill: -color-fg-emphasis;
+  -fx-text-fill: -diyalamp-ink-strong;
 }
 .diyalamp-dialog > .content { -fx-padding: 16 24 0 24; }
 .diyalamp-dialog > .content.label { -fx-wrap-text: true; }
@@ -41,7 +41,7 @@
   -fx-text-fill: -color-fg-default;
   -fx-prompt-text-fill: -color-fg-muted;
   -fx-highlight-fill: -diyalamp-selection;
-  -fx-highlight-text-fill: -color-fg-emphasis;
+  -fx-highlight-text-fill: -diyalamp-ink-strong;
 }
 .diyalamp-dialog .text-field { -fx-padding: 0 8; }
 .diyalamp-dialog .text-field:focused,

@@ -331,7 +331,7 @@ public final class FxDiyalamp extends Application {
     FxZenChrome.apply(zenProgressProperty(), toolbarClip, footerClip, bandDivider, contextDivider, explorer,
         noteGraph.node(), primary.chromeClip, secondary.chromeClip);
     Scene scene = new Scene(root, 1180, 800);
-    scene.getPreferences().setColorScheme(ColorScheme.DARK);
+    scene.getPreferences().setColorScheme(ColorScheme.LIGHT);
     scene.getStylesheets().add(FxDiyalamp.class.getResource("/fx-workspace.css").toExternalForm());
     initializeAccent();
     Platform.getPreferences().reducedMotionProperty().addListener(motionPreference);
@@ -388,7 +388,7 @@ public final class FxDiyalamp extends Application {
     filesControl = files;
     files.getStyleClass().addAll("flat", "button-icon", "workspace-tool", "sidebar-toggle");
     files.setAccessibleText("Toggle files sidebar");
-    Tooltip filesHelp = new Tooltip();
+    Tooltip filesHelp = FxTheme.tooltip();
     filesHelp.textProperty().bind(Bindings.when(files.selectedProperty())
         .then("Hide files sidebar").otherwise("Show files sidebar"));
     files.setTooltip(filesHelp);
@@ -410,14 +410,14 @@ public final class FxDiyalamp extends Application {
     connections.getStyleClass().addAll("flat", "button-icon", "workspace-tool", "sidebar-toggle");
     connections.setAccessibleText("Toggle right sidebar");
     connections.setAccessibleHelp("Show or hide incoming and outgoing note connections. The state is remembered.");
-    Tooltip connectionHelp = new Tooltip();
+    Tooltip connectionHelp = FxTheme.tooltip();
     connectionHelp.textProperty().bind(Bindings.when(connections.selectedProperty())
         .then("Hide right sidebar").otherwise("Show right sidebar"));
     connections.setTooltip(connectionHelp);
     if (noteGraph != null) connections.selectedProperty().bindBidirectional(noteGraph.showingProperty());
     ToggleButton zen = new ToggleButton(null, FxTheme.icon("moon", 16));
     zen.getStyleClass().addAll("flat", "button-icon", "workspace-tool");
-    Tooltip zenHelp = new Tooltip();
+    Tooltip zenHelp = FxTheme.tooltip();
     zenHelp.textProperty().bind(Bindings.when(zenMode).then("Exit line focus · ⇧⌘F").otherwise("Enter line focus · ⇧⌘F"));
     zen.setTooltip(zenHelp); zen.setAccessibleText("Zen mode");
     zen.setAccessibleHelp("Keep the current line clear while dimming surrounding text and workspace controls.");
@@ -433,7 +433,7 @@ public final class FxDiyalamp extends Application {
     ToggleButton privacy = new ToggleButton(null, FxTheme.icon("shield"));
     privacy.getStyleClass().addAll("flat", "button-icon", "workspace-tool");
     privacy.setAccessibleText("Privacy Mode");
-    Tooltip privacyHelp = new Tooltip();
+    Tooltip privacyHelp = FxTheme.tooltip();
     privacyHelp.textProperty().bind(Bindings.when(privacyMode)
         .then("Turn off Privacy Mode").otherwise("Hide workspace for presentation"));
     privacy.setTooltip(privacyHelp);
@@ -456,7 +456,7 @@ public final class FxDiyalamp extends Application {
     var fullPath = Bindings.createStringBinding(() -> workspacePath.get() == null
         ? "Open folder…" : workspacePath.get().toString(), workspacePath);
     folderControl.accessibleHelpProperty().bind(fullPath);
-    Tooltip folderPath = new Tooltip();
+    Tooltip folderPath = FxTheme.tooltip();
     folderPath.textProperty().bind(fullPath);
     folderControl.setTooltip(folderPath);
 
@@ -647,7 +647,7 @@ public final class FxDiyalamp extends Application {
         actions.managedProperty().bind(actions.visibleProperty());
       }
       row.getChildren().add(actions);
-      setTooltip(new Tooltip(path.getFileName().toString()));
+      setTooltip(FxTheme.tooltip(path.getFileName().toString()));
       setGraphic(row);
       boolean markdown = NoteStore.isMarkdown(path);
       setAccessibleText(path.getFileName() + (directory ? ", folder" : markdown ? ", Markdown note" : ", preview file"));
@@ -1226,7 +1226,7 @@ public final class FxDiyalamp extends Application {
     Message message = new Message("Changes need attention", session.blockedView == null
         ? "Your edits are still open." : "Undo, simplify, or export visible text.");
     message.getStyleClass().addAll(Styles.WARNING, "save-warning-message");
-    message.setTooltip(new Tooltip(session.error));
+    message.setTooltip(FxTheme.tooltip(session.error));
     message.setMaxWidth(Double.MAX_VALUE);
     Button export = new Button("Export copy"); export.getStyleClass().add("dialog-action");
     export.setOnAction(event -> export(session));
@@ -1271,7 +1271,7 @@ public final class FxDiyalamp extends Application {
   private static Label metricLabel(String icon, String description) {
     Label label = new Label("", FxTheme.icon(icon, 16));
     label.getStyleClass().add("note-metric");
-    label.setTooltip(new Tooltip(description)); label.setAccessibleHelp(description);
+    label.setTooltip(FxTheme.tooltip(description)); label.setAccessibleHelp(description);
     label.setMinWidth(Region.USE_PREF_SIZE);
     return label;
   }
@@ -1973,7 +1973,7 @@ public final class FxDiyalamp extends Application {
     if (accentControl != null) return accentControl;
     accentControl = new Button(null, accentSwatch(displayedAccent));
     accentControl.setContentDisplay(ContentDisplay.RIGHT);
-    accentControl.setTooltip(new Tooltip("Workspace accent color"));
+    accentControl.setTooltip(FxTheme.tooltip("Workspace accent color"));
     accentControl.setAccessibleText("Workspace accent color");
     accentControl.setAccessibleHelp("Choose a preset accent or enter a custom six-digit hex color.");
     accentControl.getStyleClass().addAll("workspace-tool", "workspace-accent-button");

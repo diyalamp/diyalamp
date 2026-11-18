@@ -490,8 +490,8 @@ public final class FxWritingPaneTests {
     for (int row : List.of(6, 7)) {
       var marker = (javafx.scene.control.Label) editor.area().getParagraphGraphic(row);
       check(marker.getFont().getName().equals("Inter Regular") && marker.getFont().getSize() == 16
-          && marker.getTextFill().equals(Color.web("#A49D95")),
-          "Bullet and ordered-list markers must use the same size and readable dark-theme muted ink");
+          && marker.getTextFill().equals(Color.web("#665D53")),
+          "Bullet and ordered-list markers must use the same size and readable muted ink");
     }
     editor.area().selectRange(editor.area().getAbsolutePosition(4, 0), editor.area().getAbsolutePosition(4, 0));
     root.layout();
@@ -510,21 +510,21 @@ public final class FxWritingPaneTests {
             "Full application CSS must preserve static Inter Regular at the intended body size");
         check(!text.getFont().getStyle().contains("Bold") && !text.getFont().getStyle().contains("Thin"),
             "Body copy must resolve a true regular face rather than a heavy or thin substitution");
-        check(text.getFill().equals(Color.web("#CEC9C2")), "Prose must use the shared readable foreground");
+        check(text.getFill().equals(Color.web("#302B26")), "Prose must use the shared readable foreground");
       } else if (headingSizes.containsKey(text.getText())) {
         headings.add(text.getText());
-        check(text.getFont().getName().equals("Inter SemiBold") && text.getFill().equals(Color.web("#CEC9C2")),
-            "All heading levels must preserve the semibold face and dark-theme text color");
+        check(text.getFont().getName().equals("Inter SemiBold") && text.getFill().equals(Color.web("#302B26")),
+            "All heading levels must preserve the semibold face and workspace text color");
       } else if (List.of("value", "fenced()").contains(text.getText())) {
         codeRuns.add(text.getText());
         if (System.getProperty("os.name").startsWith("Mac"))
           check(text.getFont().getFamily().equals("Menlo"), "Only code should switch to installed Menlo");
-        check(text.getFill().equals(Color.web("#A49D95")), "Code must use the shared muted foreground");
+        check(text.getFill().equals(Color.web("#665D53")), "Code must use the shared muted foreground");
         if (text.getText().equals("value"))
           check(FxTheme.EDITOR_BACKGROUND.equals(text.getBackgroundColor()), "Inline code keeps its own text background");
         else {
           Region block = (Region) text.getParent();
-          check(block.getBackground().getFills().getFirst().getFill().equals(Color.web("#FFFFFF0F"))
+          check(block.getBackground().getFills().getFirst().getFill().equals(Color.web("#34302C12"))
               && block.getPadding().getLeft() >= 12,
               "A fenced code line shares the quiet full-width block treatment");
         }
@@ -536,14 +536,14 @@ public final class FxWritingPaneTests {
       else if (text.getText().equals("both"))
         check(text.getFont().getName().equals("Inter SemiBold Italic"), "Bold italic text must retain its own real static face");
       else if (text.getText().equals("link"))
-        check(text.getFill().equals(Color.web("#FF6B6B")), "Links must use the readable foreground accent");
+        check(text.getFill().equals(Color.web("#9F3A2B")), "Links must use the readable foreground accent");
     }
     check(headings.size() == 4 && codeRuns.size() == 2, "The actual typography check must include all representative heading levels and both code widgets");
     int bodyStart = editor.area().getAbsolutePosition(4, 0);
     editor.area().selectRange(bodyStart, bodyStart + 4); root.applyCss(); root.layout();
     check(editor.area().lookupAll(".selection").stream().anyMatch(node -> node instanceof javafx.scene.shape.Shape shape
-        && Color.web("#AB2828DD").equals(shape.getFill())),
-        "The native text selection must use Dark 2026's exact translucent selection color: "
+        && Color.web("#B9503D3D").equals(shape.getFill())),
+        "The native text selection must use the light palette’s translucent selection color: "
             + editor.area().lookupAll(".selection").stream().map(node -> ((javafx.scene.shape.Shape) node).getFill()).toList());
     System.out.println("RichTextFX body caret height: " + caret.get().getHeight());
     editor.dispose(); stage.close();
@@ -602,13 +602,15 @@ public final class FxWritingPaneTests {
       var quote = (javafx.scene.layout.Region) editor.area().lookup(".md-quote");
       var border = quote.getBorder().getStrokes().getFirst();
       check(quote.getBackground().getFills().getFirst().getFill().equals(FxTheme.EDITOR_BACKGROUND)
-          && border.getLeftStroke().equals(Color.web("#FF6B6B")) && border.getWidths().getLeft() == 3,
+          && border.getLeftStroke().equals(Color.web("#9F3A2B")) && border.getWidths().getLeft() == 3,
           "The quote must have a tinted surface and an accent rule");
       check(editor.area().getParagraphGraphic(6) == null && quote.getPadding().getLeft() == 16,
           "Quote spacing belongs inside the styled paragraph");
       var image = root.snapshot(null, null);
-      check(brightMarkerPixels(root, image, pendingBox) == 0 && brightMarkerPixels(root, image, finishedBox) >= 3,
-          "Rendered pixels must show the check only on the selected item");
+      int pendingMarks = markerPixels(root, image, pendingBox, FxTheme.EDITOR_BACKGROUND);
+      int finishedMarks = markerPixels(root, image, finishedBox, FxTheme.DEFAULT_ACCENT);
+      check(pendingMarks == 0 && finishedMarks >= 3,
+          "Rendered pixels must show the check only on the selected item: " + pendingMarks + " and " + finishedMarks);
       check(pending.getAccessibleText().equals("Checklist item unchecked") && finished.isSelected(),
           "Checklist controls must retain a native, named selection state");
       pending.fire();
@@ -652,13 +654,13 @@ public final class FxWritingPaneTests {
     } finally { editor.dispose(); stage.close(); }
   }
 
-  private static int brightMarkerPixels(StackPane root, javafx.scene.image.WritableImage image, Node box) {
+  private static int markerPixels(StackPane root, javafx.scene.image.WritableImage image, Node box, Color background) {
     Bounds region = root.sceneToLocal(box.localToScene(box.getLayoutBounds()));
     int pixels = 0;
     for (int y = (int) Math.ceil(region.getMinY() + 2); y < region.getMaxY() - 2; y++) {
       for (int x = (int) Math.ceil(region.getMinX() + 2); x < region.getMaxX() - 2; x++) {
         Color color = image.getPixelReader().getColor(x, y);
-        if (color.getRed() > .85 && color.getGreen() > .85 && color.getBlue() > .85) pixels++;
+        if (FxTheme.contrast(color, background) > 2) pixels++;
       }
     }
     return pixels;
@@ -674,6 +676,7 @@ public final class FxWritingPaneTests {
     Stage stage = new Stage(); stage.setScene(new Scene(root, 500, 500)); stage.show();
     root.applyCss(); root.layout();
     SimpleDoubleProperty progress = new SimpleDoubleProperty();
+    progress.addListener((observable, previous, value) -> FxTheme.focusSurface(root, value.doubleValue()));
     editor.setFocusLineProgress(progress);
     Rectangle mask = (Rectangle) editor.node().lookup(".zen-focus-mask");
     check(mask != null && mask.isMouseTransparent() && !mask.isFocusTraversable() && !mask.isVisible(),
@@ -699,9 +702,9 @@ public final class FxWritingPaneTests {
         "The actual wrapped caret line must remain fully readable through the gradient");
     check(gradientOpacity(gradient, (first.getCenterY() - mask.getY()) / mask.getHeight()) > .99,
         "Lines far from the visual caret line must fade completely into the editor background");
-    int normalFar = brightPixels(normal, first.getMinY(), first.getMaxY());
-    int focusedFar = brightPixels(focused, first.getMinY(), first.getMaxY());
-    int focusedCurrent = brightPixels(focused, current.getMinY(), current.getMaxY());
+    int normalFar = inkPixels(normal, first.getMinY(), first.getMaxY(), FxTheme.EDITOR_BACKGROUND);
+    int focusedFar = inkPixels(focused, first.getMinY(), first.getMaxY(), Color.BLACK);
+    int focusedCurrent = inkPixels(focused, current.getMinY(), current.getMaxY(), Color.BLACK);
     check(normalFar > 30 && focusedFar == 0 && focusedCurrent > 30,
         "Actual rendered pixels must hide distant text while retaining the current visual line");
     for (Node node : editor.node().lookupAll(".scroll-bar")) if (node instanceof ScrollBar bar && bar.isVisible()
@@ -782,12 +785,12 @@ public final class FxWritingPaneTests {
     scene.addPostLayoutPulseListener(pulse[0]); Platform.requestNextPulse();
   }
 
-  private static int brightPixels(javafx.scene.image.WritableImage image, double top, double bottom) {
+  private static int inkPixels(javafx.scene.image.WritableImage image, double top, double bottom, Color background) {
     int count = 0;
     for (int y = Math.max(0, (int) Math.floor(top)); y < Math.min(image.getHeight(), Math.ceil(bottom)); y++)
       for (int x = 24; x < image.getWidth() - 24; x++) {
         Color color = image.getPixelReader().getColor(x, y);
-        if (color.getRed() > .4 && color.getGreen() > .4 && color.getBlue() > .4) count++;
+        if (FxTheme.contrast(color, background) > 3) count++;
       }
     return count;
   }

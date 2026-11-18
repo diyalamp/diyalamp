@@ -107,8 +107,8 @@ public final class FxWorkspaceLayoutTests {
 
   @SuppressWarnings("unchecked")
   private static void composition(Fixture fixture) throws Exception {
-    check(Application.getUserAgentStylesheet().contains("cupertino-dark"),
-        "The workspace must use the maintained Cupertino Dark control theme");
+    check(Application.getUserAgentStylesheet().contains("cupertino-light"),
+        "The workspace must use the maintained Cupertino Light control theme");
     ToolBar toolbar = (ToolBar) field(fixture.app, "toolbar");
     check(toolbar.getHeight() >= 52 && toolbar.getHeight() <= 64, "The shared toolbar must have a single comfortable control row");
     for (String name : new String[] {"Workspace accent color", "Pomodoro timer, Focus, Ready", "Zen mode", "Toggle right sidebar", "Open folder"}) {

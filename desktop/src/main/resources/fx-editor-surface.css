@@ -12,7 +12,7 @@
 .workspace-root .editor-surface .writing-area .md-code-text { -fx-fill: -color-code-fg; }
 .workspace-root .editor-surface .writing-area .md-inline-code { -rtfx-background-color: -color-bg-subtle; }
 .workspace-root .editor-surface .writing-area .md-link { -fx-fill: -color-accent-fg; }
-.workspace-root .editor-surface .writing-area .md-link:hover { -fx-fill: -color-fg-emphasis; }
+.workspace-root .editor-surface .writing-area .md-link:hover { -fx-fill: -diyalamp-ink-strong; }
 
 .workspace-root .note-find {
   -fx-padding: 8 16;

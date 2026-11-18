@@ -205,25 +205,29 @@ public final class FxShellTests {
       popup.getRoot().applyCss(); popup.getRoot().layout();
       var choices = popup.getContentNode().lookupAll(".accent-choice").stream().map(node -> (Button) node).toList();
       var palette = choices.stream().collect(java.util.stream.Collectors.toMap(Button::getText, button -> button));
-      check(palette.keySet().equals(java.util.Set.of("Red", "Blue", "Yellow", "Green", "White"))
+      check(palette.keySet().equals(java.util.Set.of("Fired Clay", "Apricot Flame", "Honey Gold", "Clay Rose", "Wick Ash"))
               && popup.getContentNode().lookupAll(".color-picker").isEmpty(),
           "The accent bubble must contain exactly five named colors without a second popup picker");
       check(choices.stream().allMatch(button -> button.getFont().getName().equals("Inter Regular") && button.getFont().getSize() == 16),
           "Actual palette buttons must use the shared regular UI typography");
       var widths = choices.stream().map(Button::getWidth).toList();
-      check(widths.getFirst() > 100 && widths.stream().allMatch(width -> Math.abs(width - widths.getFirst()) <= 1),
-          "The accent picker uses two stable equal-width columns");
+      check(widths.getFirst() >= 250 && widths.stream().allMatch(width -> Math.abs(width - widths.getFirst()) <= 1)
+              && choices.stream().map(Button::getLayoutY).distinct().count() == choices.size(),
+          "The accent picker uses a single column with full-width buttons");
+      check(choices.stream().allMatch(button -> button.lookup(".text") instanceof javafx.scene.text.Text label
+              && button.getText().equals(label.getText())),
+          "Each accent button displays its full label");
       PseudoClass selected = PseudoClass.getPseudoClass("selected");
-      check(FxTheme.accentOf(root).equals(Color.web("#EE0000")) && palette.get("Red").getPseudoClassStates().contains(selected),
-          "A clean workspace must begin with the red accent selected");
-      Map<String, String> presets = Map.of("Red", "#EE0000", "Blue", "#489CFF", "Yellow", "#F7C843",
-          "Green", "#4CD980", "White", "#FFFFFF");
-      for (String name : java.util.List.of("Blue", "Yellow", "Green", "White", "Red")) {
+      check(FxTheme.accentOf(root).equals(FxTheme.DEFAULT_ACCENT) && palette.get("Fired Clay").getPseudoClassStates().contains(selected),
+          "A clean workspace must begin with Fired Clay selected");
+      Map<String, String> presets = Map.of("Fired Clay", "#A84230", "Apricot Flame", "#E9A576", "Honey Gold", "#DDB66E",
+          "Clay Rose", "#CF9488", "Wick Ash", "#A49183");
+      for (String name : java.util.List.of("Apricot Flame", "Honey Gold", "Clay Rose", "Wick Ash", "Fired Clay")) {
         Button choice = palette.get(name);
         choice.fire();
         popup.getRoot().applyCss(); popup.getRoot().layout();
         check(widths.equals(choices.stream().map(Button::getWidth).toList()),
-            "Selecting " + name + " must keep both columns stable");
+            "Selecting " + name + " must keep the row width stable");
         check(choice.getPseudoClassStates().contains(selected) && choice.getAccessibleText().endsWith(", selected")
                 && choice.getText().equals(name),
             "The styled selection and accessible name must leave the visible label unchanged");
@@ -237,12 +241,12 @@ public final class FxShellTests {
           "The custom hex field must be hidden until Custom opens it");
       custom.setExpanded(true);
       popup.getRoot().applyCss(); popup.getRoot().layout();
-      check(custom.isExpanded() && "#EE0000".equals(hex.getText())
+      check(custom.isExpanded() && "#A84230".equals(hex.getText())
               && widths.equals(choices.stream().map(Button::getWidth).toList()),
           "Custom must reveal the current hex value without resizing the choices");
       hex.setText("#12G456");
       hex.fireEvent(new ActionEvent());
-      check(apply.isDisabled() && fixture.preferences.get("accent", "").equals("#EE0000"),
+      check(apply.isDisabled() && fixture.preferences.get("accent", "").equals("#A84230"),
           "An invalid hex value must be rejected without altering preferences");
       hex.setText("7b8fb7");
       hex.fireEvent(new ActionEvent());
