@@ -3,34 +3,34 @@
   <p><strong>Your commonplace book.</strong></p>
   <p>Collect what you read and learn in a folder of Markdown notes. Write with live formatting, search your notes, and follow connections between them.</p>
   <p>Free forever · Open source · No sign-up · macOS</p>
-  <p><a href="#download-for-mac"><strong>Download for Mac</strong></a> · <a href="https://diyalamp.com/">Website</a> · <a href="https://github.com/diyalamp/diyalamp/releases/tag/v1.4.1">Release notes</a></p>
+  <p><a href="#download-for-mac"><strong>Download for Mac</strong></a> · <a href="https://diyalamp.com/">Website</a> · <a href="https://github.com/diyalamp/diyalamp/releases/tag/v1.4.2">Release notes</a></p>
 </div>
 
 <p align="center">
   <a href="docs/assets/database-workspace.webp?v=1.4.2-light"><img src="docs/assets/database-workspace.webp?v=1.4.2-light" alt="DiyaLamp’s light Markdown workspace with a Database Indexes note and a graph of connected notes" width="1100"></a><br>
-  <sub>Version 1.4.2 preview · Database Indexes, with its incoming and outgoing note links.</sub>
+  <sub>Database Indexes, with its incoming and outgoing note links.</sub>
 </p>
 
 ## Download for Mac
 
-Version **1.4.1** includes the runtime. Open **Apple menu → About This Mac** to choose your installer. Select Apple silicon if you see an Apple chip and Intel if you see an Intel processor.
+Version **1.4.2** includes the runtime. Open **Apple menu → About This Mac** to choose your installer. Select Apple silicon if you see an Apple chip and Intel if you see an Intel processor.
 
 | Mac | Installer | SHA-256 |
 | --- | --- | --- |
-| Apple silicon | [Download DMG · 45.9 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.4.1/diyalamp-1.4.1-macos-arm64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.4.1/diyalamp-1.4.1-macos-arm64.dmg.sha256) |
-| Intel | [Download DMG · 47.5 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.4.1/diyalamp-1.4.1-macos-x86_64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.4.1/diyalamp-1.4.1-macos-x86_64.dmg.sha256) |
+| Apple silicon | [Download DMG · 46.8 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.4.2/diyalamp-1.4.2-macos-arm64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.4.2/diyalamp-1.4.2-macos-arm64.dmg.sha256) |
+| Intel | [Download DMG · 48.4 MB](https://github.com/diyalamp/diyalamp/releases/download/v1.4.2/diyalamp-1.4.2-macos-x86_64.dmg) | [Checksum](https://github.com/diyalamp/diyalamp/releases/download/v1.4.2/diyalamp-1.4.2-macos-x86_64.dmg.sha256) |
 
 Sizes are compressed DMG downloads. The [under-5-MB installed target](https://github.com/diyalamp/diyalamp/issues/2) is an open engineering goal.
 
-Open the DMG and drag **diyalamp** into **Applications**. Then press `⌘O` to open your Markdown folder. The release is ad hoc signed, and macOS may block first launch. The [install guide](docs/install.md) covers checksum verification, macOS compatibility, and updates.
+Open the DMG and drag **diyalamp** into **Applications**. Then press `⌘O` to open your Markdown folder. Both installers are Developer ID signed and notarized by Apple. The [install guide](docs/install.md) covers checksum verification, macOS compatibility, and updates.
 
 [Download the sample notes (ZIP)](https://diyalamp.com/downloads/database-systems-demo.zip) to try a smaller version of the workspace shown above. Unzip the archive, open the **Database Systems Demo** folder in diyalamp, and start with **Database Indexes**.
 
 ## The writing workspace
 
-Edit headings, checklists, quotes, links, and fenced code blocks with live formatting. The 1.4.2 preview opens in warm light mode, with a black workspace in Focus mode. Type `/` on an empty line for block commands. Drag a note into a second pane to keep a reference in view while you write. Reorder tabs, rename a note inline, or drag it to another folder. Select a folder to create a note inside it, rename it, or move it to Deleted Items.
+Edit headings, checklists, quotes, links, and fenced code blocks with live formatting. The editor opens in warm light mode, with a black workspace in Focus mode. Type `/` on an empty line for block commands. Drag a note into a second pane to keep a reference in view while you write. Reorder tabs, rename a note inline, or drag it to another folder. Select a folder to create a note inside it, rename it, or move it to Deleted Items.
 
-Preview text files, PDFs, and images beside a Markdown note. The 1.4.2 preview scrolls through PDF pages continuously. The last workspace can reopen with its tabs and split layout after you quit.
+Preview text files, PDFs, and images beside a Markdown note. Scroll through PDF pages continuously. The last workspace can reopen with its tabs and split layout after you quit.
 
 <p align="center">
   <a href="docs/assets/database-search-and-split.webp?v=1.4.2-light"><img src="docs/assets/database-search-and-split.webp?v=1.4.2-light" alt="Search results for index alongside the Database Indexes and Query Plans notes in two editing panes" width="1100"></a><br>
