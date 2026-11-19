@@ -21,23 +21,23 @@ If installation fails, [report an issue](https://github.com/diyalamp/diyalamp/is
 
 ## Verify a download (optional)
 
-Keep the DMG and its checksum file in the same folder without renaming either file. For example, for release **1.3.7** downloaded into Downloads, open Terminal and run the command for your architecture:
+Keep the DMG and its checksum file in the same folder without renaming either file. For example, for release **1.4.2** downloaded into Downloads, open Terminal and run the command for your architecture:
 
 Apple silicon:
 
 ```sh
 cd ~/Downloads
-shasum -a 256 -c diyalamp-1.3.7-macos-arm64.dmg.sha256
+shasum -a 256 -c diyalamp-1.4.2-macos-arm64.dmg.sha256
 ```
 
 Intel:
 
 ```sh
 cd ~/Downloads
-shasum -a 256 -c diyalamp-1.3.7-macos-x86_64.dmg.sha256
+shasum -a 256 -c diyalamp-1.4.2-macos-x86_64.dmg.sha256
 ```
 
-For another release, replace `1.3.7` with that release's version in the command. The result should end with **`OK`**. A missing-file error means the files are not together or their names differ. A checksum mismatch means the download does not match the published checksum; discard it and download the matching pair again. This check detects download changes; it does not replace code signing, notarization, or a security review.
+For another release, replace `1.4.2` with that release's version in the command. The result should end with **`OK`**. A missing-file error means the files are not together or their names differ. A checksum mismatch means the download does not match the published checksum; discard it and download the matching pair again. This check detects download changes; it does not replace code signing, notarization, or a security review.
 
 ## Install and open
 
@@ -46,7 +46,7 @@ For another release, replace `1.3.7` with that release's version in the command.
 3. Eject the mounted diyalamp disk image.
 4. Open diyalamp from Applications.
 
-Releases through **1.3.9** are ad hoc signed. macOS may block them on first launch. Look for a release whose notes confirm Developer ID signing and Apple notarization. If macOS reports a damaged app or refuses to open it, [report an issue](https://github.com/diyalamp/diyalamp/issues) with the exact message and macOS version. Organization-managed Macs may also enforce their own installation policy.
+Version **1.4.2** includes Developer ID signed installers notarized by Apple. macOS may block first launch for older, ad hoc signed releases. If macOS reports a damaged app or refuses to open it, [report an issue](https://github.com/diyalamp/diyalamp/issues) with the exact message and macOS version. Organization-managed Macs may also enforce their own installation policy.
 
 ## Updating from the app
 
